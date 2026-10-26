@@ -13,7 +13,7 @@ Every session that designs a print starts here and leaves what it learned here.
 2. Read `knowledge/design-rules.md` and `knowledge/lessons-learned.md`.
    Lessons learned override the general rules.
 3. Pick the material with `knowledge/materials.md`. Anything outdoors or in a
-   closed shed is PETG or ASA, never PLA.
+   closed shed is PETG, never PLA (ASA warps on the open-frame AD5X).
 
 ## Making a new print
 
@@ -31,8 +31,10 @@ Every session that designs a print starts here and leaves what it learned here.
 5. Check: `python3 tools/check_print.py projects/<name>/model.stl --material PETG`.
    Fix every FAIL. Explain each WARN to the user or fix it. Paste the
    result into the project README.
-6. Sliced G-code can be checked the same way (`.gcode`): it catches files
-   sliced for the wrong printer, nozzle or temperatures.
+6. Sliced files can be checked the same way: `.gcode`, and Orca-Flashforge's
+   `.gcode.3mf` / project `.3mf`. Pass a folder to check everything in it
+   (`--summary` for one line per file). This catches files sliced for the
+   wrong printer, nozzle or temperatures, and shows the slicer's own warnings.
 
 ## After the user prints it
 
@@ -46,5 +48,5 @@ general (a tolerance that was off, a material that failed), add a row to
 - `knowledge/`: design rules, materials (`materials.toml` is read by the checker), lessons learned
 - `projects/<name>/`: one folder per part (brief, `model.scad`, `model.stl`, print log)
 - `projects/_template/`: what `new_project.py` copies
-- `tools/check_print.py`: pre-print checker (STL and G-code, Python stdlib only)
+- `tools/check_print.py`: pre-print checker (STL, 3MF and G-code, Python stdlib only)
 - `tests/`: `python3 -m unittest discover tests`

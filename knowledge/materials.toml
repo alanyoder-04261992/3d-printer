@@ -6,7 +6,7 @@
 # enclosure = needs an enclosed printer to avoid warping/cracking
 
 [PLA]
-nozzle = [190, 220]
+nozzle = [190, 235]        # 230-232 °C is our strength setting, see lessons-learned
 bed = [50, 65]
 density = 1.24             # g/cm³
 outdoor = false

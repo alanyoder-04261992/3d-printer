@@ -36,6 +36,8 @@ Holes print **small** and posts print **large**. Design with these offsets:
 
 - Parts are weakest **between layers** (pulling along Z). Turn parts so the load runs along the layers, not across them.
 - More walls beat more infill. 4 walls + 20% infill is stronger than 2 walls + 50%.
+- Layer bonding is mostly print settings, not geometry. For parts that flex or take hits, use the strength settings in `lessons-learned.md` (PLA at 230 °C, fan 40 %, aux blower off).
+- Thin walls (under about 1.2 mm): slice with the Arachne wall generator, and set the seam to Random or Scarf, not Aligned.
 - Round inside corners (fillet ≥ 1 mm) where a part bends under load.
 - Screws into plastic: use heat-set inserts (M3 insert → 4.0 mm hole, 5 mm deep) or design for wood screws biting into a 75%-of-diameter pilot.
 

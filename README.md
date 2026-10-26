@@ -12,6 +12,9 @@ python3 tools/new_project.py "Vent louver clip"
 
 # After exporting the STL (or slicing to G-code), check it against our printer
 python3 tools/check_print.py projects/vent-louver-clip/model.stl --material PETG
+
+# Check a whole folder of STL / 3MF / G-code files, one line each
+python3 tools/check_print.py "desktop prints" --summary
 ```
 
 The checker reports each problem as **FAIL** (fix before printing) or
@@ -19,9 +22,12 @@ The checker reports each problem as **FAIL** (fix before printing) or
 
 - **STL:** fits the bed (including turned 90°), wrong export units, holes in
   the mesh, inside-out normals, overhangs that need supports, filament weight
-- **G-code:** prints outside the bed or too tall, wrong nozzle size,
-  temperatures over the printer's limit or outside the material's range,
-  materials that need an enclosure
+- **G-code:** sliced for a different printer, prints outside the bed or too
+  tall, wrong nozzle size, temperatures over the printer's limit or outside
+  the material's range, materials that need an enclosure
+- **3MF (Orca-Flashforge):** sliced `.gcode.3mf` files get the G-code checks
+  for every plate plus the slicer's own warnings; unsliced project `.3mf`
+  files get the model checks for every object on the plate
 
 It needs only Python 3.11+; nothing to install.
 

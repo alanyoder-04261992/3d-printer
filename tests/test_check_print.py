@@ -1,8 +1,10 @@
 import io
+import json
 import struct
 import sys
 import tempfile
 import unittest
+import zipfile
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -93,13 +95,29 @@ class CheckerTest(unittest.TestCase):
         self.assertFalse(r.failed, r.items)
         self.assertTrue(any("turned 90" in m for m in self.messages(r, "OK")))
 
-    def test_open_mesh_fails(self):
+    def test_open_mesh_warns(self):
+        # Slicers print through small holes, so it's a warning, not a failure.
         r = self.stl(box_tris(20, 20, 20)[:-2])
-        self.assertTrue(any("holes" in m for m in self.messages(r, "FAIL")))
+        self.assertFalse(r.failed, r.items)
+        self.assertTrue(any("holes" in m for m in self.messages(r, "WARN")))
 
     def test_wrong_units_warns(self):
         r = self.stl(box_tris(0.02, 0.02, 0.02))
         self.assertTrue(any("meters" in m for m in self.messages(r, "WARN")))
+        # Tiny coordinates must not be merged into one point by the vertex matching.
+        self.assertTrue(any("watertight" in m for m in self.messages(r, "OK")))
+
+    def test_touching_parts_are_checked_separately(self):
+        # Two closed boxes stacked so they share a face, like a 2-color model.
+        bottom = box_tris(20, 20, 10)
+        top = box_tris(20, 20, 10, z0=10)
+        r = check_print.Report("parts")
+        check_print.check_mesh([bottom, top], PRINTER, PLA, r)
+        self.assertFalse(self.messages(r, "WARN"), r.items)
+        # Merged into one mesh, the shared face shows up as non-manifold edges.
+        r = check_print.Report("merged")
+        check_print.check_mesh([bottom + top], PRINTER, PLA, r)
+        self.assertTrue(any("non-manifold" in m for m in self.messages(r, "WARN")))
 
     def test_inverted_normals_warn(self):
         r = self.stl([(a, c, b) for a, b, c in box_tris(20, 20, 20)])
@@ -113,6 +131,11 @@ class CheckerTest(unittest.TestCase):
             tuple((x + 30, y, z) for x, y, z in t) for t in box_tris(20, 20, 5, z0=10)]
         r = self.stl(tris)
         self.assertTrue(any("overhang" in m for m in self.messages(r, "WARN")))
+        # Same model in a project that already has supports on: just a note.
+        r = check_print.Report("supported")
+        check_print.check_mesh([tris], PRINTER, PLA, r, supports=True)
+        self.assertFalse(self.messages(r, "WARN"), r.items)
+        self.assertTrue(any("supports are on" in m for m in self.messages(r, "INFO")))
 
     def test_45_degree_chamfer_is_not_overhang(self):
         # Square frustum: 20 mm base on the bed widening to 30 mm at 5 mm up (45° walls).
@@ -168,8 +191,13 @@ class CheckerTest(unittest.TestCase):
         self.assertTrue(any("over the printer limit" in m for m in self.messages(r, "FAIL")))
 
     def test_temp_wrong_for_material_warns(self):
-        r = self.gcode(self.GOOD.replace("M104 S205", "M104 S245"))
+        r = self.gcode(self.GOOD.replace("M104 S205", "M104 S250"))
         self.assertTrue(any("PLA range" in m for m in self.messages(r, "WARN")))
+
+    def test_preheat_temp_is_ignored(self):
+        # Slicers preheat at 140-150 °C before homing; only the print temp counts.
+        r = self.gcode(self.GOOD.replace("M104 S205", "M104 S150\nM104 S230"))
+        self.assertFalse(self.messages(r, "WARN"), r.items)
 
     def test_material_from_slicer_comment(self):
         text = "; filament_type = ASA\n" + self.GOOD.replace("M104 S205", "M104 S250") \
@@ -198,6 +226,95 @@ class CheckerTest(unittest.TestCase):
         r = self.gcode("G28\nG1 X10 Y10\n")
         self.assertTrue(r.failed)
 
+    # --- 3MF
+
+    def threemf(self, files, name="m.3mf"):
+        path = self.dir / name
+        with zipfile.ZipFile(path, "w") as z:
+            for arcname, data in files.items():
+                z.writestr(arcname, data)
+        report = check_print.Report(path)
+        check_print.check_3mf(path, PRINTER, PLA, MATERIALS, False, report)
+        return report
+
+    @staticmethod
+    def slice_info(outside="false", warning=None):
+        warn = f'<warning msg="{warning}" level="1" />' if warning else ""
+        return ('<config><plate><metadata key="index" value="1"/>'
+                '<metadata key="printer_model_id" value="Test"/>'
+                f'<metadata key="outside" value="{outside}"/>'
+                f'<filament id="1" type="PLA" used_g="12.29"/>{warn}</plate></config>')
+
+    def test_sliced_3mf_checks_plate_gcode(self):
+        r = self.threemf({"Metadata/plate_1.gcode": self.GOOD,
+                          "Metadata/slice_info.config": self.slice_info()},
+                         name="m.gcode.3mf")
+        self.assertFalse(r.failed, r.items)
+        self.assertTrue(any("our printer (Test)" in m for m in self.messages(r, "OK")))
+        self.assertTrue(any("PLA 12.29 g" in m for m in self.messages(r, "INFO")))
+
+    def test_sliced_3mf_reports_slicer_problems(self):
+        r = self.threemf({"Metadata/plate_1.gcode": self.GOOD,
+                          "Metadata/slice_info.config": self.slice_info(
+                              outside="true", warning="filament_not_enough")})
+        self.assertTrue(any("outside the printable area" in m for m in self.messages(r, "FAIL")))
+        self.assertTrue(any("filament not enough" in m for m in self.messages(r, "WARN")))
+
+    def test_bed_softening_warning_only_matters_enclosed(self):
+        files = {"Metadata/plate_1.gcode": self.GOOD,
+                 "Metadata/slice_info.config": self.slice_info(
+                     warning="bed_temperature_too_high_than_filament")}
+        r = self.threemf(files)
+        self.assertFalse(self.messages(r, "WARN"), r.items)
+        self.assertTrue(any("open frame" in m for m in self.messages(r, "INFO")))
+
+        enclosed = dict(PRINTER, printer=dict(PRINTER["printer"], enclosure=True))
+        r = check_print.Report("enclosed")
+        check_print._slicer_warning("bed_temperature_too_high_than_filament", enclosed, r)
+        self.assertTrue(any("bed temperature" in m for m in self.messages(r, "WARN")))
+
+    def test_empty_3mf_fails(self):
+        ns = 'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"'
+        r = self.threemf({"3D/3dmodel.model": f"<model {ns}><resources/><build/></model>"})
+        self.assertTrue(any("empty" in m for m in self.messages(r, "FAIL")))
+
+    def test_project_3mf_applies_component_and_build_transforms(self):
+        # Orca layout: the root model has a component pointing at a mesh in another
+        # file; the build item scales it 2x and moves it on the plate.
+        tris = box_tris(20, 10, 5)
+        verts = sorted({v for t in tris for v in t})
+        index = {v: i for i, v in enumerate(verts)}
+        vxml = "".join(f'<vertex x="{x}" y="{y}" z="{z}"/>' for x, y, z in verts)
+        txml = "".join(f'<triangle v1="{index[a]}" v2="{index[b]}" v3="{index[c]}"/>'
+                       for a, b, c in tris)
+        ns = ('xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
+              'xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"')
+        part = (f'<model {ns}><resources><object id="1" type="model"><mesh>'
+                f'<vertices>{vxml}</vertices><triangles>{txml}</triangles>'
+                '</mesh></object></resources></model>')
+        root = (f'<model {ns}><resources><object id="2" name="bracket" type="model">'
+                '<components><component p:path="/3D/Objects/object_1.model" objectid="1"/>'
+                '</components></object></resources><build>'
+                '<item objectid="2" transform="2 0 0 0 2 0 0 0 2 100 100 0"/></build></model>')
+        r = self.threemf({"3D/3dmodel.model": root, "3D/Objects/object_1.model": part,
+                          "Metadata/project_settings.config": json.dumps(
+                              {"printer_model": "Test", "filament_type": ["PETG"]})})
+        self.assertFalse(r.failed, r.items)
+        self.assertTrue(any("40.0 x 20.0 x 10.0 mm" in m for m in self.messages(r, "INFO")))
+        # Material comes from the project: 8 cm³ at PETG's 1.27 g/cm³.
+        self.assertTrue(any("8.0 cm³ = 10 g" in m for m in self.messages(r, "INFO")))
+
+    def test_lfs_placeholder_is_explained(self):
+        for name in ("big.stl", "big.3mf"):
+            path = self.dir / name
+            path.write_text("version https://git-lfs.github.com/spec/v1\noid sha256:abc\nsize 9\n")
+            r = check_print.Report(path)
+            with self.assertRaisesRegex(ValueError, "git lfs pull"):
+                if name.endswith(".stl"):
+                    check_print.check_stl(path, PRINTER, PLA, r)
+                else:
+                    check_print.check_3mf(path, PRINTER, PLA, MATERIALS, False, r)
+
     # --- Real repo config
 
     def test_repo_printer_profile_is_ad5x(self):
@@ -208,16 +325,25 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual((vol["x_max"], vol["y_max"], vol["z_max"]), (220, 220, 220))
 
     def test_ad5x_start_gcode_stays_on_bed(self):
-        # Start sequence from the official OrcaSlicer AD5X profile (purge line at the back edge).
-        start = ("M190 S60\nM109 S210\nG90\nM83\nG1 Z2 F6000\nG1 X50 Y220 Z0.25 F4800\n"
-                 "G1 X70 E3 F900\nG1 X200 E10 F1800\nG0 Y219.6\nG1 X130 E5 F1800\nG92 E0\n"
-                 "G1 X100 Y100 Z0.2 E1\n")
+        # Purge lines from both AD5X profiles: Orca-Flashforge (front edge, what our
+        # printed files use) and upstream OrcaSlicer (back edge).
         printer = check_print.load_toml(check_print.DEFAULT_PRINTER)
-        path = self.dir / "ad5x.gcode"
-        path.write_text(start)
-        r = check_print.Report(path)
-        check_print.check_gcode(path, printer, PLA, MATERIALS, True, r)
-        self.assertFalse(r.failed, r.items)
+        for purge in ("G1 X50 Y-1 Z0.25 F9000\nG1 X70 E3 F900\nG1 X200 E10 F1800\n"
+                      "G0 Y-1.4\nG1 X130 E5 F1800\n",
+                      "G1 X50 Y220 Z0.25 F4800\nG1 X70 E3 F900\nG1 X200 E10 F1800\n"
+                      "G0 Y219.6\nG1 X130 E5 F1800\n"):
+            path = self.dir / "ad5x.gcode"
+            path.write_text("; printer_model = Flashforge AD5X\nM190 S55\nM104 S220\n"
+                            "G90\nM83\nG1 Z2 F6000\n" + purge + "G92 E0\n"
+                            "G1 X100 Y100 Z0.2 E1\n")
+            r = check_print.Report(path)
+            check_print.check_gcode(path, printer, PLA, MATERIALS, True, r)
+            self.assertFalse(r.failed, r.items)
+            self.assertTrue(any("our printer" in m for m in self.messages(r, "OK")))
+
+    def test_sliced_for_other_printer_fails(self):
+        r = self.gcode("; printer_model = Creality Ender-3 S1\n" + self.GOOD)
+        self.assertTrue(any("Ender-3" in m for m in self.messages(r, "FAIL")))
 
     def test_asa_on_open_frame_warns(self):
         printer = check_print.load_toml(check_print.DEFAULT_PRINTER)
@@ -233,7 +359,7 @@ class CheckerTest(unittest.TestCase):
         good = self.dir / "good.stl"
         write_binary_stl(good, box_tris(20, 20, 20))
         bad = self.dir / "bad.stl"
-        write_binary_stl(bad, box_tris(20, 20, 20)[:-1])
+        write_binary_stl(bad, box_tris(300, 20, 20))
         with redirect_stdout(io.StringIO()):
             self.assertEqual(check_print.main([str(good)]), 0)
             self.assertEqual(check_print.main([str(good), str(bad)]), 1)
