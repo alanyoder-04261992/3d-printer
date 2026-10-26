@@ -1,0 +1,36 @@
+# The printer every design in this repo is checked against.
+# tools/check_print.py reads this file. Keep it matching the real machine.
+#
+# Flashforge AD5X: CoreXY, open frame, 4-color IFS (Intelligent Filament
+# System). Numbers from Flashforge's spec sheet and the official OrcaSlicer
+# machine profile ("Flashforge AD5X 0.4 nozzle"). Slice with Orca-Flashforge
+# or OrcaSlicer.
+
+[printer]
+name = "Flashforge AD5X"
+confirmed = true
+firmware = "klipper"       # Flashforge's Klipper-based firmware
+enclosure = false          # open frame: ASA/ABS will warp, see knowledge/materials.md
+colors = 4                 # IFS slots
+
+[build_volume]
+# Printable area in mm, origin at the front-left corner. Orca-Flashforge's
+# AD5X start G-code draws its purge line just off the front edge
+# (G1 X50 Y-1 ... G0 Y-1.4), so y_min allows for it.
+x_min = 0
+x_max = 220
+y_min = -1.5
+y_max = 220
+z_max = 220
+
+[nozzle]
+diameter = 0.4             # stock; 0.25 / 0.6 / 0.8 nozzles are tool-free swaps
+max_temp = 300             # °C
+
+[bed]
+max_temp = 110             # °C
+
+[defaults]
+layer_height = 0.2         # mm
+material = "PLA"           # must be a section in knowledge/materials.toml
+max_overhang_deg = 45      # steeper than this (from vertical) needs support
