@@ -37,10 +37,26 @@ outdoor = false
 enclosure = true
 notes = "Heat resistant but yellows and gets brittle in UV. Use ASA instead for outdoor parts."
 
+[PLA-CF]
+nozzle = [210, 230]
+bed = [50, 65]
+density = 1.30
+outdoor = false
+enclosure = false
+notes = "Carbon-fiber PLA. Stiffer, matte finish, still indoor-only like PLA. Abrasive."
+
+[PETG-CF]
+nozzle = [240, 260]
+bed = [70, 85]
+density = 1.30
+outdoor = true
+enclosure = false
+notes = "Carbon-fiber PETG. Stiff outdoor brackets and jigs. Abrasive."
+
 [TPU]
 nozzle = [210, 235]
 bed = [30, 60]
 density = 1.21
 outdoor = true
 enclosure = false
-notes = "Flexible. Bumpers, gaskets, door stops, feet. Print slow."
+notes = "Flexible. Bumpers, gaskets, door stops, feet. Print slow. On the AD5X feed it directly, not through the IFS."

@@ -178,9 +178,54 @@ class CheckerTest(unittest.TestCase):
         self.assertFalse(r.failed, r.items)
         self.assertTrue(any("enclosure" in m for m in self.messages(r, "WARN")))
 
+    def test_orca_multi_slot_comments(self):
+        # Orca lists one value per IFS slot.
+        text = "; filament_type = PETG;PETG;PETG;PETG\n; nozzle_diameter = 0.4,0.4\n" + \
+            self.GOOD.replace("M104 S205", "M104 S240").replace("M140 S60", "M140 S80")
+        r = self.gcode(text, given=False)
+        self.assertFalse(r.failed, r.items)
+        self.assertFalse(self.messages(r, "WARN"), r.items)
+        self.assertTrue(any("material is PETG" in m for m in self.messages(r, "INFO")))
+
+    def test_mixed_materials_skip_range_check(self):
+        text = "; filament_type = PLA;PETG\n" + self.GOOD.replace("M104 S205", "M104 S240")
+        r = self.gcode(text, given=False)
+        self.assertFalse(r.failed, r.items)
+        self.assertFalse(self.messages(r, "WARN"), r.items)
+        self.assertTrue(any("PETG, PLA" in m for m in self.messages(r, "INFO")))
+
     def test_no_extrusion_fails(self):
         r = self.gcode("G28\nG1 X10 Y10\n")
         self.assertTrue(r.failed)
+
+    # --- Real repo config
+
+    def test_repo_printer_profile_is_ad5x(self):
+        printer = check_print.load_toml(check_print.DEFAULT_PRINTER)
+        self.assertTrue(printer["printer"]["confirmed"])
+        self.assertIn(printer["defaults"]["material"].upper(), MATERIALS)
+        vol = printer["build_volume"]
+        self.assertEqual((vol["x_max"], vol["y_max"], vol["z_max"]), (220, 220, 220))
+
+    def test_ad5x_start_gcode_stays_on_bed(self):
+        # Start sequence from the official OrcaSlicer AD5X profile (purge line at the back edge).
+        start = ("M190 S60\nM109 S210\nG90\nM83\nG1 Z2 F6000\nG1 X50 Y220 Z0.25 F4800\n"
+                 "G1 X70 E3 F900\nG1 X200 E10 F1800\nG0 Y219.6\nG1 X130 E5 F1800\nG92 E0\n"
+                 "G1 X100 Y100 Z0.2 E1\n")
+        printer = check_print.load_toml(check_print.DEFAULT_PRINTER)
+        path = self.dir / "ad5x.gcode"
+        path.write_text(start)
+        r = check_print.Report(path)
+        check_print.check_gcode(path, printer, PLA, MATERIALS, True, r)
+        self.assertFalse(r.failed, r.items)
+
+    def test_asa_on_open_frame_warns(self):
+        printer = check_print.load_toml(check_print.DEFAULT_PRINTER)
+        path = self.dir / "asa.gcode"
+        path.write_text(self.GOOD.replace("M104 S205", "M104 S250").replace("M140 S60", "M140 S100"))
+        r = check_print.Report(path)
+        check_print.check_gcode(path, printer, dict(MATERIALS["ASA"], name="ASA"), MATERIALS, True, r)
+        self.assertTrue(any("enclosure" in m for m in self.messages(r, "WARN")))
 
     # --- CLI
 

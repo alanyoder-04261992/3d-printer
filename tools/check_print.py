@@ -222,9 +222,11 @@ def check_gcode(path, printer, material, materials, material_given, report):
         for raw in f:
             code, _, comment = raw.partition(";")
             comment = comment.strip()
+            # Orca/Prusa list one value per filament slot: "PLA;PLA;PETG" or "0.4,0.4".
             m = re.match(r"(filament_type|nozzle_diameter)\s*[=:]\s*(\S+)", comment, re.I)
             if m:
-                meta.setdefault(m.group(1).lower(), m.group(2).split(",")[0])
+                values = [v for v in re.split(r"[,;]", m.group(2)) if v]
+                meta.setdefault(m.group(1).lower(), values)
             m = re.match(r"FLAVOR:\s*(\S+)", comment)
             if m:
                 meta.setdefault("flavor", m.group(1))
@@ -300,8 +302,8 @@ def check_gcode(path, printer, material, materials, material_given, report):
         report.ok(f"Height {hi['Z']:.1f} mm is within {vol['z_max']:g} mm")
 
     nozzle = printer["nozzle"]
-    if "nozzle_diameter" in meta:
-        sliced = float(meta["nozzle_diameter"])
+    if meta.get("nozzle_diameter"):
+        sliced = float(meta["nozzle_diameter"][0])
         if abs(sliced - nozzle["diameter"]) > 1e-3:
             report.fail(f"Sliced for a {sliced:g} mm nozzle; printer has "
                         f"{nozzle['diameter']:g} mm")
@@ -309,10 +311,16 @@ def check_gcode(path, printer, material, materials, material_given, report):
             report.ok(f"Sliced for the {sliced:g} mm nozzle")
 
     # Material named in the slicer comments wins unless one was passed explicitly.
-    if not material_given and meta.get("filament_type", "").upper() in materials:
-        name = meta["filament_type"].upper()
+    sliced_types = sorted({t.upper() for t in meta.get("filament_type", [])})
+    if not material_given and len(sliced_types) == 1 and sliced_types[0] in materials:
+        name = sliced_types[0]
         material = dict(materials[name], name=name)
         report.info(f"Slicer says material is {name}")
+    elif not material_given and len(sliced_types) > 1:
+        # Multi-color job with different materials; one range can't cover them all.
+        material = None
+        report.info(f"Slicer lists materials {', '.join(sliced_types)} - "
+                    "checking temps against printer limits only")
 
     _check_temps(report, "Nozzle", nozzle_temps, nozzle["max_temp"],
                  material, "nozzle")

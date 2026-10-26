@@ -25,11 +25,12 @@ The checker reports each problem as **FAIL** (fix before printing) or
 
 It needs only Python 3.11+; nothing to install.
 
-## Set up your printer
+## Our printer
 
-Edit `printers/printer.toml` with your printer's bed size, max height,
-nozzle and temp limits, then set `confirmed = true`. Until then the checker
-uses a generic 220 x 220 x 250 mm printer and warns on every run.
+`printers/printer.toml` is set up for the **Flashforge AD5X**: 220 x 220 x 220 mm
+build volume, 0.4 mm nozzle (max 300 °C), bed max 110 °C, open frame, 4-color
+IFS, Klipper firmware. Slice with Orca-Flashforge or OrcaSlicer. If you
+swap nozzles (0.25 / 0.6 / 0.8) or add an enclosure, update that file.
 
 ## Where things are
 

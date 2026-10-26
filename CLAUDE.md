@@ -6,9 +6,10 @@ Every session that designs a print starts here and leaves what it learned here.
 
 ## Before designing anything
 
-1. Read `printers/printer.toml`. If `confirmed = false`, ask the user for
-   their printer model and fill in the real specs (bed size, height, nozzle,
-   temp limits, enclosure) before designing to it.
+1. Read `printers/printer.toml`. Our printer is a **Flashforge AD5X**:
+   220 x 220 x 220 mm, 0.4 mm nozzle, open frame (no enclosure), 4-color IFS,
+   sliced in Orca-Flashforge / OrcaSlicer. If the user mentions a different
+   printer or nozzle, update the profile first.
 2. Read `knowledge/design-rules.md` and `knowledge/lessons-learned.md`.
    Lessons learned override the general rules.
 3. Pick the material with `knowledge/materials.md`. Anything outdoors or in a
@@ -25,7 +26,8 @@ Every session that designs a print starts here and leaves what it learned here.
    Convert inches to mm (1 in = 25.4 mm).
 4. Export: `openscad -o projects/<name>/model.stl projects/<name>/model.scad`.
    If OpenSCAD isn't installed where you're running, tell the user to export
-   locally and commit the STL.
+   locally and commit the STL. For multi-color prints, export one STL per color
+   (see "Multi-color" in `design-rules.md`) and check each.
 5. Check: `python3 tools/check_print.py projects/<name>/model.stl --material PETG`.
    Fix every FAIL. Explain each WARN to the user or fix it. Paste the
    result into the project README.

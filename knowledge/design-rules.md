@@ -39,6 +39,13 @@ Holes print **small** and posts print **large**. Design with these offsets:
 - Round inside corners (fillet ≥ 1 mm) where a part bends under load.
 - Screws into plastic: use heat-set inserts (M3 insert → 4.0 mm hole, 5 mm deep) or design for wood screws biting into a 75%-of-diameter pilot.
 
+## Multi-color (AD5X IFS, up to 4 colors)
+
+- Model each color as its own part in OpenSCAD, then export one STL per color (`model-roof.stl`, `model-siding.stl`). The parts must line up exactly in the same coordinates. In the slicer, import them together as one object and assign a color to each part.
+- Every color change purges filament. A print that changes color on every layer can waste as much plastic as the part weighs. It's cheaper when the color changes by height (roof above walls, text on top of a sign) than when colors mix on every layer.
+- Make color features at least 0.8 mm wide (2 lines) and 0.6 mm thick, or they disappear.
+- For signs: a base color, then raised letters 0.6–1.0 mm tall in a second color. Only the top layers change color, so very little filament gets purged.
+
 ## Shed hardware sizes
 
 US shed builds mostly use these fasteners. Clearance holes already include tolerance.
@@ -54,7 +61,8 @@ Lumber is smaller than its name: a 2x4 is 1.5" x 3.5" (38 x 89 mm); a 2x6 is 1.5
 
 ## Scale models of sheds
 
-Pick the scale so the footprint fits the bed. At 1:24, 1 ft = 12.7 mm; at 1:48, 1 ft = 6.35 mm.
+Pick the scale so the footprint fits the AD5X's 220 x 220 mm bed (220 mm tall). At 1:24, 1 ft = 12.7 mm; at 1:48, 1 ft = 6.35 mm.
+Use up to 4 colors (roof, siding, trim, doors) as separate parts, as described under Multi-color above.
 
 | Building | 1:24 footprint | 1:48 footprint |
 |----------|----------------|----------------|
