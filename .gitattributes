@@ -1,0 +1,5 @@
+* -text
+desktop[[:space:]]prints/250.stl filter=lfs diff=lfs merge=lfs -text
+desktop[[:space:]]prints/800.stl filter=lfs diff=lfs merge=lfs -text
+desktop[[:space:]]prints/armymen.stl filter=lfs diff=lfs merge=lfs -text
+desktop[[:space:]]prints/arti_snake_250_update.stl filter=lfs diff=lfs merge=lfs -text
