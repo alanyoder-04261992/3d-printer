@@ -12,6 +12,7 @@ between the door and each end wall, louvred vents in both gable ends, two 4x6 sk
 |---|---|
 | Footprint | 102 x 152 mm (4 x 6 in) |
 | Height on its skids | about 134 mm |
+| Windows | open, no glass, so you can look in through them |
 | Inside you can see | studs 16 in apart, king and jack studs, headers, rough sills, cripples, double top plate, gable-end studs and truss, floor sheet seams |
 
 ## What to print, in this order
@@ -47,6 +48,7 @@ Before you start the long body print:
    swing in.
 2. Set the bit of roof on the peg. It should drop on and lift off without forcing.
 
+Holes are already 0.35 mm bigger than their pins and 0.4 mm bigger than the pegs all round.
 If either is too tight or too loose, ask Claude to change the pin hole or peg hole size
 by 0.1 mm and remake the files. The sizes are at the top of `make_shed.py`.
 

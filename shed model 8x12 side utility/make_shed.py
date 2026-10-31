@@ -76,7 +76,7 @@ DOOR_BOTTOM_GAP = 0.3
 DOOR_TOP_GAP = 0.6
 DOOR_H = DOOR_OPEN_H - DOOR_BOTTOM_GAP - DOOR_TOP_GAP
 PIN_D = 2.0
-PIN_HOLE_D = 2.45
+PIN_HOLE_D = 2.7      # 0.35 mm round the pin: holes print small (Alan, Oct 31 2026)
 PIN_BOTTOM_LEN = 1.3   # rests on the bottom of a 1.0 deep hole
 PIN_TOP_LEN = 2.0
 HOLE_BOTTOM_DEPTH = 1.0
@@ -96,7 +96,7 @@ WIN_YC = (JAMB + L / 2) / 2
 ROOF_T = 2.0
 RIB_OC = 9 * S
 PEG_D, PEG_UP = 2.2, 1.0
-PEG_HOLE_D, PEG_HOLE_UP = 2.7, 1.4
+PEG_HOLE_D, PEG_HOLE_UP = 3.0, 1.4   # 0.4 mm round the peg
 PEG_X = W / 4
 PEG_Y = L / 2 - WT / 2
 
@@ -105,7 +105,7 @@ SKID_W = 3.5 * S
 SKID_H = 5.5 * S
 SKID_X = W / 2 - 28.25 * S
 NOTCH = 0.6
-NOTCH_CLEAR = 0.3
+NOTCH_CLEAR = 0.6      # 0.3 mm each side of a joist
 
 
 # ---------------------------------------------------------------- helpers
@@ -251,18 +251,22 @@ def end_wall_framing(side):
 
 
 def window_unit(yc):
-    """Double-hung 2x3 window inside its opening on the +x wall: glass, two sashes, muntins."""
+    """Double-hung 2x3 window inside its opening on the +x wall: two sashes and their muntins,
+    no glass, so you can see in (Alan, Oct 31 2026). The sash frames reach 0.2 mm into the
+    jambs so they join the wall."""
     y0, y1 = yc - WIN_W / 2, yc + WIN_W / 2
     z0, z1 = ZF + WIN_SILL, ZF + WIN_SILL + WIN_H
     zm = (z0 + z1) / 2
-    xg0, xg1 = W / 2 - TS, W / 2 - 0.8
-    parts = [box(xg0, xg1, y0 - 0.2, y1 + 0.2, z0 - 0.2, z1 + 0.2)]       # glass, keyed into the jambs
-    ring = 1.2
+    xb = W / 2 - TS                                   # back of the sashes, flush with the siding inside
+    ring, k, mw = 1.2, 0.2, 0.8
+    parts = []
     for (za, zb, xf) in ((zm, z1, W / 2 - 0.45), (z0, zm, W / 2 - 0.15)):    # upper sash sits back
-        parts += [box(xg1, xf, y0, y1, za, za + ring), box(xg1, xf, y0, y1, zb - ring, zb),
-                  box(xg1, xf, y0, y0 + ring, za, zb), box(xg1, xf, y1 - ring, y1, za, zb),
-                  box(xg1, xf - 0.15, yc - 0.3, yc + 0.3, za, zb),                       # muntins
-                  box(xg1, xf - 0.15, y0, y1, (za + zb) / 2 - 0.3, (za + zb) / 2 + 0.3)]
+        lo = za - (k if za == z0 else 0)
+        hi = zb + (k if zb == z1 else 0)
+        parts += [box(xb, xf, y0 - k, y1 + k, lo, za + ring), box(xb, xf, y0 - k, y1 + k, zb - ring, hi),
+                  box(xb, xf, y0 - k, y0 + ring, lo, hi), box(xb, xf, y1 - ring, y1 + k, lo, hi),
+                  box(xb, xf - 0.15, yc - mw / 2, yc + mw / 2, za, zb),                  # muntins
+                  box(xb, xf - 0.15, y0, y1, (za + zb) / 2 - mw / 2, (za + zb) / 2 + mw / 2)]
     return parts
 
 

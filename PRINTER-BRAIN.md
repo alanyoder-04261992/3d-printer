@@ -107,6 +107,8 @@ played with, change these:
   fit. 0.4 mm = loose.
 - If a fit is off, **scale the small part** (the star or the blade) by 1 % at a time, never the
   big part it fits into.
+- **Holes print small.** For a pin or peg that goes into a hole, make the hole at least
+  **0.35–0.4 mm bigger all round** than the pin (Alan, Oct 2026).
 
 ### Bed adhesion
 - Long, thin parts or parts with a small footprint need a **5 mm brim** (knife handle, sword
