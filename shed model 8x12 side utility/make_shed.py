@@ -5,8 +5,8 @@ Run:  python3 make_shed.py      (needs: pip install manifold3d numpy)
 Makes the print files in this folder:
   body.stl        floor frame, floor, walls with framing inside, windows, trim
   roof half.stl   print TWO. Each half lifts straight off its two pegs.
-  door.stl        48 in wooden door (white part) with its hinge pins
-  door trim.stl   the door's black trim and handle (same position as door.stl)
+  door.stl        48 in wooden door with its trim, handle and hinge pins, one piece
+                  (print it white and paint the trim like the rest, Alan Oct 31 2026)
   skids.stl       the two 4x6 skids the floor frame sits on
   fit test.stl    a small doorway, door and roof peg to check the fit first
 
@@ -652,8 +652,8 @@ def main():
     body_bb = p["body"].bounding_box()
     write_stl(p["body"].translate([-body_bb[0], -body_bb[1], 0]), "body.stl")
     write_stl(roof_to_print(p["roof"]), "roof half.stl")
-    write_stl(p["door"], "door.stl")
-    write_stl(p["door_trim"], "door trim.stl")
+    door = p["door"] + p["door_trim"]
+    write_stl(door, "door.stl")
     write_stl(p["skids"], "skids.stl")
     write_stl(on_bed(p["fit"]), "fit test.stl")
 
@@ -663,16 +663,20 @@ def main():
     fit = on_bed(p["fit"])
     fbb = fit.bounding_box()
     write_3mf("1 fit test.3mf", [("fit test", [("fit test", fit)], (110 - fbb[3] / 2, 110 - fbb[4] / 2))])
-    write_3mf("2 body.3mf", [("body", [("body", p["body"])], (110 - W / 2, 110 - L / 2))])
+    # the door prints white with the body; the body's 5 mm brim stays clear of it
+    dbb = door.bounding_box()
+    write_3mf("2 body and door.3mf", [
+        ("door", [("door", door)], (8, 110 - (dbb[4] - dbb[1]) / 2)),
+        ("body", [("body", p["body"])], (8 + (dbb[3] - dbb[0]) + 8, 110 - L / 2)),
+    ])
     rw = roof_p.bounding_box()[3]
-    x0 = (220 - (2 * rw + DOOR_W + 1 + 2 * SKID_W + 4 * 6)) / 2
+    x0 = (220 - (2 * rw + 2 * SKID_W + 3 * 6)) / 2
     y0 = (220 - (L + 2 * RAKE)) / 2
-    write_3mf("3 roof, door and skids.3mf", [
+    write_3mf("3 roof and skids.3mf", [
         ("roof half 1", [("roof half", roof_p)], (x0, y0)),
         ("roof half 2", [("roof half", roof_p)], (x0 + rw + 6, y0)),
-        ("door", [("door", p["door"]), ("door trim", p["door_trim"])], (x0 + 2 * rw + 12, y0)),
-        ("skid 1", [("skid", skid_p)], (x0 + 2 * rw + DOOR_W + 1 + 18, y0)),
-        ("skid 2", [("skid", skid_p)], (x0 + 2 * rw + DOOR_W + 1 + SKID_W + 24, y0)),
+        ("skid 1", [("skid", skid_p)], (x0 + 2 * rw + 12, y0)),
+        ("skid 2", [("skid", skid_p)], (x0 + 2 * rw + SKID_W + 18, y0)),
     ])
     for k, v in p.items():
         bb = v.bounding_box()

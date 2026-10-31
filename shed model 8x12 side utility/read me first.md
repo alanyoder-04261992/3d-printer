@@ -22,21 +22,17 @@ Open these in Orca-Flashforge. Each one is a plate that's already laid out.
 | File | What's on it | Filament | Notes |
 |---|---|---|---|
 | `1 fit test.3mf` | A short doorway and door, a roof peg and a bit of roof | Any | **Print this first.** See "Checking the fit" below. |
-| `2 body.3mf` | Floor frame, floor, walls, windows and trim in one piece | White PLA | Stands up on its floor joists. Turn on a **5 mm brim**. No supports needed. |
-| `3 roof, door and skids.3mf` | Two roof halves, the door, two skids | Black PLA | Roof halves print flat with the ribs up. |
+| `2 body and door.3mf` | The body (floor frame, floor, walls, windows and trim in one piece) and the door beside it | White PLA | The body stands up on its floor joists. Turn on a **5 mm brim**. No supports needed. The door lies flat, trim side up. |
+| `3 roof and skids.3mf` | Two roof halves, two skids | Black PLA | Roof halves print flat with the ribs up. |
 
 The `.stl` files are the same parts one at a time, if you'd rather set up a plate yourself.
 
 **Settings:** `0.20mm Standard @FF AD5X` is fine. Set **Wall generator → Arachne**: the
 siding is only 1.4 mm thick, and Arachne fills thin walls solid.
 
-**Door in two colours (optional):** on plate 3 the door is one object made of two parts,
-"door" and "door trim". Right-click the "door trim" part and give it the black filament.
-Give the "door" part white. Only the top three layers use both colours, so it adds just a
-few colour changes.
-
-**Trim on the body:** the corner boards, door and window casings and gable bands
-stand 0.6 mm proud of the siding, so a black paint pen follows them easily. Printing them
+**Trim:** the corner boards, door and window casings, gable bands and the trim on the
+door (frame, middle rail, clipped corners, handle) stand 0.6 mm proud of the siding, so a
+black paint pen follows them easily. Printing them
 black in the same print would mean a colour change on almost every layer.
 
 ## Checking the fit
