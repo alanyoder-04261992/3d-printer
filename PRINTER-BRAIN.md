@@ -4,7 +4,7 @@ Everything about our 3D printing setup in one place: the printer, the slicer, th
 filament, the settings that work, and what we've learned the hard way.
 **Keep it up to date** — when something changes or a print teaches us something, add it here.
 
-_Last updated: 2026-10-25_
+_Last updated: 2026-10-31_
 
 ---
 
@@ -107,6 +107,8 @@ played with, change these:
   fit. 0.4 mm = loose.
 - If a fit is off, **scale the small part** (the star or the blade) by 1 % at a time, never the
   big part it fits into.
+- **Holes print small.** For a pin or peg that goes into a hole, make the hole at least
+  **0.35–0.4 mm bigger all round** than the pin (Alan, Oct 2026).
 
 ### Bed adhesion
 - Long, thin parts or parts with a small footprint need a **5 mm brim** (knife handle, sword
@@ -131,6 +133,7 @@ played with, change these:
 | `flying prop/` | Flying propeller toy | |
 | `test print/` | Sword blade PLA vs PETG tests | |
 | `desktop prints/` | Project files (.3mf) and big STLs | The 4 biggest STLs are stored with Git LFS |
+| `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility: body, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first. Made by `make_shed.py`; `check_shed.py` proves the parts fit |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in
