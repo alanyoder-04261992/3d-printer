@@ -5,8 +5,8 @@ the real building). Half the roof lifts off so you can see the framing inside, a
 48 in wooden door swings open on two small pins.
 
 Sizes come from the 3D designer's shop numbers: 7 ft 9 1/2 in walls, 5/12 roof, 4 in
-eaves, 48 1/4 x 76 1/2 in door opening centred on the long side, a 2x3 window 4.4 ft each
-side of it, louvred vents in both gable ends, two 4x6 skids.
+eaves, 48 1/4 x 76 1/2 in door opening centred on the long side, a 2x3 window centred
+between the door and each end wall, louvred vents in both gable ends, two 4x6 skids.
 
 | | |
 |---|---|

@@ -12,7 +12,8 @@ Makes the print files in this folder:
 
 Sizes are the shop standard from the 3D designer (library/manufacturers/standard.json,
 style SU): 8 ft x 12 ft, 7 ft 9 1/2 in walls, 5/12 roof, 4 in eaves, 48 in wooden door
-(48 1/4 x 76 1/2 in opening) centred on the long side, 2x3 windows 4.4 ft each side of it.
+(48 1/4 x 76 1/2 in opening) centred on the long side, a 2x3 window centred between the
+door and each end wall.
 
 Axes for the assembled shed: x across the 8 ft width (door wall at +x), y along the
 12 ft length, z up. z = 0 is the bottom of the floor joists (where the body sits on the
@@ -83,11 +84,13 @@ TRENCH_DEPTH = 0.7     # the slot the bottom pin slides in through; 0.3 shallowe
 HOLE_TOP_DEPTH = 2.2
 DOOR_SLAB = 1.4        # panel thickness; trim brings it to 2.0
 
-# windows: 2x3 window, 2.1 x 2.9 ft, sill 2.9 ft above the floor, centres 4.4 ft from the middle
+# windows: 2x3 window, 2.1 x 2.9 ft, sill 2.9 ft above the floor, each centred between the door
+# opening and the end of the wall (Alan, Oct 31 2026); the casings and corner boards are the
+# same width, so it is also centred between the door casing and the corner board
 WIN_W = 2.1 * FT
 WIN_H = 2.9 * FT
 WIN_SILL = 2.9 * FT
-WIN_YC = 4.4 * FT
+WIN_YC = (JAMB + L / 2) / 2
 
 # roof
 ROOF_T = 2.0
@@ -234,7 +237,8 @@ def end_wall_framing(side):
     # keep  depth <= z - (roof line - chord)
     chord_v = SD / math.cos(ALPHA)
     band = prism_xz([(-W / 2, ZWT - chord_v), (0, ZPK - chord_v), (W / 2, ZWT - chord_v),
-                     (W / 2, ZWT), (0, ZPK), (-W / 2, ZWT)], yi, yo)
+                     (W / 2, ZWT), (0, ZPK), (-W / 2, ZWT)],
+                    yi - (0.2 if side < 0 else 0), yo + (0.2 if side > 0 else 0))   # 0.2 into the siding so they join
     face = yo if side > 0 else yi                # inside face of the gable siding
     for hx in (+1, -1):
         half = band.trim_by_plane([hx, 0, 0], 0)
@@ -482,11 +486,11 @@ def door_parts():
     black += [tri(xl, lo0, xl + leg, lo0, xl, lo0 + leg), tri(xr, lo0, xr, lo0 + leg, xr - leg, lo0),
               tri(xl, lo1, xl, lo1 - leg, xl + leg, lo1), tri(xr, lo1, xr - leg, lo1, xr, lo1 - leg),
               tri(xl, up1, xl, up1 - leg, xl + leg, up1), tri(xr, up1, xr - leg, up1, xr, up1 - leg)]
-    # three spade T-hinges on the hinge edge
+    # three strap hinges on the hinge edge, tapering toward the latch side
     for fy in (0.16, 0.42, 0.86):
         yc = fy * DOOR_H
-        black.append(box(0, 13, yc - 0.6, yc + 0.6, z0, z1))
-        black.append(tri(13, yc - 1.6, 16, yc, 13, yc + 1.6))
+        strap = [(0, yc - 1.1), (15, yc - 0.6), (15, yc + 0.6), (0, yc + 1.1)]
+        black.append(prism(strap, 0, 1, 2, z1 - z0).translate([0, 0, z0]))
         black.append(box(0, 2.6, yc - 2.2, yc + 2.2, z0, z1))
     # handle, 0.44 ft in from the latch edge
     hx = DOOR_W - 0.44 * FT
