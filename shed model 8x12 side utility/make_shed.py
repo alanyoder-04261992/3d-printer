@@ -6,7 +6,7 @@ Makes the print files in this folder:
   body.stl        floor frame, floor, walls with framing inside, windows, trim
   roof half.stl   print TWO. Each half lifts straight off its two pegs.
   door.stl        48 in wooden door (white part) with its hinge pins
-  door trim.stl   the door's black trim, hinges and handle (same position as door.stl)
+  door trim.stl   the door's black trim and handle (same position as door.stl)
   skids.stl       the two 4x6 skids the floor frame sits on
   fit test.stl    a small doorway, door and roof peg to check the fit first
 
@@ -309,7 +309,7 @@ def trims():
     p.append(box(xi, xo + PROUD, -JAMB - TRIM, -JAMB, ZF, ztop + TRIM))
     p.append(box(xi, xo + PROUD, JAMB, JAMB + TRIM, ZF, ztop + TRIM))
     p.append(box(xi, xo + PROUD, -JAMB - TRIM, JAMB + TRIM, ztop, ztop + TRIM))
-    # window casings and sills
+    # window casings: the same 1x4 board on all four sides (no sill nose; Alan, Oct 31 2026)
     for yc in (-WIN_YC, WIN_YC):
         y0, y1 = yc - WIN_W / 2, yc + WIN_W / 2
         z0, z1 = ZF + WIN_SILL, ZF + WIN_SILL + WIN_H
@@ -317,7 +317,6 @@ def trims():
         p.append(box(xi, xo + PROUD, y1, y1 + TRIM, z0 - TRIM, z1 + TRIM))
         p.append(box(xi, xo + PROUD, y0 - TRIM, y1 + TRIM, z1, z1 + TRIM))
         p.append(box(xi, xo + PROUD, y0 - TRIM, y1 + TRIM, z0 - TRIM, z0))
-        p.append(box(xi, xo + 1.0, y0 - TRIM - 0.6, y1 + TRIM + 0.6, z0 - 1.0, z0))   # sill nose
     return p
 
 
@@ -486,12 +485,6 @@ def door_parts():
     black += [tri(xl, lo0, xl + leg, lo0, xl, lo0 + leg), tri(xr, lo0, xr, lo0 + leg, xr - leg, lo0),
               tri(xl, lo1, xl, lo1 - leg, xl + leg, lo1), tri(xr, lo1, xr - leg, lo1, xr, lo1 - leg),
               tri(xl, up1, xl, up1 - leg, xl + leg, up1), tri(xr, up1, xr - leg, up1, xr, up1 - leg)]
-    # three strap hinges on the hinge edge, tapering toward the latch side
-    for fy in (0.16, 0.42, 0.86):
-        yc = fy * DOOR_H
-        strap = [(0, yc - 1.1), (15, yc - 0.6), (15, yc + 0.6), (0, yc + 1.1)]
-        black.append(prism(strap, 0, 1, 2, z1 - z0).translate([0, 0, z0]))
-        black.append(box(0, 2.6, yc - 2.2, yc + 2.2, z0, z1))
     # handle, 0.44 ft in from the latch edge
     hx = DOOR_W - 0.44 * FT
     black.append(box(hx - 0.5, hx + 0.5, 0.45 * DOOR_H - 3.5, 0.45 * DOOR_H + 3.5, z0, z1 + 0.8))

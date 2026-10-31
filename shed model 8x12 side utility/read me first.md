@@ -34,7 +34,7 @@ siding is only 1.4 mm thick, and Arachne fills thin walls solid.
 Give the "door" part white. Only the top three layers use both colours, so it adds just a
 few colour changes.
 
-**Trim on the body:** the corner boards, door and window casings, sills and gable bands
+**Trim on the body:** the corner boards, door and window casings and gable bands
 stand 0.6 mm proud of the siding, so a black paint pen follows them easily. Printing them
 black in the same print would mean a colour change on almost every layer.
 
