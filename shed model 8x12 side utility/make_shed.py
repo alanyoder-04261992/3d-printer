@@ -3,7 +3,12 @@
 Run:  python3 make_shed.py      (needs: pip install manifold3d numpy)
 
 Makes the print files in this folder:
-  body.stl        floor frame, floor, walls with framing inside, windows, trim
+  floor.stl       floor frame and floor sheets; drops inside the four walls
+  door wall.stl   the long wall with the door and windows, framing, trim; prints lying
+                  flat, inside face down, so the trim is the top few layers
+  back wall.stl   the other long wall, the same way
+  end wall.stl    print TWO. Gable end with its vent, framing and the roof pegs.
+                  (walls print flat so the trim can be a second colour, Alan Nov 1 2026)
   roof half.stl   print TWO. Each half lifts straight off its two pegs.
   door.stl        48 in wooden door with its trim, handle and hinge pins, one piece
                   (print it white and paint the trim like the rest, Alan Oct 31 2026)
@@ -50,6 +55,7 @@ RIM = 2.0              # floor rim board inside the siding skirt
 JOIST_H = 5.5 * S      # 2x6 joists
 DECK = 1.0             # floor sheets
 ZF = JOIST_H + DECK    # top of the floor
+FLOOR_CLR = 0.15       # gap all round between the floor and the walls it drops inside
 WALL_H = 93.5 * S      # floor to top of the top plate
 ZWT = ZF + WALL_H      # top of the walls
 ZPK = ZWT + (W / 2) * PITCH   # peak of the roof underside
@@ -173,7 +179,7 @@ def layout(start, end, oc):
 
 # ---------------------------------------------------------------- body
 def joist_ys():
-    end = L / 2 - TS - SW / 2
+    end = L / 2 - WT - FLOOR_CLR - SW / 2
     inner = layout(-L / 2, L / 2, 16 * S)
     return [-end] + inner + [end]
 
@@ -257,7 +263,7 @@ def window_unit(yc):
     y0, y1 = yc - WIN_W / 2, yc + WIN_W / 2
     z0, z1 = ZF + WIN_SILL, ZF + WIN_SILL + WIN_H
     zm = (z0 + z1) / 2
-    xb = W / 2 - TS                                   # back of the sashes, flush with the siding inside
+    xb = W / 2 - WT                   # back of the sashes, flush with the framing, so the wall prints flat
     ring, k, mw = 1.2, 0.2, 0.8
     parts = []
     for (za, zb, xf) in ((zm, z1, W / 2 - 0.45), (z0, zm, W / 2 - 0.15)):    # upper sash sits back
@@ -340,13 +346,28 @@ def roof_clearance():
     return out
 
 
-def body():
-    gable = [(-W / 2, 0), (W / 2, 0), (W / 2, ZWT), (0, ZPK), (-W / 2, ZWT)]
-    shell = prism_xz(gable, -L / 2, L / 2)
-    cuts = [box(-W / 2 + TS, W / 2 - TS, -L / 2 + TS, L / 2 - TS, ZF, 400)]
+def floor():
+    """Floor frame and floor sheets. It drops inside the four walls, FLOOR_CLR clear of them;
+    below the floor the walls are solid the whole wall thickness, so they lie flat to print."""
+    xf, yf = W / 2 - WT - FLOOR_CLR, L / 2 - WT - FLOOR_CLR
+    cuts = []
     js = joist_ys()
     for a, b in zip(js[:-1], js[1:]):
-        cuts.append(box(-W / 2 + TS + RIM, W / 2 - TS - RIM, a + SW / 2, b - SW / 2, -1, ZF - DECK))
+        cuts.append(box(-xf + RIM, xf - RIM, a + SW / 2, b - SW / 2, -1, ZF - DECK))
+    # floor sheet seams (4x8 sheets, staggered)
+    for x0, x1, ys in ((-xf, 0, [-24 * S, 24 * S]), (0, xf, [-48 * S, 0, 48 * S])):
+        for y in ys:
+            cuts.append(box(x0, x1, y - 0.2, y + 0.2, ZF - 0.25, ZF + 0.01))
+    cuts.append(box(-0.2, 0.2, -yf, yf, ZF - 0.25, ZF + 0.01))
+    return box(-xf, xf, -yf, yf, 0, ZF) - union(cuts)
+
+
+def walls():
+    """All four walls in one, assembled; split_walls() cuts them apart for printing."""
+    gable = [(-W / 2, 0), (W / 2, 0), (W / 2, ZWT), (0, ZPK), (-W / 2, ZWT)]
+    shell = prism_xz(gable, -L / 2, L / 2)
+    cuts = [box(-W / 2 + TS, W / 2 - TS, -L / 2 + TS, L / 2 - TS, ZF, 400),
+            box(-W / 2 + WT, W / 2 - WT, -L / 2 + WT, L / 2 - WT, -1, ZF + 1)]     # where the floor goes
     # siding grooves
     for y in layout(-L / 2, L / 2, GROOVE_OC):
         for sx in (1, -1):
@@ -356,19 +377,14 @@ def body():
         for sy in (1, -1):
             ya, yb = sorted([sy * (L / 2 - GROOVE_D), sy * (L / 2 + 1)])
             cuts.append(box(x - GROOVE_W / 2, x + GROOVE_W / 2, ya, yb, -1, ZPK + 1))
-    # floor sheet seams (4x8 sheets, staggered)
-    for x0, x1, ys in ((-W / 2 + TS, 0, [-24 * S, 24 * S]), (0, W / 2 - TS, [-48 * S, 0, 48 * S])):
-        for y in ys:
-            cuts.append(box(x0, x1, y - 0.2, y + 0.2, ZF - 0.25, ZF + 0.01))
-    cuts.append(box(-0.2, 0.2, -L / 2 + TS, L / 2 - TS, ZF - 0.25, ZF + 0.01))
     shell = shell - union(cuts)
 
     framing = long_wall_framing(+1, True) + long_wall_framing(-1, False)
     framing += [end_wall_framing(+1), end_wall_framing(-1)]
-    for sx in (1, -1):              # 3-stud corner posts
+    for sx in (1, -1):              # corner posts, solid into the corner so the long walls print flat
         for sy in (1, -1):
             xa, xb = sorted([sx * (W / 2 - WT), sx * (W / 2 - TS)])
-            ya, yb = sorted([sy * (L / 2 - WT), sy * (L / 2 - WT - SW)])
+            ya, yb = sorted([sy * (L / 2 - TS), sy * (L / 2 - WT - SW)])
             framing.append(box(xa, xb, ya, yb, ZF, ZWT))
     b = union([shell] + framing + trims())
 
@@ -379,9 +395,10 @@ def body():
     b = b - union(op_cuts)
     b = union([b] + window_unit(-WIN_YC) + window_unit(WIN_YC) + gable_vent(1) + gable_vent(-1))
 
-    # door stop inside the latch jamb, so the door only swings out
+    # door stop inside the latch jamb, so the door only swings out. It runs back to the inside
+    # face of the framing so the wall prints flat.
     door_inner = AXIS_X - DOOR_R
-    b = b + box(door_inner - 1.4, door_inner - 0.2, JAMB - 0.8, JAMB + 0.2, ZF, ZF + DOOR_OPEN_H)
+    b = b + box(W / 2 - WT, door_inner - 0.2, JAMB - 0.8, JAMB + 0.2, ZF, ZF + DOOR_OPEN_H)
     # hinge pin holes and the slot the bottom pin slides in through
     holes = [cyl_z(AXIS_X, AXIS_Y, ZF - HOLE_BOTTOM_DEPTH, ZF + 1, PIN_HOLE_D),
              cyl_z(AXIS_X, AXIS_Y, ZF + DOOR_OPEN_H - 1, ZF + DOOR_OPEN_H + HOLE_TOP_DEPTH, PIN_HOLE_D),
@@ -398,6 +415,52 @@ def body():
             nrm, off = under_roof(sx, PEG_UP)
             pegs.append(peg.trim_by_plane(nrm, off))
     return b + union(pegs)
+
+
+def body():
+    """The assembled body: four walls and the floor."""
+    return walls() + floor()
+
+
+# the four walls: the long walls run the full length, corners and all, and the end walls
+# fit between them. Each prints lying flat on the inside face of its framing, outside up.
+BIG = 500
+WALL_CUTS = {
+    "door wall": box(W / 2 - WT, BIG, -BIG, BIG, -BIG, BIG),
+    "back wall": box(-BIG, -(W / 2 - WT), -BIG, BIG, -BIG, BIG),
+    "end wall 1": box(-(W / 2 - WT), W / 2 - WT, L / 2 - WT, BIG, -BIG, BIG),
+    "end wall 2": box(-(W / 2 - WT), W / 2 - WT, -BIG, -(L / 2 - WT), -BIG, BIG),
+}
+# shed coords to print coords, inside face down (each a rotation, det +1)
+WALL_TO_PRINT = {
+    "door wall": [[0, 1, 0], [0, 0, 1], [1, 0, 0]],
+    "back wall": [[0, -1, 0], [0, 0, 1], [-1, 0, 0]],
+    "end wall 1": [[-1, 0, 0], [0, 0, 1], [0, 1, 0]],
+    "end wall 2": [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
+}
+
+
+def split_walls(w):
+    return {name: w ^ cut for name, cut in WALL_CUTS.items()}
+
+
+def trim_zone():
+    """Everything standing proud of the siding that is trim (corner boards, gable bands,
+    door and window casings). It prints in the second colour."""
+    return union(trims()) - box(-W / 2, W / 2, -L / 2, L / 2, -1, 400)
+
+
+def two_colour(piece, zone):
+    """(siding colour, trim colour) parts of a piece."""
+    return piece - zone, piece ^ zone
+
+
+def to_print(mat, parts):
+    """Rotate parts together by mat and put them on the bed as one."""
+    m = np.column_stack([np.array(mat, dtype=float), np.zeros(3)])
+    out = [p.transform(m) for p in parts]
+    bb = union(out).bounding_box()
+    return [p.translate([-bb[0], -bb[1], -bb[2]]) for p in out]
 
 
 # ---------------------------------------------------------------- roof
@@ -515,8 +578,8 @@ def skid():
     for jy in joist_ys():
         y = jy + L / 2
         cuts.append(box(y - SW / 2 - NOTCH_CLEAR / 2, y + SW / 2 + NOTCH_CLEAR / 2, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
-    cuts.append(box(-1, TS + 0.3, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
-    cuts.append(box(L - TS - 0.3, L + 1, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
+    cuts.append(box(-1, WT + 0.3, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))            # end walls
+    cuts.append(box(L - WT - 0.3, L + 1, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
     return s - union(cuts)
 
 
@@ -587,17 +650,21 @@ def write_stl(man, name):
 
 
 def write_3mf(name, items):
-    """A plain 3MF project for Orca. items: (object name, [(part name, manifold), ...], (x, y))
-    placed with its lower-left corner at x, y on the bed. An object with two parts opens in
-    Orca as one object, so each part can be given its own filament."""
+    """A plain 3MF project for Orca. items: (object name, [(part name, manifold, filament), ...],
+    (x, y)) placed with its lower-left corner at x, y on the bed. An object with two parts opens
+    in Orca as one object, each part already set to its filament (1 siding, 2 trim)."""
     import zipfile
     from xml.sax.saxutils import quoteattr
 
-    res, build, oid = [], [], 1
+    res, build, cfg, oid = [], [], [], 1
     for obj_name, parts, (x, y) in items:
-        bb = union([m for _, m in parts]).bounding_box()
+        bb = union([m for _, m, _ in parts]).bounding_box()
         comp_ids = []
-        for part_name, man in parts:
+        cfg.append(f'<object id="{oid + len(parts)}"><metadata key="name" value={quoteattr(obj_name)}/>'
+                   f'<metadata key="extruder" value="{parts[0][2]}"/>')
+        for part_name, man, filament in parts:
+            cfg.append(f'<part id="{oid}" subtype="normal_part"><metadata key="name" value={quoteattr(part_name)}/>'
+                       f'<metadata key="extruder" value="{filament}"/></part>')
             mesh = man.to_mesh()
             v = np.asarray(mesh.vert_properties)[:, :3]
             t = np.asarray(mesh.tri_verts)
@@ -611,10 +678,17 @@ def write_3mf(name, items):
         res.append(f'<object id="{oid}" name={quoteattr(obj_name)} type="model"><components>{comps}</components></object>')
         build.append(f'<item objectid="{oid}" transform="1 0 0 0 1 0 0 0 1 '
                      f'{x - bb[0]:.4f} {y - bb[1]:.4f} {-bb[2]:.4f}"/>')
+        cfg.append('</object>')
         oid += 1
     model = ('<?xml version="1.0" encoding="UTF-8"?>\n'
              '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
              '<metadata name="Title">8x12 Side Utility 1:24</metadata>'
+             # without this Flash Studio loads the shapes only and drops each part's filament. It
+             # says the file is from a newer version (click OK); any version up to its own 2.4.0.2
+             # gets "geometry only". No printer or process settings are in the file, so it keeps
+             # the printer that is set.
+             '<metadata name="Application">BambuStudio-02.06.00.51</metadata>'
+             '<metadata name="BambuStudio:3mfVersion">1</metadata>'
              f'<resources>{"".join(res)}</resources><build>{"".join(build)}</build></model>')
     types = ('<?xml version="1.0" encoding="UTF-8"?>\n'
              '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
@@ -628,6 +702,8 @@ def write_3mf(name, items):
         z.writestr("[Content_Types].xml", types)
         z.writestr("_rels/.rels", rels)
         z.writestr("3D/3dmodel.model", model)
+        z.writestr("Metadata/model_settings.config",
+                   '<?xml version="1.0" encoding="UTF-8"?>\n<config>' + "".join(cfg) + '</config>')
 
 
 def on_bed(man):
@@ -637,7 +713,10 @@ def on_bed(man):
 
 def build():
     parts = {}
-    parts["body"] = body()
+    w, f = walls(), floor()
+    parts["body"] = w + f
+    parts["floor"] = f
+    parts.update(split_walls(w))
     roof = roof_half()
     parts["roof"] = roof
     white, black = door_parts()
@@ -647,37 +726,69 @@ def build():
     return parts
 
 
+def wall_parts(p, name, zone):
+    """(siding, trim) of a wall, lying flat on the bed."""
+    return to_print(WALL_TO_PRINT[name], two_colour(p[name], zone))
+
+
 def main():
     p = build()
-    body_bb = p["body"].bounding_box()
-    write_stl(p["body"].translate([-body_bb[0], -body_bb[1], 0]), "body.stl")
+    zone = trim_zone()
+    walls_p = {name: wall_parts(p, name, zone) for name in WALL_CUTS}
+    write_stl(on_bed(p["floor"]), "floor.stl")
+    write_stl(union(walls_p["door wall"]), "door wall.stl")
+    write_stl(union(walls_p["back wall"]), "back wall.stl")
+    write_stl(union(walls_p["end wall 1"]), "end wall.stl")
     write_stl(roof_to_print(p["roof"]), "roof half.stl")
     door = p["door"] + p["door_trim"]
     write_stl(door, "door.stl")
     write_stl(p["skids"], "skids.stl")
     write_stl(on_bed(p["fit"]), "fit test.stl")
 
-    # Orca projects, one per plate, laid out on the 220 x 220 bed
+    # Orca projects, one per plate, laid out on the 220 x 220 bed. Filament 1 is the siding
+    # colour, filament 2 the trim; the back right corner of each two-colour plate is left clear
+    # for the prime tower.
     roof_p = roof_to_print(p["roof"])
     skid_p = skid().transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
     fit = on_bed(p["fit"])
     fbb = fit.bounding_box()
-    write_3mf("1 fit test.3mf", [("fit test", [("fit test", fit)], (110 - fbb[3] / 2, 110 - fbb[4] / 2))])
-    # the door prints white with the body; the body's 5 mm brim stays clear of it
-    dbb = door.bounding_box()
-    write_3mf("2 body and door.3mf", [
-        ("door", [("door", door)], (8, 110 - (dbb[4] - dbb[1]) / 2)),
-        ("body", [("body", p["body"])], (8 + (dbb[3] - dbb[0]) + 8, 110 - L / 2)),
+    write_3mf("1 fit test.3mf", [("fit test", [("fit test", fit, 1)], (110 - fbb[3] / 2, 110 - fbb[4] / 2))])
+
+    def wall_item(name, x, y, turned=False):
+        siding, trim = walls_p[name]
+        if turned:                                   # stood on end to fit beside the floor
+            siding, trim = to_print([[0, -1, 0], [1, 0, 0], [0, 0, 1]], [siding, trim])
+        return (name, [("siding", siding, 1), ("trim", trim, 2)], (x, y))
+
+    gap = 8
+    dw = walls_p["door wall"][0].bounding_box()
+    write_3mf("2 door wall and door.3mf", [
+        wall_item("door wall", 4, 4),
+        ("door", [("door", p["door"], 1), ("door trim", p["door_trim"], 2)], (4, 4 + dw[4] + gap)),
+    ])
+    fl = on_bed(p["floor"])
+    write_3mf("3 back wall and floor.3mf", [
+        ("floor", [("floor", fl, 1)], (4, 4)),
+        wall_item("back wall", 4 + fl.bounding_box()[3] + gap, 4, turned=True),
+    ])
+    ew = union(walls_p["end wall 1"]).bounding_box()
+    write_3mf("4 end walls.3mf", [
+        wall_item("end wall 1", 4, 4),
+        wall_item("end wall 2", 4 + ew[3] + gap, 4),
     ])
     rw = roof_p.bounding_box()[3]
     x0 = (220 - (2 * rw + 2 * SKID_W + 3 * 6)) / 2
     y0 = (220 - (L + 2 * RAKE)) / 2
-    write_3mf("3 roof and skids.3mf", [
-        ("roof half 1", [("roof half", roof_p)], (x0, y0)),
-        ("roof half 2", [("roof half", roof_p)], (x0 + rw + 6, y0)),
-        ("skid 1", [("skid", skid_p)], (x0 + 2 * rw + 12, y0)),
-        ("skid 2", [("skid", skid_p)], (x0 + 2 * rw + SKID_W + 18, y0)),
+    write_3mf("5 roof and skids.3mf", [
+        ("roof half 1", [("roof half", roof_p, 1)], (x0, y0)),
+        ("roof half 2", [("roof half", roof_p, 1)], (x0 + rw + 6, y0)),
+        ("skid 1", [("skid", skid_p, 1)], (x0 + 2 * rw + 12, y0)),
+        ("skid 2", [("skid", skid_p, 1)], (x0 + 2 * rw + SKID_W + 18, y0)),
     ])
+    for name, (siding, trim) in walls_p.items():
+        bb = union([siding, trim]).bounding_box()
+        print(f"{name:10s} flat {bb[3]-bb[0]:7.1f} x {bb[4]-bb[1]:7.1f} x {bb[5]-bb[2]:6.1f} mm  "
+              f"trim {trim.volume()/1000:5.2f} cm3, from {trim.bounding_box()[2]:.2f} mm up")
     for k, v in p.items():
         bb = v.bounding_box()
         print(f"{k:10s} {bb[3]-bb[0]:7.1f} x {bb[4]-bb[1]:7.1f} x {bb[5]-bb[2]:6.1f} mm  "

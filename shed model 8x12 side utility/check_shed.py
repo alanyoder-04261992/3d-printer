@@ -29,9 +29,14 @@ p = s.build()
 body, roof, door, trim = p["body"], p["roof"], p["door"], p["door_trim"]
 door_all = door + trim
 
+WALLS = list(s.WALL_CUTS)
+zone = s.trim_zone()
+flat = {name: s.to_print(s.WALL_TO_PRINT[name], s.two_colour(p[name], zone)) for name in WALLS}
+
 # 1. every printed piece is one solid piece and fits the bed
-for name, part in (("body", body), ("roof half", s.roof_to_print(roof)), ("door", door_all),
-                   ("skids", p["skids"]), ("fit test", p["fit"])):
+for name, part in ([("floor", p["floor"])] + [(n, s.union(flat[n])) for n in WALLS] +
+                   [("roof half", s.roof_to_print(roof)), ("door", door_all),
+                    ("skids", p["skids"]), ("fit test", p["fit"])]):
     bb = part.bounding_box()
     size = (bb[3] - bb[0], bb[4] - bb[1], bb[5] - bb[2])
     pieces = len(part.decompose())
@@ -39,6 +44,31 @@ for name, part in (("body", body), ("roof half", s.roof_to_print(roof)), ("door"
     report(pieces == expect, f"{name}: {pieces} solid piece(s), expected {expect}")
     report(max(size[0], size[1]) <= BED and size[2] <= BED,
            f"{name}: {size[0]:.1f} x {size[1]:.1f} x {size[2]:.1f} mm fits the {BED:.0f} mm bed")
+
+# 1b. the walls and floor are the whole body, cut apart cleanly, and print well lying flat
+pieces = [p["floor"]] + [p[n] for n in WALLS]
+v = abs(body.volume() - sum(x.volume() for x in pieces))
+report(v < 0.01, f"floor and four walls add up to the whole body ({v:.4f} mm3 left over)")
+worst = max(overlap(a, b) for i, a in enumerate(pieces) for b in pieces[i + 1:])
+report(worst < 0.001, f"no two of them overlap ({worst:.4f} mm3)")
+v = 0
+for dx, dy in ((0.14, 0), (-0.14, 0), (0, 0.14), (0, -0.14)):
+    v = max(v, overlap(p["floor"].translate([dx, dy, 0]), s.walls()))
+report(v == 0, f"the floor drops in with {s.FLOOR_CLR} mm all round (moved 0.14 mm it still clears)")
+for n in WALLS:
+    siding, trim = flat[n]
+    bb = s.union(flat[n]).bounding_box()
+    # print height of the bed face that is solid: the wall must touch the bed along its length
+    foot = s.union(flat[n]).trim_by_plane([0, 0, -1], -0.2)
+    fbb = foot.bounding_box()
+    report(fbb[3] - fbb[0] > 0.9 * (bb[3] - bb[0]) and fbb[4] - fbb[1] > 0.9 * (bb[4] - bb[1]),
+           f"{n} lies flat on its framing ({foot.volume() / 0.2:.0f} mm2 on the bed)")
+    tb = trim.bounding_box()
+    report(trim.volume() > 0 and abs(tb[5] - (s.WT + s.PROUD)) < 0.01,
+           f"{n}: trim is {trim.volume() / 1000:.2f} cm3, on top standing {s.PROUD} mm off the siding")
+same = (s.union(flat["end wall 1"]) ^ s.union(flat["end wall 2"])).volume()
+v1 = s.union(flat["end wall 1"]).volume()
+report(abs(same - v1) < 0.01, "the two end walls print the same, so end wall.stl serves for both")
 
 # 2. the roof halves sit on the body and the pegs go in their holes
 right = roof
