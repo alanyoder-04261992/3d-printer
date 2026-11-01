@@ -7,6 +7,7 @@ Each line says what it proved. Anything that fails is marked FAIL.
 import math
 import sys
 
+import manifold3d as m3
 import numpy as np
 
 import make_shed as s
@@ -58,14 +59,49 @@ report(v == 0, f"the floor drops in with {s.FLOOR_CLR} mm all round (moved 0.14 
 for n in WALLS:
     siding, trim = flat[n]
     bb = s.union(flat[n]).bounding_box()
-    # print height of the bed face that is solid: the wall must touch the bed along its length
+    # the bed face must run the whole inside face: the full length less the two mitres, and
+    # nearly the full height of the wall
     foot = s.union(flat[n]).trim_by_plane([0, 0, -1], -0.2)
     fbb = foot.bounding_box()
-    report(fbb[3] - fbb[0] > 0.9 * (bb[3] - bb[0]) and fbb[4] - fbb[1] > 0.9 * (bb[4] - bb[1]),
+    report(fbb[3] - fbb[0] > (bb[3] - bb[0]) - 2 * (s.WT + s.PROUD) - 0.1 and fbb[4] - fbb[1] > 0.9 * (bb[4] - bb[1]),
            f"{n} lies flat on its framing ({foot.volume() / 0.2:.0f} mm2 on the bed)")
+    # layer by layer (slicer layers: 0.25 then 0.2), nothing may stick out more than 0.22 mm
+    # past the layer under it, which is 45 degrees, except: the siding where it first spans
+    # between the studs (a bridge, held all round) and under 5 mm2 a layer of small bits (the
+    # undersides of the roof pegs, the top of the hinge pin hole)
+    worst, bridge = 0.0, 0.0
+    whole = s.union(flat[n])
+    zs = [0.125] + [0.35 + 0.2 * k for k in range(int(bb[5] / 0.2) + 1)]
+    bridge_z = min(z for z in zs if z > s.SD)
+    prev = None
+    for z in zs:
+        if z > bb[5]:
+            break
+        cs = whole.slice(z)
+        if prev is not None:
+            free = (cs - prev.offset(0.22, m3.JoinType.Miter, 10)).area()
+            if z == bridge_z:
+                bridge = free
+            else:
+                worst = max(worst, free)
+        prev = cs
+    report(worst < 5, f"{n} has nothing steeper than 45 degrees ({worst:.1f} mm2 worst layer; "
+                      f"{bridge:.0f} mm2 of siding bridges between studs)")
+    # the first two layers must have nothing narrower than one 0.4 mm line (a knife edge on
+    # the bed gets dropped or blobs into a joint)
+    thin = max((c - c.offset(-0.2, m3.JoinType.Miter, 10).offset(0.2, m3.JoinType.Miter, 10)).area()
+               for c in (whole.slice(0.125), whole.slice(0.35)))
+    report(thin < 2, f"{n}: no knife edges on the bed ({thin:.2f} mm2 thinner than a line in the first two layers)")
     tb = trim.bounding_box()
-    report(trim.volume() > 0 and abs(tb[5] - (s.WT + s.PROUD)) < 0.01,
-           f"{n}: trim is {trim.volume() / 1000:.2f} cm3, on top standing {s.PROUD} mm off the siding")
+    sb = siding.bounding_box()
+    report(trim.volume() > 0 and abs(tb[5] - (s.WT + s.PROUD)) < 0.01 and tb[2] > s.WT - 0.01
+           and sb[5] < tb[5] + 0.01,
+           f"{n}: trim is {trim.volume() / 1000:.2f} cm3, all of it the top {s.PROUD} mm "
+           f"({tb[2]:.2f} to {tb[5]:.2f} mm, siding colour no higher), so the colour only changes "
+           f"on the last layers")
+    if n in ("door wall", "back wall"):
+        v = p[n].trim_by_plane([0, 0, 1], s.ZWT + 0.001).volume()
+        report(v == 0, f"{n}: nothing above the wall plates (the gable corners go with the end walls)")
 same = (s.union(flat["end wall 1"]) ^ s.union(flat["end wall 2"])).volume()
 v1 = s.union(flat["end wall 1"]).volume()
 report(abs(same - v1) < 0.01, "the two end walls print the same, so end wall.stl serves for both")

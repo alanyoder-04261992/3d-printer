@@ -4,7 +4,7 @@ Everything about our 3D printing setup in one place: the printer, the slicer, th
 filament, the settings that work, and what we've learned the hard way.
 **Keep it up to date** — when something changes or a print teaches us something, add it here.
 
-_Last updated: 2026-10-31_
+_Last updated: 2026-11-01_
 
 ---
 
@@ -23,7 +23,7 @@ _Last updated: 2026-10-31_
 
 | | |
 |---|---|
-| Software | **Orca-Flashforge** v01.10.01.50 |
+| Software | **Orca-Flashforge** v01.10.01.50, and now **Flash Studio Desktop 1.7.20** (Flashforge's newer slicer; it reports itself as Orca 2.4.0.2) |
 | Printer profile | `Flashforge AD5X 0.4 nozzle` |
 | Usual print profile | `0.20mm Standard @FF AD5X` (129 of 134 files) |
 | Saved custom presets | **None yet.** Everything uses the built-in profiles. |
@@ -110,6 +110,18 @@ played with, change these:
 - **Holes print small.** For a pin or peg that goes into a hole, make the hole at least
   **0.35–0.4 mm bigger all round** than the pin (Alan, Oct 2026).
 
+### Two colours on the IFS
+- **Put the second colour on the top layers only.** Every layer that has both colours costs
+  a filament change (time plus purge). Raised trim on a part printed flat costs 3 changes;
+  the same trim standing up the side of a part costs one per layer. The shed walls went from
+  25–28 changes a plate to 3–4 by mitring the corners so every wall's trim is on top
+  (Alan, Nov 2026).
+- Anything tall in the second colour (a handle, a knob) adds a change for every layer it
+  sticks up past the rest of the trim.
+- Flash Studio keeps each part's filament from a `.3mf` only if the file names a slicer
+  version. Files made by our scripts say BambuStudio 2.6, so Flash Studio shows a "newer
+  3MF version" notice: click OK, the parts and colours load fine.
+
 ### Bed adhesion
 - Long, thin parts or parts with a small footprint need a **5 mm brim** (knife handle, sword
   blade, star board).
@@ -133,7 +145,7 @@ played with, change these:
 | `flying prop/` | Flying propeller toy | |
 | `test print/` | Sword blade PLA vs PETG tests | |
 | `desktop prints/` | Project files (.3mf) and big STLs | The 4 biggest STLs are stored with Git LFS |
-| `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility: body, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first. Made by `make_shed.py`; `check_shed.py` proves the parts fit |
+| `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility: floor, four mitred walls that print flat with two-colour trim, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first. Made by `make_shed.py`; `check_shed.py` proves the parts fit and print flat |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in

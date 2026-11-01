@@ -236,22 +236,18 @@ def end_wall_framing(side):
     xin = W / 2 - TS
     parts = [box(-xin, xin, yi, yo, ZF, ZF + PLATE_BOT),
              box(-xin, xin, yi, yo, ZWT - PLATE_TOP, ZWT)]
-    for xc in [-xin + SW / 2, xin - SW / 2] + layout(-W / 2, W / 2, 16 * S):
+    # end studs stand just inside the long walls, so the mitred end of the gable wall rests on
+    # a stud's width on the bed rather than a knife edge
+    xe = W / 2 - WT - SW / 2
+    for xc in [-xe, xe] + layout(-W / 2, W / 2, 16 * S):
         parts.append(box(xc - SW / 2, xc + SW / 2, yi, yo, ZF + PLATE_BOT, ZPK))
-    # top chords: a band one 2x4 deep under the roof line, chamfered 45 deg underneath so it
-    # prints without supports. Depth into the room grows with height above the chord's underside:
-    # keep  depth <= z - (roof line - chord)
+    # top chords: a band one 2x4 deep under the roof line. The walls print flat, so it runs
+    # the full stud depth (it used to be chamfered underneath to print standing up).
     chord_v = SD / math.cos(ALPHA)
     band = prism_xz([(-W / 2, ZWT - chord_v), (0, ZPK - chord_v), (W / 2, ZWT - chord_v),
                      (W / 2, ZWT), (0, ZPK), (-W / 2, ZWT)],
                     yi - (0.2 if side < 0 else 0), yo + (0.2 if side > 0 else 0))   # 0.2 into the siding so they join
-    face = yo if side > 0 else yi                # inside face of the gable siding
-    for hx in (+1, -1):
-        half = band.trim_by_plane([hx, 0, 0], 0)
-        normal = np.array([hx * PITCH, side, 1.0])
-        offset = ZWT + PITCH * W / 2 - chord_v + side * face
-        ln = np.linalg.norm(normal)
-        parts.append(half.trim_by_plane((normal / ln).tolist(), offset / ln))
+    parts.append(band)
     gable_shape = prism_xz([(-W / 2, 0), (W / 2, 0), (W / 2, ZWT), (0, ZPK), (-W / 2, ZWT)], -L, L)
     return union(parts) ^ gable_shape
 
@@ -294,7 +290,8 @@ def gable_vent(side):
     for i in range(5):
         zb = z0 + fr + inner_h * i / 5 + 0.25
         zt = zb + inner_h / 5 - 0.1
-        poly = [(yf - side * EMBED, zb), (yf + side * 0.7, zb), (yf + side * 0.7, zb + 0.2), (yf - side * EMBED, zt)]
+        # out as far as the trim and no further, so nothing in the siding colour stands above it
+        poly = [(yf - side * EMBED, zb), (yf + side * PROUD, zb), (yf + side * PROUD, zb + 0.2), (yf - side * EMBED, zt)]
         parts.append(prism(poly, 1, 2, 0, x1 - x0 - 2 * fr).translate([x0 + fr, 0, 0]))
     return parts
 
@@ -381,7 +378,7 @@ def walls():
 
     framing = long_wall_framing(+1, True) + long_wall_framing(-1, False)
     framing += [end_wall_framing(+1), end_wall_framing(-1)]
-    for sx in (1, -1):              # corner posts, solid into the corner so the long walls print flat
+    for sx in (1, -1):              # corner posts, solid into the corner so each wall's mitred end is a solid 45 degree wedge
         for sy in (1, -1):
             xa, xb = sorted([sx * (W / 2 - WT), sx * (W / 2 - TS)])
             ya, yb = sorted([sy * (L / 2 - TS), sy * (L / 2 - WT - SW)])
@@ -422,14 +419,40 @@ def body():
     return walls() + floor()
 
 
-# the four walls: the long walls run the full length, corners and all, and the end walls
-# fit between them. Each prints lying flat on the inside face of its framing, outside up.
+# the four walls meet at 45 degree mitres through the inside and outside corners, so each
+# wall carries only the trim on its own face and it all prints on top: the colour changes
+# are the last few layers (Alan, Nov 1 2026). Each prints lying flat on the inside face of
+# its framing, outside up; the mitred ends lean out at 45 degrees, which prints fine.
 BIG = 500
+
+
+def mitred(axis, sign):
+    """The region one wall owns: outside its inside face, and on its side of the mitre at
+    each end. axis 0 for a long wall, 1 for an end wall; sign which side of the shed."""
+    half = (W / 2, L / 2)
+    a, b = axis, 1 - axis
+    n = [0.0, 0.0, 0.0]
+    n[a] = sign
+    r = M.cube([2 * BIG] * 3, True).trim_by_plane(n, half[a] - WT)
+    for end in (1, -1):
+        n = [0.0, 0.0, 0.0]
+        n[a], n[b] = sign / math.sqrt(2), -end / math.sqrt(2)
+        r = r.trim_by_plane(n, (half[a] - half[b]) / math.sqrt(2))
+    return r
+
+
+def above_plate(sign):
+    """Above the top of the wall plates on one end of the shed. The bit of gable at each
+    corner above the plates goes with the end wall, where it lies on the bed; on the long
+    wall it was a sliver the slicer called floating."""
+    return M.cube([2 * BIG] * 3, True).trim_by_plane([0, 0, 1], ZWT).trim_by_plane([0, sign, 0], 0)
+
+
 WALL_CUTS = {
-    "door wall": box(W / 2 - WT, BIG, -BIG, BIG, -BIG, BIG),
-    "back wall": box(-BIG, -(W / 2 - WT), -BIG, BIG, -BIG, BIG),
-    "end wall 1": box(-(W / 2 - WT), W / 2 - WT, L / 2 - WT, BIG, -BIG, BIG),
-    "end wall 2": box(-(W / 2 - WT), W / 2 - WT, -BIG, -(L / 2 - WT), -BIG, BIG),
+    "door wall": mitred(0, 1) - above_plate(1) - above_plate(-1),
+    "back wall": mitred(0, -1) - above_plate(1) - above_plate(-1),
+    "end wall 1": mitred(1, 1) + above_plate(1),
+    "end wall 2": mitred(1, -1) + above_plate(-1),
 }
 # shed coords to print coords, inside face down (each a rotation, det +1)
 WALL_TO_PRINT = {
@@ -552,9 +575,15 @@ def door_parts():
     black += [tri(xl, lo0, xl + leg, lo0, xl, lo0 + leg), tri(xr, lo0, xr, lo0 + leg, xr - leg, lo0),
               tri(xl, lo1, xl, lo1 - leg, xl + leg, lo1), tri(xr, lo1, xr - leg, lo1, xr, lo1 - leg),
               tri(xl, up1, xl, up1 - leg, xl + leg, up1), tri(xr, up1, xr - leg, up1, xr, up1 - leg)]
-    # handle, 0.44 ft in from the latch edge
-    hx = DOOR_W - 0.44 * FT
-    black.append(box(hx - 0.5, hx + 0.5, 0.45 * DOOR_H - 3.5, 0.45 * DOOR_H + 3.5, z0, z1 + 0.8))
+    # pull handle, 0.44 ft in from the latch edge: a D-shaped pull standing 2.6 mm off the panel,
+    # with a 1.8 mm gap under the grip to hook a fingernail in (Alan, Nov 1 2026). The grip
+    # bridges 4.6 mm between its two posts.
+    hx, hy = DOOR_W - 0.44 * FT, 0.45 * DOOR_H
+    hw, hl, post, grip = 1.4, 3.5, 1.2, 0.8
+    top = z1 + 2.0
+    black += [box(hx - hw / 2, hx + hw / 2, hy - hl, hy - hl + post, z0, top),
+              box(hx - hw / 2, hx + hw / 2, hy + hl - post, hy + hl, z0, top),
+              box(hx - hw / 2, hx + hw / 2, hy - hl, hy + hl, top - grip, top)]
     black = union(black) - white
     return white, black
 
@@ -598,22 +627,26 @@ def skids_to_shed():
 # ---------------------------------------------------------------- fit test
 def fit_test():
     """A short doorway with the same pin holes, slot and stop, a short door with the same
-    pins, and a sloped block with a roof peg next to a roof coupon with the peg hole."""
+    pins, and a block with a roof peg next to a roof coupon with the peg hole. The doorway and
+    the peg block print lying flat, inside face down, the way the door wall and the end walls
+    do, so the holes and the peg come out the way the real ones will."""
     ow, oh = 14.0, 24.0
     jamb = ow / 2
     ax_x, ax_y = W / 2 - 1.8, -jamb + DOOR_R + DOOR_GAP
-    base = box(W / 2 - 8, W / 2, -jamb - 6, jamb + 6, 0, 3.0)
-    frame = [base, box(W / 2 - 8, W / 2, -jamb - 6, -jamb, 3.0, 3.0 + oh + 6),
-             box(W / 2 - 8, W / 2, jamb, jamb + 6, 3.0, 3.0 + oh + 6),
-             box(W / 2 - 8, W / 2, -jamb - 6, jamb + 6, 3.0 + oh, 3.0 + oh + 6)]
+    x0 = W / 2 - WT                                   # inside face, as thick as the wall
+    base = box(x0, W / 2, -jamb - 6, jamb + 6, 0, 3.0)
+    frame = [base, box(x0, W / 2, -jamb - 6, -jamb, 3.0, 3.0 + oh + 6),
+             box(x0, W / 2, jamb, jamb + 6, 3.0, 3.0 + oh + 6),
+             box(x0, W / 2, -jamb - 6, jamb + 6, 3.0 + oh, 3.0 + oh + 6)]
     f = union(frame)
     zf = 3.0
     inner = ax_x - DOOR_R
-    f = f + box(inner - 1.4, inner - 0.2, jamb - 0.8, jamb + 0.2, zf, zf + oh)
+    f = f + box(x0, inner - 0.2, jamb - 0.8, jamb + 0.2, zf, zf + oh)
     f = f - union([cyl_z(ax_x, ax_y, zf - HOLE_BOTTOM_DEPTH, zf + 1, PIN_HOLE_D),
                    cyl_z(ax_x, ax_y, zf + oh - 1, zf + oh + HOLE_TOP_DEPTH, PIN_HOLE_D),
                    box(ax_x, W / 2 + 2, ax_y - PIN_HOLE_D / 2, ax_y + PIN_HOLE_D / 2, zf - TRENCH_DEPTH, zf + 1)])
-    f = f.translate([-(W / 2 - 8), jamb + 6, 0])
+    f = on_bed(f.transform(np.column_stack([np.array(WALL_TO_PRINT["door wall"], dtype=float), np.zeros(3)])))
+    fw = f.bounding_box()[3]
     # small door with the same pin and edge
     dw = (jamb - DOOR_GAP) - ax_y
     dh = oh - DOOR_BOTTOM_GAP - DOOR_TOP_GAP
@@ -621,12 +654,14 @@ def fit_test():
                cyl_y(0, 0, dh, DOOR_R, 2 * DOOR_R),
                cyl_y(0, dh - 0.5, dh + PIN_TOP_LEN, DOOR_R, PIN_D, 40),
                cyl_y(0, -PIN_BOTTOM_LEN, 0.5, DOOR_R, PIN_D, 40)])
-    d = d.translate([16, 3, 0])
-    # roof peg on a small block, and a roof coupon with its hole
-    blk = box(-6, 6, -6, 6, 0, 4) + cyl_z(0, 0, 3, 4 + PEG_UP, PEG_D)
-    blk = blk.translate([42, 8, 0])
+    d = d.translate([fw + 6, 3 + PIN_BOTTOM_LEN, 0])
+    # roof peg on a block lying like an end wall, so the peg sticks out sideways at mid
+    # thickness; stand it up to try the coupon on it
+    bx = fw + 6 + d.bounding_box()[3] - d.bounding_box()[0] + 12
+    blk = box(-6, 6, 0, 6, 0, WT) + cyl_y(0, 5, 6 + PEG_UP, WT / 2, PEG_D)
+    blk = blk.translate([bx, 3, 0])
     cpn = box(-6, 6, -6, 6, 0, ROOF_T) - cyl_z(0, 0, -1, PEG_HOLE_UP, PEG_HOLE_D)
-    cpn = cpn.translate([42, 24, 0])
+    cpn = cpn.translate([bx, 22, 0])
     return union([f, d, blk, cpn])
 
 
@@ -773,8 +808,8 @@ def main():
     ])
     ew = union(walls_p["end wall 1"]).bounding_box()
     write_3mf("4 end walls.3mf", [
-        wall_item("end wall 1", 4, 4),
-        wall_item("end wall 2", 4 + ew[3] + gap, 4),
+        wall_item("end wall 1", (220 - 2 * ew[3] - 6) / 2, 4),            # 102.8 wide each with the mitres
+        wall_item("end wall 2", (220 + 6) / 2, 4),
     ])
     rw = roof_p.bounding_box()[3]
     x0 = (220 - (2 * rw + 2 * SKID_W + 3 * 6)) / 2
