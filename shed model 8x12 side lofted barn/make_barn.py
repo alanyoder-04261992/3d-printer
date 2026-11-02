@@ -136,7 +136,9 @@ WIN_YC = (JAMB + L / 2) / 2
 ROOF_T = 2.0
 RIB_OC = 9 * S
 TAIL = 4 * S           # the upper sheet runs on 4 in past the knee, lapping over the lower one
-LAP_GAP = 0.15         # gap between that tail and the top of the lower sheet
+LAP_GAP = 0.45         # gap between that tail and the top of the lower sheet: as printed, the lower
+                       # sheet's tilted peg slots step in layers and it rests up to about 0.3 mm higher
+                       # than drawn (second review, Nov 2 2026), so the tail still clears it
 PEG_D, PEG_UP = 2.2, 1.0
 PEG_HOLE_D, PEG_HOLE_UP = 3.0, 1.4   # 0.4 mm round the peg
 PEG_X = KNEE_X / 2     # the upper sheets' pegs, halfway up the shallow slope
@@ -155,6 +157,7 @@ LOFT_JOIST = 5.5 * S
 LOFT_DECK = 1.0
 LOFT_Z = ZWT - 0.15    # bottom of the loft joists: the top of the long walls
 LOFT_CLR = 0.4         # clear of the steep roof sheets, square to them
+LOFT_END = 0.4         # gap between a loft and the end wall: a loft can slide 0.2 toward it on its lugs
 LUG_U, LUG_D = 1.8, 1.8   # a lug under two of the joists at each wall drops into a notch in the top
                        # plate; 1.8 deep, so it stays in even with the loft lifted up against the roof
 LUG_JOISTS = (0, -1)   # the end joist and the edge joist, the same distance from the loft's middle,
@@ -642,7 +645,7 @@ def roof_clearance():
 def loft_joist_ys():
     """The loft joists at the +y end, from the end wall in: one against the end wall's framing,
     then 16 in apart, and one on the loft's edge."""
-    first = L / 2 - WT - FIT - SW / 2
+    first = L / 2 - WT - LOFT_END - SW / 2
     edge = L / 2 - LOFT_DEPTH + SW / 2
     ys = [first]
     while ys[-1] - 16 * S > edge + SW:
@@ -677,7 +680,7 @@ def loft(sy=1):
     ys = loft_joist_ys()
     xl = loft_half_width()
     zt = LOFT_Z + LOFT_JOIST
-    parts = [box(-xl, xl, L / 2 - LOFT_DEPTH, L / 2 - WT - FIT, zt, zt + LOFT_DECK)]
+    parts = [box(-xl, xl, L / 2 - LOFT_DEPTH, L / 2 - WT - LOFT_END, zt, zt + LOFT_DECK)]
     for y in ys:
         parts.append(box(-xl, xl, y - SW / 2, y + SW / 2, LOFT_Z, zt + 0.01))
     for i in LUG_JOISTS:
@@ -723,7 +726,7 @@ def roof_pegs():
         for sy in (1, -1):
             x = sx * PEG_X
             pegs.append(cyl_z(x, sy * PEG_Y, zline(x) - 3, zline(x) + 3, PEG_D).trim_by_plane(nu, ou))
-            pegs.append(cyl_z(m[0], sy * PEG_Y, m[1] - 4, m[1] + 4, PEG_D).trim_by_plane(nl, ol))
+            pegs.append(cyl_z(m[0], sy * PEG_Y, m[1] - 4, m[1] + 8, PEG_D).trim_by_plane(nl, ol))
     return pegs
 
 

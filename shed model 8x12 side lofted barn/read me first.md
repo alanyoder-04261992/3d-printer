@@ -22,9 +22,11 @@ The framing is built the way you taught the 3D designer for this barn:
 - on each end wall's upper plate the 2x6 gable board, then gable studs 24 in apart measured
   from the outside of the end wall (the middle one runs up to the peak), and gable backing
   across the gable 11 in above the upper plate;
-- the end truss's four chords under the roof line, with a collar tie across the knees;
+- the end truss's four chords under the roof line;
 - each loft is 2x6 joists 16 in apart on the long walls' top plates, with the loft floor on top;
 - the floor is 4x8 sheets, an 8 ft and a 4 ft sheet in each row, the seams staggered.
+
+The end truss also has a collar tie across the knees, as the 3D designer draws barn trusses.
 
 | | |
 |---|---|
@@ -191,8 +193,8 @@ it apart. `how it goes together.png` shows the order.
 5. **Lofts.** Push the top of the back wall in so it stands straight, and lower a loft in at
    one end, floor side up, its end lined up with the ends of the long walls' top plates: its joists rest
    on the top plates of both long walls and the two lugs at each side drop into the notches in
-   the plates. Either way round fits. Do the other end the same way. With both lofts in, the
-   back wall stands straight on its own.
+   the plates. Either way round fits. Do the other end the same way. The lofts then keep the
+   back wall straight.
 6. **End walls.** Hold an end wall over one end of the floor, peak up and trim facing out,
    and lower it straight down past the end of the loft: the hooks on its top corners go down
    over the long walls' corners, its posts and prongs into the floor, and its mitred ends close
@@ -252,22 +254,25 @@ writes the `.stl` files and both `.3mf` files. `draw_barn.py` draws `how it goes
 - each wall goes on straight down in the order above (the long walls, then the lofts, then the
   end walls past the lofts and over the long walls' corners) with nothing in the way but its
   barbs, stands on the floor, and can't lift, lean or slide once clicked in;
-- the back wall can't stand straight on its own, but does with the lofts on it;
-- the corner hooks tie the walls together, and find their pockets with a long wall leaning out
-  up to 2 mm at the top, or pushed in up to 0.5 mm;
+- the back wall can't stand straight on its own, but stays straight with the lofts on it once
+  you push it straight;
+- the corner hooks tie the walls together and find their pockets with a long wall leaning out up
+  to about 1 3/4 mm at the top, and a bevel guides an end wall past a long wall pushed in up to
+  0.5 mm;
 - the barbs still catch once the parts are cut into 0.2 mm layers and anything thinner than a
   line is rounded off, and the prong legs bend less than PLA can take;
 - the four roof sheets rest on the barn ends, are held by their pegs, don't touch each other,
   go on and off straight up without touching anything, and the upper sheets lock the lower
-  ones on; the lofts rest on the top plates, can't slide (even pushed up against the roof),
-  clear the roof, and fit either way round; the door swings out to at least 90 degrees (about 98
+  ones on; printed in layers, a lower sheet sits a little higher but the upper sheet still rests
+  on the barn ends; the lofts rest on the top plates, can't slide (even pushed up against the
+  roof), clear the roof and the end walls coming down, and fit either way round; the door swings out to at least 90 degrees (about 98
   as made) and won't swing in; the skids fit under the joists;
 - each wall, the floor, the lofts and the roof sheets print flat, with nothing steeper than 45
   degrees that isn't a bridge held at both ends (apart from a small flap of siding over each
   corner hook on the long walls), the walls' trim all in the top 0.6 mm, and nothing on the
   walls' first layers thinner than one line;
 - measured off the parts: the walls are 79 1/2 in, the barn roof 43 3/4 in to the peak of the
-  trusses, the eave 1 3/4 in, the door opening 48 1/4 x 71 1/2 in, and the window tops level
-  with the door's, the same as the 3D designer's shop standard and your loft header.
+  trusses, the eave 1 3/4 in and the door opening 48 1/4 x 71 1/2 in, the same as the 3D
+  designer's shop standard, and the window tops are at your loft header, level with the door's.
 
 To make a different size, ask Claude to change the numbers and run all three.
