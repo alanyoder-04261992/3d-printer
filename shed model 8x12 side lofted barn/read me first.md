@@ -237,10 +237,11 @@ down each inside corner does it.
 - On the real barn the side wall's upper plate laps over the end wall. On the model the end
   walls' top plates lap over the long walls' corners instead, because the end walls go on last.
 - The windows' tops are at the loft header, level with the top of the door (71 1/2 in), as you
-  taught for a lofted wall, and each window is centred between the door and the corner, as on
-  the Side Utility model. The 3D designer puts a loft barn's window top 5 in under the wall top
-  (74 1/2 in, 3 in higher, which would run into the loft header), and centres each window
-  4.4 ft from the middle (about 4 3/4 in further from the door).
+  taught for a lofted wall and confirmed is right (Nov 2 2026), and each window is centred
+  between the door and the corner, as on the Side Utility model. The 3D designer still puts a
+  loft barn's window top 5 in under the wall top (74 1/2 in, 3 in higher, which would run into
+  the loft header), and centres each window 4.4 ft from the middle (about 4 3/4 in further from
+  the door).
 - The loft depth (4 ft from the outside of each end wall) is what the 3D designer assumes;
   nobody has given the shop's number yet. Tell Claude if your lofts are a different depth.
 

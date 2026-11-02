@@ -126,7 +126,8 @@ DOOR_SLAB = 1.4        # panel thickness; trim brings it to 2.0
 
 # windows: 2x3 window, 2.1 x 2.9 ft, each centred between the door opening and the end of the
 # wall (as on the Side Utility model, Alan, Oct 31 2026). In a lofted wall the window header
-# touches the top plate (Alan), so the window's top is level with the door's.
+# touches the top plate (Alan), so the window's top is level with the door's. Alan confirmed
+# this over the 3D designer's 5 in under the wall top (Nov 2 2026: "The way you have it is right").
 WIN_W = 2.1 * FT
 WIN_H = 2.9 * FT
 WIN_TOP = DOOR_OPEN_H
