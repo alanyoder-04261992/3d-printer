@@ -304,7 +304,8 @@ for n in LONGS:
         deg += 0.05
     lean = math.radians(deg) * H
     tip = w.volume() * (u_com - u_edge)               # its own weight tipping it out (mm3 x mm)
-    hold = sum(l.volume() for l in lofts) * u_edge    # both lofts' ends lifted at the plate's inside edge
+    hold = sum(l.volume() for l in lofts) / 2 * u_edge   # each loft's end lifted at the plate's inside edge;
+                                                       # it pivots on the other wall, so half its weight
     if tip <= 0:
         report(True, f"{n} stands upright by itself: its weight is {u_com:.2f} mm out from its inside face, "
                      f"inside the floor's edge at {u_edge:.2f}")
@@ -312,8 +313,8 @@ for n in LONGS:
         report(hold > 2 * tip,
                f"{n} would lean out about {lean:.1f} mm at the top by itself (its weight is {u_com:.2f} mm out from its "
                f"inside face, past the floor's edge at {u_edge:.2f}), more than the corner hooks can catch; with the "
-               f"lofts on its top plate it stands upright: tipping it lifts their ends, {hold:.0f} against its own "
-               f"{tip:.0f} (mm3 x mm). So the lofts go in before the end walls")
+               f"lofts on its top plate it stays upright once pushed straight: tipping it lifts their ends, {hold:.0f} "
+               f"against its own {tip:.0f} (mm3 x mm). So the lofts go in before the end walls")
 # with the lofts on, the long walls stand upright; whatever lean is left from handling, the tip
 # of an end wall's corner hook must land on the slope in front of its pocket (which pulls the
 # long wall upright) and not on a flat top, nor slip down inside the wall. Each lean is the long
@@ -323,7 +324,7 @@ ew_c = p["end wall 1"] ^ corner
 za = s.ZWT + 0.02 - s.HOOK_ARM
 e = s.HOOK_REACH - s.HOOK_TIP_W - s.FIT                  # the pocket's near side, into the long wall
 worst_lean = 0.0
-for lean_mm in (0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0):
+for lean_mm in (0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0):
     lw_l = tilt(p["door wall"], "door wall", math.degrees(lean_mm / H)) ^ corner
     dz = 8.0
     while dz > 0 and overlap(ew_c.translate([0, 0, dz - 0.05]), lw_l) < 1e-4:
@@ -336,14 +337,16 @@ for lean_mm in (0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0):
     else:
         touches = [c for c in (ew_c.translate([0, 0, dz - 0.05]) ^ lw_l).decompose() if c.volume() > 1e-4]
         x_lo = s.W / 2 - s.WT + e - s.HOOK_GUIDE - 0.05 + lean_mm
+        # on the slope itself: past its top edge and below it, where it pushes the wall in
         ok = all(tb[1] >= s.L / 2 - s.WT - s.FIT - 0.05 and tb[4] <= s.L / 2 - s.WT + s.HOOK_T + s.FIT + 0.05
-                 and tb[0] >= x_lo - 0.1 and tb[5] <= za - s.FIT + 0.3
+                 and tb[0] >= x_lo + 0.15 and tb[5] <= za - s.FIT - 0.1
                  for tb in (c.bounding_box() for c in touches))
     if not ok:
         break
     worst_lean = lean_mm
-report(worst_lean >= 2.0, f"with a long wall leaning out up to {worst_lean} mm at the top, the end wall's hook tip lands "
-                          f"on the slope in front of its pocket and pulls the long wall upright")
+report(1.5 <= worst_lean < 2.5, f"with a long wall leaning out up to {worst_lean} mm at the top, the end wall's hook tip "
+                                f"lands on the slope in front of its pocket and pulls the long wall upright (more than "
+                                f"that, it lands on top, so the lofts must keep the back wall straight)")
 
 # the other way: a long wall pushed in a little at the top (the lofts leave it about 0.2 mm). The
 # end wall's bottom must meet the bevel on the long wall's mitre, which pushes it back out, not
@@ -366,8 +369,8 @@ for lean_mm in (0.2, 0.3, 0.5):
         tb = c.bounding_box()
         if c.volume() > 1e-5 and not (z_top - s.MITRE_BEVEL - 0.1 < tb[2] and tb[5] < z_top - 0.05):
             ok_in = False
-report(ok_in, f"with a long wall pushed in up to 0.5 mm at the top, a coming-down end wall meets the {s.MITRE_BEVEL} mm "
-              f"bevel on the long wall's mitre, which pushes it back out, not the mitre's flat top")
+report(ok_in, f"with a long wall pushed in up to 0.5 mm at the top, a coming-down end wall first meets the "
+              f"{s.MITRE_BEVEL} mm bevel on the long wall's mitre, which pushes it back out, not the mitre's flat top")
 
 
 def long_flap(bit, bb):
@@ -488,9 +491,40 @@ report(min(va, vd, vo, vs_) > 0.05,
 worst = sweep(lower, inside, [[0, 0, dz] for dz in np.arange(0, 20.01, 0.1)])
 report(worst < 1e-3, f"a lower sheet goes on and lifts off straight up, touching nothing from 20 mm up "
                      f"({worst:.4f} mm3)")
-v = overlap(upper, lower.translate([0, 0, 0.3]))
-report(v > 0.05, f"with the upper sheet on, its tail is in the way of the lower sheet's only way off, so the lower "
-                 f"sheet is locked on ({v:.2f} mm3 when it lifts 0.3 mm)")
+h = 0.0
+while h < 3 and overlap(upper, lower.translate([0, 0, h + 0.02])) < 1e-4:
+    h += 0.02
+held = overlap(body, lower.translate([0, 0, h]).translate(0.3 * np.array([dl[0], 0, dl[1]])))
+report(h < 1.0 and held > 0.05, f"with the upper sheet on, its tail is in the way of the lower sheet's only way off: "
+                                f"lifted {h:.2f} mm the lower sheet meets it, still down on its pegs "
+                                f"({held:.2f} mm3 when slid 0.3 mm down its slope there), so it is locked on")
+
+
+def printed_sheet(piece, a, b):
+    """as_printed() of a +x roof sheet laid flat the way panel_to_print lays it, put back on the barn."""
+    mat = s.panel_frame(a, b)
+    R, p0 = mat[:, :3], mat[:, 3]
+    swap = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]], dtype=float)
+    A = swap @ R.T
+    t = -A @ p0
+    flat = piece.transform(np.column_stack([A, t]))
+    bb = flat.bounding_box()
+    back = as_printed(flat.translate([-bb[0], -bb[1], -bb[2]])).translate([bb[0], bb[1], bb[2]])
+    return back.transform(np.column_stack([A.T, -A.T @ t]))
+
+
+# as printed, the lower sheet's tilted slots step in layers, so it rests a little higher up its
+# slope than drawn; the upper sheet's tail must still clear it
+low_p = printed_sheet(lower, s.LOWER_A, s.LOWER_B)
+up_dir = -np.array([dl[0], 0, dl[1]])
+rise = 0.0
+while rise < 2 and overlap(body, low_p.translate((rise) * up_dir)) > 1e-3:
+    rise += 0.02
+gap = 0.0
+while gap < 2 and overlap(upper, low_p.translate((rise + gap + 0.02) * up_dir)) < 1e-4:
+    gap += 0.02
+report(gap >= 0.1, f"as printed, a lower sheet rests {rise:.2f} mm further up its slope than drawn, and the upper "
+                   f"sheet's tail still clears it by {gap:.2f} mm more, so the upper sheet sits on the barn ends")
 roof_low = s.union([lower, lower.mirror([1, 0, 0])])
 worst = sweep(upper, s.union([inside, roof_low]), [[0, 0, dz] for dz in np.arange(0.1, 20.01, 0.1)])
 report(worst < 1e-3, f"an upper sheet goes on and lifts off straight up, touching nothing from 20 mm up with the "
@@ -498,7 +532,8 @@ report(worst < 1e-3, f"an upper sheet goes on and lifts off straight up, touchin
 
 # 3. the lofts rest on the long walls' top plates, under the roof
 roof_all = s.union(list(sheets.values()))
-yc = s.L / 2 - (s.LOFT_DEPTH + s.WT + s.FIT) / 2           # the middle of a loft, along the barn
+lbb = lofts[0].bounding_box()
+yc = (lbb[1] + lbb[4]) / 2                                   # the middle of a loft, along the barn
 for i, lf in enumerate(lofts):
     v = overlap(body, lf) + overlap(roof_all, lf)
     report(v < 0.01, f"loft {i + 1} fits between the walls and under the roof ({v:.4f} mm3)")
@@ -510,8 +545,7 @@ for i, lf in enumerate(lofts):
     report(worst < 1e-3, f"loft {i + 1} drops in from above between the long walls before the end walls go on, and "
                          f"lifts straight out with the roof off ({worst:.4f} mm3)")
 lf = lofts[0]
-y0 = yc
-turned = lf.translate([0, -y0, 0]).rotate([0, 0, 180]).translate([0, y0, 0])
+turned = lf.translate([0, -yc, 0]).rotate([0, 0, 180]).translate([0, yc, 0])
 v = overlap(body, turned)
 v2 = overlap(body, turned.translate([0, 0, -0.1]))
 report(v < 0.01 and v2 > 0.5, f"a loft goes in either way round: turned end for end it fits the same notches "
@@ -521,6 +555,14 @@ while rise < 3 and overlap(roof_all, lf.translate([0, 0, rise + 0.02])) < 1e-4:
     rise += 0.02
 report(rise < s.LUG_D - 0.3, f"with the roof on, a loft can only rise {rise:.2f} mm before it meets the roof, so its "
                              f"{s.LUG_D} mm lugs stay {s.LUG_D - rise:.2f} mm down in their notches")
+slide = 0.0
+while slide < 2 and overlap(longs, lf.translate([0, slide + 0.02, 0])) < 1e-4:
+    slide += 0.02
+worst = sweep(p["end wall 1"], lf.translate([0, slide, 0]), [[0, 0, dz] for dz in DROPS] + [[0, 0, 0]])
+gap_end = (s.L / 2 - s.WT) - (lbb[4] + slide)
+report(worst < 1e-3 and gap_end >= 0.15,
+       f"a loft slides {slide:.2f} mm toward its end at most, and even there an end wall comes down past it with "
+       f"{gap_end:.2f} mm to spare ({worst:.4f} mm3)")
 
 # 4. the door swings out to about 90 degrees and no further, and not inward
 closed = None

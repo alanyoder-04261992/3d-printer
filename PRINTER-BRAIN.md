@@ -131,8 +131,10 @@ played with, change these:
   upper sheet's tail lap over the lower one, the way the real steel goes on. Give the steep
   sheets pegs standing straight up, not square to the slope: square to the slope, the sheet's
   bottom swings out and it falls off with the model tipped about 20 degrees. Put each hole its
-  clearance further out than its peg so the sheet rests where it's drawn, and put roof pegs on
-  the face of a wall that prints on the bed, so they lie on the bed instead of in the air.
+  clearance further out than its peg so the sheet rests where it's drawn, and leave about
+  0.4 mm under anything that laps over it: a slot through a sloping sheet prints in steps, so
+  the sheet sits up to 0.3 mm higher than drawn. Put roof pegs on the face of a wall that prints
+  on the bed, so they lie on the bed instead of in the air.
 
 ### Checking a print file without opening it
 - Flash Studio slices from the command line without opening a window:
