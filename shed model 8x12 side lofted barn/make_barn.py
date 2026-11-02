@@ -140,7 +140,13 @@ LAP_GAP = 0.15         # gap between that tail and the top of the lower sheet
 PEG_D, PEG_UP = 2.2, 1.0
 PEG_HOLE_D, PEG_HOLE_UP = 3.0, 1.4   # 0.4 mm round the peg
 PEG_X = KNEE_X / 2     # the upper sheets' pegs, halfway up the shallow slope
-PEG_Y = L / 2 - WT / 2
+# the lower sheets' pegs stand straight up too, from the middle of each steep edge, so a lower
+# sheet only lifts off straight up, and the upper sheet's tail is in the way of that. (Square to
+# the slope, the sheet's bottom could swing out and it fell off with the barn tipped 20 degrees;
+# review, Nov 2 2026.) Each hole sits its clearance further out than its peg, so the sheet rests
+# on the pegs where it is drawn instead of sliding down its slope by the clearance.
+LOWER_HOLE_SHIFT = (PEG_HOLE_D - PEG_D) / 2
+PEG_Y = L / 2 - WT + PEG_D / 2   # against the end walls' inside face, so each peg prints lying on the bed
 
 # loft: a floor of 2x6 joists 16 in apart and a deck, 4 ft in from the outside of each end wall,
 # on the long walls' top plates (designer: styles.SLB.loft, depth assumed; part-loft)
@@ -149,8 +155,10 @@ LOFT_JOIST = 5.5 * S
 LOFT_DECK = 1.0
 LOFT_Z = ZWT - 0.15    # bottom of the loft joists: the top of the long walls
 LOFT_CLR = 0.4         # clear of the steep roof sheets, square to them
-LUG_U, LUG_D = 1.8, 1.2   # a lug under two of the joists at each wall drops into a notch in the top plate
-LUG_JOISTS = (1, 3)
+LUG_U, LUG_D = 1.8, 1.8   # a lug under two of the joists at each wall drops into a notch in the top
+                       # plate; 1.8 deep, so it stays in even with the loft lifted up against the roof
+LUG_JOISTS = (0, -1)   # the end joist and the edge joist, the same distance from the loft's middle,
+                       # so a loft goes in either way round
 
 # skids: 4x6 laid on edge, inside face 30 in in from the outside of the wall
 SKID_W = 3.5 * S
@@ -189,6 +197,9 @@ HOOK_GUIDE = 1.8       # a 45 degree slope in front of the tip's pocket: a long 
                        # is pulled upright as the tip slides down it
 LEAD = 0.3             # 45 degree lead-in on the hook's tip and the front of its arm
 MITRE_GAP = 0.1        # relief between mitred ends, so they slide past each other going on
+MITRE_BEVEL = 0.6      # a 45 degree bevel along the top of each long wall's mitre: an end wall
+                       # coming down past a long wall pushed in a little at the top slides off it
+                       # instead of landing flat on the mitre's sharp corner (review, Nov 2 2026)
 
 
 # ---------------------------------------------------------------- helpers
@@ -688,9 +699,10 @@ def floor():
     edges = [-(yf - RIM)] + [e for j in joist_ys() for e in (j - SW / 2, j + SW / 2)] + [yf - RIM]
     for a, b in zip(edges[0::2], edges[1::2]):
         cuts.append(box(-xf + RIM, xf - RIM, a, b, -1, ZF - DECK))
-    # floor sheet seams (4x8 sheets, staggered), inside the walls
+    # floor sheet seams: two rows of 4x8 sheets across the width, each row an 8 ft and a 4 ft
+    # sheet, the seams staggered (Alan, Sep 27 2026), inside the walls
     xi, yi = W / 2 - WT, L / 2 - WT
-    for x0, x1, ys in ((-xi, 0, [-24 * S, 24 * S]), (0, xi, [-48 * S, 0, 48 * S])):
+    for x0, x1, ys in ((-xi, 0, [24 * S]), (0, xi, [-24 * S])):
         for y in ys:
             cuts.append(box(x0, x1, y - 0.2, y + 0.2, ZF - 0.25, ZF + 0.01))
     cuts.append(box(-0.2, 0.2, -yi, yi, ZF - 0.25, ZF + 0.01))
@@ -702,16 +714,16 @@ FLOOR_TO_PRINT = [[1, 0, 0], [0, -1, 0], [0, 0, -1]]     # upside down
 
 def roof_pegs():
     """The pegs on the barn ends the roof sheets sit on: a peg standing straight up halfway up
-    each shallow slope, and one square to each steep slope halfway up it."""
+    each slope of each barn end, standing PEG_UP proud of the roof line, square to it."""
     pegs = []
     for sx in (1, -1):
         nu, ou = under_seg("upper", sx, PEG_UP)
-        a, n = seg_line("lower", sx)
+        nl, ol = under_seg("lower", sx, PEG_UP)
         m = lower_mid(sx)
         for sy in (1, -1):
             x = sx * PEG_X
             pegs.append(cyl_z(x, sy * PEG_Y, zline(x) - 3, zline(x) + 3, PEG_D).trim_by_plane(nu, ou))
-            pegs.append(cyl_along((m[0], sy * PEG_Y, m[1]), (n[0], 0, n[1]), -3, PEG_UP, PEG_D))
+            pegs.append(cyl_z(m[0], sy * PEG_Y, m[1] - 4, m[1] + 4, PEG_D).trim_by_plane(nl, ol))
     return pegs
 
 
@@ -856,16 +868,34 @@ def corner_hooks():
     return out
 
 
+def mitre_bevels(sx):
+    """The bevel along the top edge of the long wall's mitre at each end (side sx): in the upright
+    plane square to the mitre, a 45 degree triangle MITRE_BEVEL each way off the corner."""
+    out = []
+    z_top = ZWT - 0.15
+    for sy in (1, -1):
+        n = np.array([sx, -sy, 0.0]) / math.sqrt(2)            # into the long wall, square to the mitre
+        t = np.array([sx, sy, 0.0]) / math.sqrt(2)             # along the mitre
+        p0 = np.array([sx * (W / 2 - WT), sy * (L / 2 - WT), 0.0]) + n * MITRE_GAP / 2
+        cs = m3.CrossSection([[(-0.5, z_top - MITRE_BEVEL - 0.5), (MITRE_BEVEL, z_top), (MITRE_BEVEL, z_top + 1),
+                               (-0.5, z_top + 1)]])
+        run = 2 * WT * math.sqrt(2) + 4
+        ez = t if np.linalg.det(np.column_stack([n, [0, 0, 1], t])) > 0 else -t
+        mat = np.column_stack([n, [0, 0, 1], ez, p0 - ez * run / 2])
+        out.append(M.extrude(cs, run).transform(mat))
+    return out
+
+
 def wall_pieces(w):
     """The four walls cut apart at the mitres, with the corner hooks on the end walls and the
-    long walls' corners and pockets cut out for them."""
+    long walls' corners and pockets cut out for them, and the bevels on the long walls' mitres."""
     pieces = split_walls(w)
     joints = corner_hooks()
     for name in pieces:
         if WALL_SIDE[name][0] == 1:
             pieces[name] = union([pieces[name]] + joints[name])
         else:
-            pieces[name] = pieces[name] - union(joints[name])
+            pieces[name] = pieces[name] - union(joints[name] + mitre_bevels(WALL_SIDE[name][1]))
     return pieces
 
 
@@ -933,17 +963,19 @@ def upper_panel():
 
 def lower_panel():
     """The +x lower roof sheet in barn coords: knee to eave, its top cut to the line of the upper
-    sheet, which laps over it. It sits on the steep edges of the barn ends, held by a peg at
-    each end, and the upper sheet's tail keeps its top in."""
+    sheet, which laps over it. It sits on the steep edges of the barn ends, on a peg standing up
+    at each end, so it only comes off straight up, and the upper sheet's tail is in the way of
+    that."""
     mat = panel_frame(LOWER_A, LOWER_B)
     ll = math.dist(LOWER_A, LOWER_B)
     ly = L / 2 + END_OH
     r = ribbed_sheet(ly, -6, ll).transform(mat)
     nrm, off = under_seg("upper", 1, -LAP_GAP)
     r = r.trim_by_plane(nrm, off)
-    a, n = seg_line("lower", 1)
     m = lower_mid(1)
-    holes = [cyl_along((m[0], sy * PEG_Y, m[1]), (n[0], 0, n[1]), -1, PEG_HOLE_UP, PEG_HOLE_D) for sy in (1, -1)]
+    nh, oh = under_seg("lower", 1, PEG_HOLE_UP)
+    holes = [cyl_z(m[0] + LOWER_HOLE_SHIFT, sy * PEG_Y, m[1] - 8, m[1] + 8, PEG_HOLE_D).trim_by_plane(nh, oh)
+             for sy in (1, -1)]
     return r - union(holes)
 
 
@@ -1101,10 +1133,10 @@ def fit_test(pieces=None, whole_floor=None):
                cyl_y(0, dh - 0.5, dh + PIN_TOP_LEN, DOOR_R, PIN_D, 40),
                cyl_y(0, -PIN_BOTTOM_LEN, 0.5, DOOR_R, PIN_D, 40)])
     d = d.translate([fw + 6, 3 + PIN_BOTTOM_LEN, 0])
-    # roof peg on a block lying like an end wall, so the peg sticks out sideways at mid
-    # thickness; stand it up to try the coupon on it
+    # roof peg on a block lying like an end wall, so the peg sticks out sideways lying on the
+    # bed, as the end walls' pegs do; stand it up to try the coupon on it
     bx = fw + 6 + d.bounding_box()[3] - d.bounding_box()[0] + 12
-    blk = box(-6, 6, 0, 6, 0, WT) + cyl_y(0, 5, 6 + PEG_UP, WT / 2, PEG_D)
+    blk = box(-6, 6, 0, 6, 0, WT) + cyl_y(0, 5, 6 + PEG_UP, PEG_D / 2, PEG_D)
     blk = blk.translate([bx, 3, 0])
     cpn = box(-6, 6, -6, 6, 0, ROOF_T) - cyl_z(0, 0, -1, PEG_HOLE_UP, PEG_HOLE_D)
     cpn = cpn.translate([bx, 22, 0])
