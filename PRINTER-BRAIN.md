@@ -117,6 +117,14 @@ played with, change these:
   0.8 mm thick and 5.5 mm long, the barb hooks 0.45 mm under its ledge, 0.2 mm gap all round,
   about 1.8 % strain going in (keep it under 2 % for PLA). Put each size on a layer line
   (first layer 0.25, then 0.2). Use Elephant foot compensation 0.1 mm.
+- **The taller wall goes on last** (barn model, Nov 2026). Where one wall stands much taller
+  than the other at a corner (a barn end's gable over the long wall), put the corner hooks on
+  the tall wall and fit it last. A hook on the short wall would have to come down through the
+  tall wall's corner, leaving a big flap of siding over nothing when the tall wall prints flat.
+- **A bent roof prints as flat sheets.** A barn (gambrel) roof side can't lie flat with its
+  ribs up in one piece, so print the upper and lower sheets separately, ribs up, and let the
+  upper sheet's tail lap over the lower one, the way the real steel goes on. Steep sheets get
+  pegs square to their slope.
 
 ### Checking a print file without opening it
 - Flash Studio slices from the command line without opening a window:
@@ -167,6 +175,7 @@ played with, change these:
 | `test print/` | Sword blade PLA vs PETG tests | |
 | `desktop prints/` | Project files (.3mf) and big STLs | The 4 biggest STLs are stored with Git LFS |
 | `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility that snaps together, no glue: floor, four mitred walls that print flat with two-colour trim, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Made by `make_shed.py`; `check_shed.py` proves the parts fit, snap together and print flat |
+| `shed model 8x12 side lofted barn/` | 1:24 model of the 8x12 Side Lofted Barn, built from the Side Utility model with the same snap joints: floor, four mitred walls with your loft framing, two lofts, a barn roof in four lift-off sheets, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Long walls go on first, end walls last. Made by `make_barn.py`; `check_barn.py` proves the parts fit, snap together and print flat; `draw_barn.py` draws the assembly picture |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in
