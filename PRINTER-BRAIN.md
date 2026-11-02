@@ -4,7 +4,7 @@ Everything about our 3D printing setup in one place: the printer, the slicer, th
 filament, the settings that work, and what we've learned the hard way.
 **Keep it up to date** — when something changes or a print teaches us something, add it here.
 
-_Last updated: 2026-11-01_
+_Last updated: 2026-11-02_
 
 ---
 
@@ -109,15 +109,36 @@ played with, change these:
   big part it fits into.
 - **Holes print small.** For a pin or peg that goes into a hole, make the hole at least
   **0.35–0.4 mm bigger all round** than the pin (Alan, Oct 2026).
+- **Snap fits instead of glue** (shed model, Nov 2026). Build the barb out of layers, not
+  out of line width. On a part printed flat, a barb drawn in the bed plane has to be wider than
+  about two lines (0.8 mm) or the slicer rounds it off: a 0.55 mm barb came out level with the
+  slot wall and would have held nothing. Instead make the leg bend up and down through the
+  layers, with the barb stacked from the bed in 0.2 mm layers: the shed's leg is 3 mm wide,
+  0.8 mm thick and 5.5 mm long, the barb hooks 0.45 mm under its ledge, 0.2 mm gap all round,
+  about 1.8 % strain going in (keep it under 2 % for PLA). Put each size on a layer line
+  (first layer 0.25, then 0.2). Use Elephant foot compensation 0.1 mm.
+
+### Checking a print file without opening it
+- Flash Studio slices from the command line without opening a window:
+  `"C:\Program Files\Flashforge\Orca-Flashforge\flash studio.exe" --slice 0 --debug 2 --outputdir <folder> <file>.3mf`.
+  It needs printer and print settings inside the `.3mf` (`Metadata/project_settings.config`,
+  copied from any project Flash Studio saved) and an `OrcaSlicer 2.4.2` version tag. Without
+  `--debug 2` it prints nothing, warnings included; with it, look for lines containing
+  "slicing warnings" ("floating regions", "floating cantilever"). It writes one `.gcode` per
+  plate with the time, grams and colour changes at the top.
+- "Floating regions" on a part printed flat can be a thin sliver that starts in mid-air: for
+  example a slot cut in from the bed side with more of the part on its far side.
 
 ### Two colours on the IFS
 - **Put the second colour on the top layers only.** Every layer that has both colours costs
-  a filament change (time plus purge). Raised trim on a part printed flat costs 3 changes;
-  the same trim standing up the side of a part costs one per layer. The shed walls went from
-  25–28 changes a plate to 3–4 by mitring the corners so every wall's trim is on top
+  a filament change (time plus purge). Raised trim on a part printed flat costs one change if
+  nothing in the first colour reaches the trim layers, otherwise one per trim layer (3 for
+  0.6 mm); the same trim standing up the side of a part costs one per layer. The shed walls went from
+  25–28 changes a plate to 1–3 by mitring the corners so every wall's trim is on top
   (Alan, Nov 2026).
-- Anything tall in the second colour (a handle, a knob) adds a change for every layer it
-  sticks up past the rest of the trim.
+- A change happens on every layer that has both colours. Something tall in the second colour
+  (a handle, a knob) only adds changes while the first colour is still printing on those
+  layers; above the last of the first colour it is free.
 - Flash Studio keeps each part's filament from a `.3mf` only if the file names a slicer
   version. Files made by our scripts say BambuStudio 2.6, so Flash Studio shows a "newer
   3MF version" notice: click OK, the parts and colours load fine.
@@ -145,7 +166,7 @@ played with, change these:
 | `flying prop/` | Flying propeller toy | |
 | `test print/` | Sword blade PLA vs PETG tests | |
 | `desktop prints/` | Project files (.3mf) and big STLs | The 4 biggest STLs are stored with Git LFS |
-| `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility: floor, four mitred walls that print flat with two-colour trim, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first. Made by `make_shed.py`; `check_shed.py` proves the parts fit and print flat |
+| `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility that snaps together, no glue: floor, four mitred walls that print flat with two-colour trim, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Made by `make_shed.py`; `check_shed.py` proves the parts fit, snap together and print flat |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in

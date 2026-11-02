@@ -3,17 +3,20 @@
 Run:  python3 make_shed.py      (needs: pip install manifold3d numpy)
 
 Makes the print files in this folder:
-  floor.stl       floor frame and floor sheets; drops inside the four walls
+  1 fit test.3mf  a doorway, door, roof peg and one short corner of the shed to try first
+  2 all plates.3mf  everything, one plate per print, the trim already set to filament 2
+  floor.stl       floor frame and floor sheets, printed upside down; the walls snap onto it
   door wall.stl   the long wall with the door and windows, framing, trim; prints lying
                   flat, inside face down, so the trim is the top few layers
   back wall.stl   the other long wall, the same way
   end wall.stl    print TWO. Gable end with its vent, framing and the roof pegs.
                   (walls print flat so the trim can be a second colour, Alan Nov 1 2026)
   roof half.stl   print TWO. Each half lifts straight off its two pegs.
-  door.stl        48 in wooden door with its trim, handle and hinge pins, one piece
-                  (print it white and paint the trim like the rest, Alan Oct 31 2026)
+  door.stl        48 in wooden door with its trim, handle and hinge pins, one piece, all
+                  one colour; in 2 all plates.3mf its trim is on filament 2
   skids.stl       the two 4x6 skids the floor frame sits on
-  fit test.stl    a small doorway, door and roof peg to check the fit first
+  fit test.stl    a small doorway, door, roof peg and one short corner of the shed to check
+                  the fit first
 
 Sizes are the shop standard from the 3D designer (library/manufacturers/standard.json,
 style SU): 8 ft x 12 ft, 7 ft 9 1/2 in walls, 5/12 roof, 4 in eaves, 48 in wooden door
@@ -51,11 +54,13 @@ TS = 1.4               # siding thickness (thicker than scale so it prints solid
 SD = 3.5 * S           # stud depth (a 2x4 is 3 1/2 in)
 SW = 1.6               # stud width (a 2x4 is 1 1/2 in)
 WT = TS + SD           # whole wall
-RIM = 2.0              # floor rim board inside the siding skirt
+RIM = 5.0              # solid band round the edge of the floor, under the walls
 JOIST_H = 5.5 * S      # 2x6 joists
 DECK = 1.0             # floor sheets
 ZF = JOIST_H + DECK    # top of the floor
-FLOOR_CLR = 0.15       # gap all round between the floor and the walls it drops inside
+FLOOR_CLR = 0.4        # gap between the floor's edge and the siding that hangs down over it; the
+                       # siding prints as bridges between posts there and may sag toward the floor,
+                       # and its first layer starts 0.05 nearer than drawn (at a layer line)
 WALL_H = 93.5 * S      # floor to top of the top plate
 ZWT = ZF + WALL_H      # top of the walls
 ZPK = ZWT + (W / 2) * PITCH   # peak of the roof underside
@@ -112,6 +117,44 @@ SKID_H = 5.5 * S
 SKID_X = W / 2 - 28.25 * S
 NOTCH = 0.6
 NOTCH_CLEAR = 0.6      # 0.3 mm each side of a joist
+SKID_PEG_D, SKID_PEG_UP = 2.0, 2.5   # a peg at each end of a skid pushes into the floor
+
+# snap joints, no glue (Alan, Nov 1 2026). Each wall stands on top of the floor with its siding
+# hanging down over the floor's edge. Under every stud a post drops into a notch in the floor's
+# edge, and a few prongs click into slots in the floor. A prong is a springy leg that bends in
+# and out of the wall, with a barb on its foot that catches under a ledge at the bottom of the
+# slot, and beside it a stiff stop that keeps the wall's foot from moving out. The walls print
+# inside face down, so the barb is built up from the bed in layers: a barb drawn the other way,
+# in the bed plane, came out narrower than a line and the slicer rounded it off (review, Nov 1
+# 2026). The long walls go on last; a hook on each top corner drops into the end wall's corner
+# and ties it together.
+FIT = 0.2              # gap round every post, prong, hook and peg (0.2 a side is snug)
+PRONG_W = 3.0          # the leg's width along the wall
+PRONG_T = 0.8          # its thickness, the way it bends (4 layers)
+BARB = 0.65            # the barb stands this far in from the leg, down to the bed (3 layers)
+CATCH = BARB - FIT     # how far it hooks under the ledge
+BARB_LAND = 0.6        # straight face between the barb's flat top and its 45 degree lead-in
+LEDGE_Z = ZF - 5.25    # the ledge, 1.57 mm up from the bottom of the floor, on a layer line of
+                       # the upside-down floor (first layer 0.25, then 0.2)
+STOP_W, STOP_GAP, STOP_H = 1.2, 0.4, 3.0   # the stop: width, gap from the leg, how far down it goes
+STOP_U = 2.05          # how deep the stop is, on a layer line of the wall's print
+SLOT_U = STOP_U + 0.15 # the slot's outside wall: the foot moves out 0.15 at most, so the barb
+                       # still hooks 0.3 under its ledge, and the bent leg has 0.25 to spare
+LEG_ROOT = ZF + 1.2    # the leg is freed from the bottom plate up to here (a slot round it in
+                       # the plate), so it is 6.6 mm long and bends 1.2 %, not 1.8 % from a
+                       # square corner at the plate's face (second review, Nov 2 2026)
+BARB_RELIEF = 0.1      # the barb's top is this much lower on its first layer, for first-layer
+                       # squish, which the slicer doesn't compensate on such a small island
+HOOK_REACH = SD - 0.6  # how far the corner hook reaches into the end wall; 0.6 short of its
+                       # siding, which prints as a flap over the hook and may sag a little
+HOOK_ARM = 2.85        # height of its arm along the top of the wall
+HOOK_T = 1.2           # thickness of the tip that hangs down from the end of the arm, out from
+HOOK_TIP_W, HOOK_TIP_H = 1.0, 3.5   # the inside face of the long wall; its width and depth
+HOOK_GUIDE = 1.8       # a 45 degree slope in front of the tip's pocket: an end wall leaning out
+                       # (they do, up to about 2 mm at the top, until the long walls are on) is
+                       # pulled upright as the tip slides down it
+LEAD = 0.3             # 45 degree lead-in on the hook's tip and the front of its arm
+MITRE_GAP = 0.1        # relief between mitred ends, so they slide past each other going on
 
 
 # ---------------------------------------------------------------- helpers
@@ -179,9 +222,121 @@ def layout(start, end, oc):
 
 # ---------------------------------------------------------------- body
 def joist_ys():
-    end = L / 2 - WT - FLOOR_CLR - SW / 2
-    inner = layout(-L / 2, L / 2, 16 * S)
-    return [-end] + inner + [end]
+    """The floor joists between the solid bands at the ends, 16 in apart."""
+    return layout(-L / 2, L / 2, 16 * S)
+
+
+# each wall as (axis it faces along, side): along a wall is y for the long walls, x for the ends
+WALL_SIDE = {"door wall": (0, 1), "back wall": (0, -1), "end wall 1": (1, 1), "end wall 2": (1, -1)}
+
+
+def wall_box(name, a0, a1, u0, u1, z0, z1):
+    """A box on one wall: a along the wall, u out from its inside face, z up."""
+    axis, sign = WALL_SIDE[name]
+    half = (W / 2, L / 2)[axis]
+    n0, n1 = sorted([sign * (half - WT + u0), sign * (half - WT + u1)])
+    return box(n0, n1, a0, a1, z0, z1) if axis == 0 else box(a0, a1, n0, n1, z0, z1)
+
+
+def post_spans(name):
+    """(start, end) along the wall of each post under it, from z = 0 up to the bottom plate:
+    one under every stud, and the door wall's sill under the whole door framing."""
+    if WALL_SIDE[name][0] == 0:
+        spans = [(a - SW / 2, a + SW / 2) for a in layout(-L / 2, L / 2, 16 * S)]
+        if name == "door wall":
+            d = JAMB + 2 * SW
+            spans = [s for s in spans if s[1] < -d or s[0] > d] + [(-d, d)]
+        return spans
+    xe = W / 2 - WT - SW / 2
+    return [(a - SW / 2, a + SW / 2) for a in layout(-W / 2, W / 2, 16 * S) + [-xe, xe]]
+
+
+def wall_section(name, poly, a0, a1):
+    """A polygon in (u out from the wall's inside face, z), from a0 to a1 along the wall."""
+    axis, sign = WALL_SIDE[name]
+    half = (W / 2, L / 2)[axis]
+    pts = [(sign * (half - WT + u), z) for u, z in poly]
+    t = [0.0, 0.0, 0.0]
+    t[1 - axis] = a0
+    return prism(pts, axis, 2, 1 - axis, a1 - a0).translate(t)
+
+
+def prong_spots(name):
+    """Where the prongs are along each wall: on the long walls one stud bay in from each corner,
+    and the middle of the back wall; on the end walls in the bay next to each corner. Clear of
+    the door, the floor joists and the skids."""
+    if WALL_SIDE[name][0] == 0:
+        st = layout(-L / 2, L / 2, 16 * S)
+        a = (st[-2] + st[-1]) / 2
+        return [-a, a] + ([0.0] if name == "back wall" else [])
+    a = (layout(-W / 2, W / 2, 16 * S)[-1] + W / 2 - WT - SW / 2) / 2
+    return [-a, a]
+
+
+def prong_spans(ac):
+    """(leg, stop): where the leg and the stop of the prong at ac are along the wall. The stop
+    is on the side toward the nearer corner, so the two end walls are alike."""
+    s = 1 if ac >= 0 else -1
+    leg = (ac - PRONG_W / 2, ac + PRONG_W / 2)
+    stop = sorted([ac + s * (PRONG_W / 2 + STOP_GAP), ac + s * (PRONG_W / 2 + STOP_GAP + STOP_W)])
+    return leg, tuple(stop)
+
+
+def prong(name, ac):
+    """The prong at ac along a wall. The leg hangs from the bottom plate BARB off the wall's
+    inside face; in the print it bridges from the plate to its barb, which stands on the bed.
+    The barb's flat top catches under the ledge; below it a straight face and a 45 degree
+    lead-in that pushes the leg out as it goes down the slot."""
+    (a0, a1), (b0, b1) = prong_spans(ac)
+    zc = LEDGE_Z - FIT                                  # flat top of the barb, under the ledge
+    zl = zc - BARB_LAND - BARB                          # foot of the lead-in
+    barb = [(BARB + 0.1, zc), (0.25, zc), (0.25, zc - BARB_RELIEF), (0, zc - BARB_RELIEF),
+            (0, zc - BARB_LAND), (BARB, zl), (BARB + 0.1, zl)]
+    return [wall_box(name, a0, a1, BARB, BARB + PRONG_T, zl - 0.05, LEG_ROOT + 0.01),
+            wall_section(name, barb, a0, a1),
+            wall_box(name, b0, b1, 0, STOP_U, ZF - STOP_H, ZF + 0.3)]
+
+
+def prong_relief(name, ac):
+    """The slot in the bottom plate round the top of the prong's leg, 0.2 all round, so the
+    leg bends from LEG_ROOT. It is inside the plate: its inside face is whole."""
+    (a0, a1), _ = prong_spans(ac)
+    return (wall_box(name, a0 - 0.2, a1 + 0.2, BARB - 0.2, BARB + PRONG_T + 0.2, ZF - 0.5, LEG_ROOT)
+            - wall_box(name, a0, a1, BARB, BARB + PRONG_T, ZF - 1, LEG_ROOT + 1))
+
+
+def under_floor(name):
+    """What a wall has below the top of the floor besides its siding: the posts and prongs."""
+    parts = [wall_box(name, a0, a1, 0, SD + EMBED, 0, ZF + 0.3) for a0, a1 in post_spans(name)]
+    for ac in prong_spots(name):
+        parts += prong(name, ac)
+    return parts
+
+
+def floor_cuts():
+    """The notches, slots and holes in the floor: a notch round each post and the door sill, a
+    slot for each prong (room for the leg to bend out as the barb goes down, the ledge with the
+    undercut the barb springs into, and a closer fit round the stop), the corners where the
+    corner posts go down, and a hole in each end band for a skid peg."""
+    c = FIT
+    cuts = []
+    for name in WALL_SIDE:
+        for a0, a1 in post_spans(name):
+            cuts.append(wall_box(name, a0 - c, a1 + c, -c, WT + 1, -1, ZF + 1))
+        for ac in prong_spots(name):
+            (a0, a1), (b0, b1) = prong_spans(ac)
+            cuts += [wall_box(name, a0 - c, a1 + c, BARB - c, SLOT_U, -1, ZF + 1),
+                     wall_box(name, a0 - c, a1 + c, -c, BARB - c + 0.01, -1, LEDGE_Z),
+                     wall_box(name, b0 - c, b1 + c, -c, SLOT_U, -1, ZF + 1)]
+    for sx in (1, -1):
+        for sy in (1, -1):
+            for dx, dy in ((0, SW), (SW, 0)):              # long wall's corner post, end wall's end stud
+                xa, xb = sorted([sx * (W / 2 - WT - dx - c), sx * W])
+                ya, yb = sorted([sy * (L / 2 - WT - dy - c), sy * L])
+                cuts.append(box(xa, xb, ya, yb, -1, ZF + 1))
+            cuts.append(cyl_z(sx * SKID_X, sy * (L / 2 - TS - FLOOR_CLR - RIM / 2), -1, SKID_PEG_UP + 0.3,
+                              SKID_PEG_D + 2 * c))
+    return cuts
 
 
 def openings():
@@ -344,27 +499,31 @@ def roof_clearance():
 
 
 def floor():
-    """Floor frame and floor sheets. It drops inside the four walls, FLOOR_CLR clear of them;
-    below the floor the walls are solid the whole wall thickness, so they lie flat to print."""
-    xf, yf = W / 2 - WT - FLOOR_CLR, L / 2 - WT - FLOOR_CLR
+    """Floor frame and floor sheets. The walls stand on it with their siding hanging down over
+    its edge, FLOOR_CLR clear of it. It prints upside down, floor face on the bed."""
+    xf, yf = W / 2 - TS - FLOOR_CLR, L / 2 - TS - FLOOR_CLR
     cuts = []
-    js = joist_ys()
-    for a, b in zip(js[:-1], js[1:]):
-        cuts.append(box(-xf + RIM, xf - RIM, a + SW / 2, b - SW / 2, -1, ZF - DECK))
-    # floor sheet seams (4x8 sheets, staggered)
-    for x0, x1, ys in ((-xf, 0, [-24 * S, 24 * S]), (0, xf, [-48 * S, 0, 48 * S])):
+    edges = [-(yf - RIM)] + [e for j in joist_ys() for e in (j - SW / 2, j + SW / 2)] + [yf - RIM]
+    for a, b in zip(edges[0::2], edges[1::2]):
+        cuts.append(box(-xf + RIM, xf - RIM, a, b, -1, ZF - DECK))
+    # floor sheet seams (4x8 sheets, staggered), inside the walls
+    xi, yi = W / 2 - WT, L / 2 - WT
+    for x0, x1, ys in ((-xi, 0, [-24 * S, 24 * S]), (0, xi, [-48 * S, 0, 48 * S])):
         for y in ys:
             cuts.append(box(x0, x1, y - 0.2, y + 0.2, ZF - 0.25, ZF + 0.01))
-    cuts.append(box(-0.2, 0.2, -yf, yf, ZF - 0.25, ZF + 0.01))
-    return box(-xf, xf, -yf, yf, 0, ZF) - union(cuts)
+    cuts.append(box(-0.2, 0.2, -yi, yi, ZF - 0.25, ZF + 0.01))
+    return box(-xf, xf, -yf, yf, 0, ZF) - union(cuts + floor_cuts())
+
+
+FLOOR_TO_PRINT = [[1, 0, 0], [0, -1, 0], [0, 0, -1]]     # upside down
 
 
 def walls():
     """All four walls in one, assembled; split_walls() cuts them apart for printing."""
     gable = [(-W / 2, 0), (W / 2, 0), (W / 2, ZWT), (0, ZPK), (-W / 2, ZWT)]
     shell = prism_xz(gable, -L / 2, L / 2)
-    cuts = [box(-W / 2 + TS, W / 2 - TS, -L / 2 + TS, L / 2 - TS, ZF, 400),
-            box(-W / 2 + WT, W / 2 - WT, -L / 2 + WT, L / 2 - WT, -1, ZF + 1)]     # where the floor goes
+    # the siding only; below the floor's top it is the skirt that hangs over the floor's edge
+    cuts = [box(-W / 2 + TS, W / 2 - TS, -L / 2 + TS, L / 2 - TS, -1, 400)]
     # siding grooves
     for y in layout(-L / 2, L / 2, GROOVE_OC):
         for sx in (1, -1):
@@ -378,12 +537,15 @@ def walls():
 
     framing = long_wall_framing(+1, True) + long_wall_framing(-1, False)
     framing += [end_wall_framing(+1), end_wall_framing(-1)]
-    for sx in (1, -1):              # corner posts, solid into the corner so each wall's mitred end is a solid 45 degree wedge
-        for sy in (1, -1):
+    for name in WALL_SIDE:
+        framing += under_floor(name)
+    for sx in (1, -1):              # corner posts, solid into the corner so each wall's mitred end is a solid
+        for sy in (1, -1):          # 45 degree wedge; they go down through the floor's corners
             xa, xb = sorted([sx * (W / 2 - WT), sx * (W / 2 - TS)])
             ya, yb = sorted([sy * (L / 2 - TS), sy * (L / 2 - WT - SW)])
-            framing.append(box(xa, xb, ya, yb, ZF, ZWT))
+            framing.append(box(xa, xb, ya, yb, 0, ZWT))
     b = union([shell] + framing + trims())
+    b = b - union([prong_relief(name, ac) for name in WALL_SIDE for ac in prong_spots(name)])
 
     door, wins = openings()
     op_cuts = []
@@ -411,12 +573,17 @@ def walls():
             peg = cyl_z(x, sy * PEG_Y, zline(x) - 3, zline(x) + 3, PEG_D)
             nrm, off = under_roof(sx, PEG_UP)
             pegs.append(peg.trim_by_plane(nrm, off))
-    return b + union(pegs)
+    b = b + union(pegs)
+    # nothing above the wall plates over the long walls' mitred ends, so a long wall can be
+    # lowered into place between the gable ends (it takes a sliver off each eave corner)
+    for sx in (1, -1):
+        b = b - mitred(0, sx).trim_by_plane([0, 0, 1], ZWT)
+    return b
 
 
 def body():
     """The assembled body: four walls and the floor."""
-    return walls() + floor()
+    return union(list(wall_pieces(walls()).values()) + [floor()])
 
 
 # the four walls meet at 45 degree mitres through the inside and outside corners, so each
@@ -437,7 +604,7 @@ def mitred(axis, sign):
     for end in (1, -1):
         n = [0.0, 0.0, 0.0]
         n[a], n[b] = sign / math.sqrt(2), -end / math.sqrt(2)
-        r = r.trim_by_plane(n, (half[a] - half[b]) / math.sqrt(2))
+        r = r.trim_by_plane(n, (half[a] - half[b]) / math.sqrt(2) + MITRE_GAP / 2)
     return r
 
 
@@ -465,6 +632,62 @@ WALL_TO_PRINT = {
 
 def split_walls(w):
     return {name: w ^ cut for name, cut in WALL_CUTS.items()}
+
+
+def corner_hooks():
+    """{wall: [parts]}: the hook on each top corner of a long wall, and what comes out of the end
+    wall for it. The hook's arm is the top of the long wall's corner post carried on past the
+    mitre, the whole stud depth, to just short of the end wall's siding; the end wall's corner
+    behind its siding stops under it. A thin tip hangs from the end of the arm into a pocket in
+    the end wall. The end wall can't pull away from the tip, the long wall can't lean out of
+    the pocket, and the end wall can't lift off while the long walls are clicked onto the floor.
+    (A narrow slot for the arm left a sliver of end wall outside it that started in mid-air;
+    Flash Studio called it floating.)"""
+    out = {name: [] for name in WALL_SIDE}
+    c = FIT
+    zt = ZWT - 0.15                                   # top of the long walls
+    za, zb = zt - HOOK_ARM, zt - HOOK_ARM - HOOK_TIP_H
+    r, w = HOOK_REACH, HOOK_TIP_W
+    for name, sx in (("door wall", 1), ("back wall", -1)):
+        for end, sy in (("end wall 1", 1), ("end wall 2", -1)):
+            def xs(u0, u1):
+                return sorted([sx * (W / 2 - WT + u0), sx * (W / 2 - WT + u1)])
+
+            def ys(e0, e1):
+                return sorted([sy * (L / 2 - WT + e0), sy * (L / 2 - WT + e1)])
+
+            def chamfer(e, z, de, dz):
+                """A 45 degree corner off the hook, at (e into the end wall, z), toward (de, dz)."""
+                y0 = sy * (L / 2 - WT + e)
+                tri = [(y0, z), (y0 + sy * de * LEAD, z), (y0, z + dz * LEAD)]
+                x0, x1 = xs(-0.1, SD + 0.1)
+                return prism(tri, 1, 2, 0, x1 - x0).translate([x0, 0, 0])
+            arm = box(*xs(0, SD), *ys(-1, r), za, zt) - chamfer(r, za, -1, 1)
+            tip = box(*xs(0, HOOK_T), *ys(r - w, r), zb, za + 0.01) - chamfer(r, zb, -1, 1) - chamfer(r - w, zb, 1, 1)
+            out[name] += [arm, tip]
+            # the end wall's corner behind its siding, the tip's pocket, and the slope down into
+            # the pocket from in front of it
+            e = r - w - c
+            y0, y1 = sy * (L / 2 - WT + e - HOOK_GUIDE), sy * (L / 2 - WT + e)
+            slope = [(y0, za - c), (y1, za - c - HOOK_GUIDE), (y1, za), (y0, za)]
+            gx0, gx1 = xs(-c, HOOK_T + c)
+            out[end] += [box(*xs(-c, WT + 1), *ys(-1, SD), za - c, 400),
+                         box(gx0, gx1, *ys(e, r + c), zb - c, 400),
+                         prism(slope, 1, 2, 0, gx1 - gx0).translate([gx0, 0, 0])]
+    return out
+
+
+def wall_pieces(w):
+    """The four walls cut apart at the mitres, with the corner hooks on the long walls and the
+    end walls' corners and pockets cut out for them."""
+    pieces = split_walls(w)
+    joints = corner_hooks()
+    for name in pieces:
+        if WALL_SIDE[name][0] == 0:
+            pieces[name] = union([pieces[name]] + joints[name])
+        else:
+            pieces[name] = pieces[name] - union(joints[name])
+    return pieces
 
 
 def trim_zone():
@@ -601,15 +824,20 @@ def door_to_shed(theta_deg=0.0):
 
 # ---------------------------------------------------------------- skids
 def skid():
-    """One skid lying along X, notched where the joists and the end skirts sit on it."""
+    """One skid lying along X, notched where the joists, the floor's end bands and the end
+    walls' siding sit on it, with a peg at each end that pushes up into the end band."""
     s = box(0, L, 0, SKID_W, 0, SKID_H)
     cuts = []
     for jy in joist_ys():
         y = jy + L / 2
         cuts.append(box(y - SW / 2 - NOTCH_CLEAR / 2, y + SW / 2 + NOTCH_CLEAR / 2, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
-    cuts.append(box(-1, WT + 0.3, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))            # end walls
-    cuts.append(box(L - WT - 0.3, L + 1, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
-    return s - union(cuts)
+    end = TS + FLOOR_CLR + RIM + 0.3
+    cuts.append(box(-1, end, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
+    cuts.append(box(L - end, L + 1, -1, SKID_W + 1, SKID_H - NOTCH, SKID_H + 1))
+    s = s - union(cuts)
+    pegs = [cyl_z(X, SKID_W / 2, SKID_H - NOTCH - 0.01, SKID_H - NOTCH + SKID_PEG_UP, SKID_PEG_D)
+            for X in (TS + FLOOR_CLR + RIM / 2, L - (TS + FLOOR_CLR + RIM / 2))]
+    return s + union(pegs)
 
 
 def skids():
@@ -625,11 +853,30 @@ def skids_to_shed():
 
 
 # ---------------------------------------------------------------- fit test
-def fit_test():
+def corner_test(pieces, f):
+    """The corner where the door wall meets end wall 1, made short: the bottom 8 mm of each
+    wall above the floor joined to its top 10 mm, on that corner of the floor. It has a real
+    prong, posts, skirt and corner hook. Each wall is cut along the far side of a stud, so the
+    siding at the cut is held. Returns (long wall, end wall, floor) in shed coords."""
+    z_lo, z_hi = ZF + 8, ZWT - 10
+    y0 = layout(-L / 2, L / 2, 16 * S)[-2] - SW / 2
+    x0 = layout(-W / 2, W / 2, 16 * S)[-1] - SW / 2
+    def short(piece, x0, y0):
+        keep = box(x0, W / 2 + 2, y0, L / 2 + 2, -5, 400)
+        lo = piece ^ keep ^ box(-BIG, BIG, -BIG, BIG, -5, z_lo)
+        hi = piece ^ keep ^ box(-BIG, BIG, -BIG, BIG, z_hi, 400)
+        return lo + hi.translate([0, 0, z_lo - z_hi])
+    return (short(pieces["door wall"], W / 2 - 10, y0),
+            short(pieces["end wall 1"], x0, L / 2 - 10),
+            f ^ box(x0, W / 2, y0, L / 2, -5, 400))
+
+
+def fit_test(pieces=None, whole_floor=None):
     """A short doorway with the same pin holes, slot and stop, a short door with the same
     pins, and a block with a roof peg next to a roof coupon with the peg hole. The doorway and
     the peg block print lying flat, inside face down, the way the door wall and the end walls
-    do, so the holes and the peg come out the way the real ones will."""
+    do, so the holes and the peg come out the way the real ones will. With the walls and floor
+    given, the short corner from corner_test() goes in a row behind them."""
     ow, oh = 14.0, 24.0
     jamb = ow / 2
     ax_x, ax_y = W / 2 - 1.8, -jamb + DOOR_R + DOOR_GAP
@@ -662,7 +909,16 @@ def fit_test():
     blk = blk.translate([bx, 3, 0])
     cpn = box(-6, 6, -6, 6, 0, ROOF_T) - cyl_z(0, 0, -1, PEG_HOLE_UP, PEG_HOLE_D)
     cpn = cpn.translate([bx, 22, 0])
-    return union([f, d, blk, cpn])
+    row = [f, d, blk, cpn]
+    if pieces is not None:
+        lw, ew, fl = corner_test(pieces, whole_floor)
+        y = union(row).bounding_box()[4] + 6
+        x = 0
+        for part, mat in ((lw, WALL_TO_PRINT["door wall"]), (ew, WALL_TO_PRINT["end wall 1"]), (fl, FLOOR_TO_PRINT)):
+            pp = to_print(mat, [part])[0]
+            row.append(pp.translate([x, y, 0]))
+            x += pp.bounding_box()[3] + 6
+    return union(row)
 
 
 # ---------------------------------------------------------------- files
@@ -684,37 +940,51 @@ def write_stl(man, name):
     return path
 
 
-def write_3mf(name, items):
-    """A plain 3MF project for Orca. items: (object name, [(part name, manifold, filament), ...],
-    (x, y)) placed with its lower-left corner at x, y on the bed. An object with two parts opens
-    in Orca as one object, each part already set to its filament (1 siding, 2 trim)."""
+def write_3mf(name, plates):
+    """A plain 3MF project for Orca. plates: [(plate name, items), ...], each a plate in Orca in
+    that order. items: (object name, [(part name, manifold, filament), ...], (x, y)) placed with
+    its lower-left corner at x, y on its plate. An object with two parts opens in Orca as one
+    object, each part already set to its filament (1 siding, 2 trim)."""
     import zipfile
     from xml.sax.saxutils import quoteattr
 
-    res, build, cfg, oid = [], [], [], 1
-    for obj_name, parts, (x, y) in items:
-        bb = union([m for _, m, _ in parts]).bounding_box()
-        comp_ids = []
-        cfg.append(f'<object id="{oid + len(parts)}"><metadata key="name" value={quoteattr(obj_name)}/>'
-                   f'<metadata key="extruder" value="{parts[0][2]}"/>')
-        for part_name, man, filament in parts:
-            cfg.append(f'<part id="{oid}" subtype="normal_part"><metadata key="name" value={quoteattr(part_name)}/>'
-                       f'<metadata key="extruder" value="{filament}"/></part>')
-            mesh = man.to_mesh()
-            v = np.asarray(mesh.vert_properties)[:, :3]
-            t = np.asarray(mesh.tri_verts)
-            vs = "".join(f'<vertex x="{a:.4f}" y="{b:.4f}" z="{c:.4f}"/>' for a, b, c in v)
-            ts = "".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>' for a, b, c in t)
-            res.append(f'<object id="{oid}" name={quoteattr(part_name)} type="model"><mesh>'
-                       f'<vertices>{vs}</vertices><triangles>{ts}</triangles></mesh></object>')
-            comp_ids.append(oid)
+    # Orca lays plates out in a grid, a fifth of a bed apart, as many columns as the square
+    # root of the plate count rounded up; objects carry that plate's offset
+    root = math.sqrt(len(plates))
+    cols = round(root) + (1 if root > round(root) else 0)
+    stride = 220 * 1.2
+    res, build, cfg, plate_cfg, oid = [], [], [], [], 1
+    for i, (plate_name, items) in enumerate(plates):
+        ox, oy = (i % cols) * stride, -(i // cols) * stride
+        plate_cfg.append(f'<plate><metadata key="plater_id" value="{i + 1}"/>'
+                         f'<metadata key="plater_name" value={quoteattr(plate_name)}/>'
+                         f'<metadata key="locked" value="false"/>')
+        for obj_name, parts, (x, y) in items:
+            bb = union([m for _, m, _ in parts]).bounding_box()
+            comp_ids = []
+            cfg.append(f'<object id="{oid + len(parts)}"><metadata key="name" value={quoteattr(obj_name)}/>'
+                       f'<metadata key="extruder" value="{parts[0][2]}"/>')
+            for part_name, man, filament in parts:
+                cfg.append(f'<part id="{oid}" subtype="normal_part"><metadata key="name" value={quoteattr(part_name)}/>'
+                           f'<metadata key="extruder" value="{filament}"/></part>')
+                mesh = man.to_mesh()
+                v = np.asarray(mesh.vert_properties)[:, :3]
+                t = np.asarray(mesh.tri_verts)
+                vs = "".join(f'<vertex x="{a:.4f}" y="{b:.4f}" z="{c:.4f}"/>' for a, b, c in v)
+                ts = "".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>' for a, b, c in t)
+                res.append(f'<object id="{oid}" name={quoteattr(part_name)} type="model"><mesh>'
+                           f'<vertices>{vs}</vertices><triangles>{ts}</triangles></mesh></object>')
+                comp_ids.append(oid)
+                oid += 1
+            comps = "".join(f'<component objectid="{c}"/>' for c in comp_ids)
+            res.append(f'<object id="{oid}" name={quoteattr(obj_name)} type="model"><components>{comps}</components></object>')
+            build.append(f'<item objectid="{oid}" transform="1 0 0 0 1 0 0 0 1 '
+                         f'{ox + x - bb[0]:.4f} {oy + y - bb[1]:.4f} {-bb[2]:.4f}"/>')
+            cfg.append('</object>')
+            plate_cfg.append(f'<model_instance><metadata key="object_id" value="{oid}"/>'
+                             f'<metadata key="instance_id" value="0"/></model_instance>')
             oid += 1
-        comps = "".join(f'<component objectid="{c}"/>' for c in comp_ids)
-        res.append(f'<object id="{oid}" name={quoteattr(obj_name)} type="model"><components>{comps}</components></object>')
-        build.append(f'<item objectid="{oid}" transform="1 0 0 0 1 0 0 0 1 '
-                     f'{x - bb[0]:.4f} {y - bb[1]:.4f} {-bb[2]:.4f}"/>')
-        cfg.append('</object>')
-        oid += 1
+        plate_cfg.append('</plate>')
     model = ('<?xml version="1.0" encoding="UTF-8"?>\n'
              '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
              '<metadata name="Title">8x12 Side Utility 1:24</metadata>'
@@ -738,7 +1008,7 @@ def write_3mf(name, items):
         z.writestr("_rels/.rels", rels)
         z.writestr("3D/3dmodel.model", model)
         z.writestr("Metadata/model_settings.config",
-                   '<?xml version="1.0" encoding="UTF-8"?>\n<config>' + "".join(cfg) + '</config>')
+                   '<?xml version="1.0" encoding="UTF-8"?>\n<config>' + "".join(cfg + plate_cfg) + '</config>')
 
 
 def on_bed(man):
@@ -748,16 +1018,17 @@ def on_bed(man):
 
 def build():
     parts = {}
-    w, f = walls(), floor()
-    parts["body"] = w + f
+    f = floor()
+    pieces = wall_pieces(walls())
+    parts["body"] = union(list(pieces.values()) + [f])
     parts["floor"] = f
-    parts.update(split_walls(w))
+    parts.update(pieces)
     roof = roof_half()
     parts["roof"] = roof
     white, black = door_parts()
     parts["door"], parts["door_trim"] = white, black
     parts["skids"] = skids()
-    parts["fit"] = fit_test()
+    parts["fit"] = fit_test(pieces, f)
     return parts
 
 
@@ -770,7 +1041,8 @@ def main():
     p = build()
     zone = trim_zone()
     walls_p = {name: wall_parts(p, name, zone) for name in WALL_CUTS}
-    write_stl(on_bed(p["floor"]), "floor.stl")
+    fl = to_print(FLOOR_TO_PRINT, [p["floor"]])[0]
+    write_stl(fl, "floor.stl")
     write_stl(union(walls_p["door wall"]), "door wall.stl")
     write_stl(union(walls_p["back wall"]), "back wall.stl")
     write_stl(union(walls_p["end wall 1"]), "end wall.stl")
@@ -780,45 +1052,41 @@ def main():
     write_stl(p["skids"], "skids.stl")
     write_stl(on_bed(p["fit"]), "fit test.stl")
 
-    # Orca projects, one per plate, laid out on the 220 x 220 bed. Filament 1 is the siding
-    # colour, filament 2 the trim; the back right corner of each two-colour plate is left clear
-    # for the prime tower.
+    # One Orca project with a plate for each print, in Alan's order (Nov 1 2026): both long walls,
+    # the roof, the door, both end walls, the floor and skids. Filament 1 is the siding colour,
+    # filament 2 the trim. The prime tower goes at x 165, y 195 on every plate, so the two-colour
+    # plates keep that corner clear.
     roof_p = roof_to_print(p["roof"])
     skid_p = skid().transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
     fit = on_bed(p["fit"])
     fbb = fit.bounding_box()
-    write_3mf("1 fit test.3mf", [("fit test", [("fit test", fit, 1)], (110 - fbb[3] / 2, 110 - fbb[4] / 2))])
+    write_3mf("1 fit test.3mf", [("fit test", [("fit test", [("fit test", fit, 1)],
+                                                 (110 - fbb[3] / 2, 110 - fbb[4] / 2))])])
 
-    def wall_item(name, x, y, turned=False):
+    def wall_item(name, x, y):
         siding, trim = walls_p[name]
-        if turned:                                   # stood on end to fit beside the floor
-            siding, trim = to_print([[0, -1, 0], [1, 0, 0], [0, 0, 1]], [siding, trim])
         return (name, [("siding", siding, 1), ("trim", trim, 2)], (x, y))
 
-    gap = 8
-    dw = walls_p["door wall"][0].bounding_box()
-    write_3mf("2 door wall and door.3mf", [
-        wall_item("door wall", 4, 4),
-        ("door", [("door", p["door"], 1), ("door trim", p["door_trim"], 2)], (4, 4 + dw[4] + gap)),
-    ])
-    fl = on_bed(p["floor"])
-    write_3mf("3 back wall and floor.3mf", [
-        ("floor", [("floor", fl, 1)], (4, 4)),
-        wall_item("back wall", 4 + fl.bounding_box()[3] + gap, 4, turned=True),
-    ])
+    lh = union(walls_p["door wall"]).bounding_box()[4]
+    y0 = (220 - 2 * lh - 3) / 2
     ew = union(walls_p["end wall 1"]).bounding_box()
-    write_3mf("4 end walls.3mf", [
-        wall_item("end wall 1", (220 - 2 * ew[3] - 6) / 2, 4),            # 102.8 wide each with the mitres
-        wall_item("end wall 2", (220 + 6) / 2, 4),
-    ])
+    db = union([p["door"], p["door_trim"]]).bounding_box()
     rw = roof_p.bounding_box()[3]
-    x0 = (220 - (2 * rw + 2 * SKID_W + 3 * 6)) / 2
-    y0 = (220 - (L + 2 * RAKE)) / 2
-    write_3mf("5 roof and skids.3mf", [
-        ("roof half 1", [("roof half", roof_p, 1)], (x0, y0)),
-        ("roof half 2", [("roof half", roof_p, 1)], (x0 + rw + 6, y0)),
-        ("skid 1", [("skid", skid_p, 1)], (x0 + 2 * rw + 12, y0)),
-        ("skid 2", [("skid", skid_p, 1)], (x0 + 2 * rw + SKID_W + 18, y0)),
+    rx = (220 - 2 * rw - 6) / 2
+    ry = (220 - (L + 2 * RAKE)) / 2
+    fb = fl.bounding_box()
+    fx = (220 - (fb[3] + 2 * SKID_W + 12)) / 2
+    write_3mf("2 all plates.3mf", [
+        ("long walls", [wall_item("door wall", 3, y0), wall_item("back wall", 3, y0 + lh + 3)]),
+        ("roof", [("roof half 1", [("roof half", roof_p, 2)], (rx, ry)),            # black, filament 2
+                  ("roof half 2", [("roof half", roof_p, 2)], (rx + rw + 6, ry))]),
+        ("door", [("door", [("door", p["door"], 1), ("door trim", p["door_trim"], 2)],
+                   ((220 - db[3]) / 2, (190 - db[4]) / 2))]),
+        ("end walls", [wall_item("end wall 1", (220 - 2 * ew[3] - 6) / 2, 4),
+                       wall_item("end wall 2", (220 + 6) / 2, 4)]),
+        ("floor and skids", [("floor", [("floor", fl, 1)], (fx, (220 - fb[4]) / 2)),
+                             ("skid 1", [("skid", skid_p, 1)], (fx + fb[3] + 6, (220 - L) / 2)),
+                             ("skid 2", [("skid", skid_p, 1)], (fx + fb[3] + SKID_W + 12, (220 - L) / 2))]),
     ])
     for name, (siding, trim) in walls_p.items():
         bb = union([siding, trim]).bounding_box()
