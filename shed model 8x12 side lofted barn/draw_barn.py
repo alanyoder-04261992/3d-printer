@@ -90,32 +90,32 @@ def main():
     p = s.build()
     zone = s.trim_zone()
     skids = [(s.skid().transform(m), SKID) for m in s.skids_to_shed()]
-    _, nl = s.seg_line("lower", 1)
     up, lo = p["upper"], p["lower"]
-    # left: the walls; the end wall near us held up above its place
-    left = skids + [(p["floor"], FLOOR)]
+    # left: the long walls and the lofts on them; the far end wall held up above its place
+    left = skids + [(p["floor"], FLOOR), (s.loft(1), LOFT), (s.loft(-1), LOFT)]
     left += wall_items(p, zone, "back wall") + wall_items(p, zone, "door wall") + wall_items(p, zone, "end wall 2")
     left += wall_items(p, zone, "end wall 1", (0, 0, 70))
-    # right: the whole barn, a loft held up out of it and the roof sheets on the door side lifted off
-    right = skids + [(p["floor"], FLOOR)] + [(s.loft(-1), LOFT), (s.loft(1).translate([0, 0, 18]), LOFT)]
+    # right: the whole barn, the roof sheets on the door side lifted off straight up
+    right = skids + [(p["floor"], FLOOR), (s.loft(-1), LOFT), (s.loft(1), LOFT)]
     for n in s.WALL_CUTS:
         right += wall_items(p, zone, n)
     right += [(up.mirror([1, 0, 0]), ROOF), (lo.mirror([1, 0, 0]), ROOF),
-              (lo.translate([22 * nl[0], 0, 22 * nl[1]]), ROOF), (up.translate([12, 0, 46]), ROOF)]
+              (lo.translate([0, 0, 24]), ROOF), (up.translate([0, 0, 52]), ROOF)]
     a = render(left, size=(820, 900), scale=2.9, centre=(0, 0, 95))
     b = render(right, size=(820, 900), scale=2.9, centre=(0, 0, 95))
     out = Image.new("RGB", (1640, 1180), "white")
-    out.paste(a, (0, 250))
-    out.paste(b, (820, 250))
+    out.paste(a, (0, 270))
+    out.paste(b, (820, 270))
     d = ImageDraw.Draw(out)
     d.text((40, 24), "How it goes together (no glue)", fill="black", font=font(30, True))
     lines = ["1  Skids push onto the floor's ends. Floor on its skids.",
-             "2  Long walls first: press each straight down onto the floor's long sides until its prongs click.",
-             "3  End walls: lower straight down over the long walls' corners, so the hooks on their top corners",
-             "    drop into the long walls; press until each prong clicks.",
-             "4  Lofts: drop one in at each end, onto the long walls' top plates; its lugs go in the notches.",
-             "5  Roof: a lower sheet onto the pegs on each steep edge, then an upper sheet onto the pegs",
-             "    halfway up, its tail lapping over the lower sheet."]
+             "2  Long walls: press each straight down onto the floor's long sides until its prongs click.",
+             "3  Lofts: push the back wall straight and drop a loft in at each end, onto both long walls'",
+             "    top plates; its lugs go in the notches. The lofts hold the long walls upright.",
+             "4  End walls: lower straight down past the lofts, so the hooks on their top corners drop",
+             "    into the long walls' corners; press until each prong clicks.",
+             "5  Roof: lower sheets straight down onto the pegs on the steep edges, then upper sheets",
+             "    onto the pegs halfway up, their tails lapping over the lower sheets."]
     for i, line in enumerate(lines):
         d.text((40, 74 + i * 25), line, fill="black", font=font(19))
     out.save(os.path.join(s.HERE, "how it goes together.png"), optimize=True)

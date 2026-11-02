@@ -121,10 +121,18 @@ played with, change these:
   than the other at a corner (a barn end's gable over the long wall), put the corner hooks on
   the tall wall and fit it last. A hook on the short wall would have to come down through the
   tall wall's corner, leaving a big flap of siding over nothing when the tall wall prints flat.
+- **Check where a tall wall's weight is.** A wall with no door or windows has most of its
+  weight in its siding, out past the edge of the floor it stands on, so it leans out on its own
+  (the barn's back wall: 2 1/2 mm at the top, more than a corner hook can catch). Tie the tops
+  before the hooks go on (the barn's lofts do it), and put a 45 degree bevel where an edge
+  could land flat on another edge.
 - **A bent roof prints as flat sheets.** A barn (gambrel) roof side can't lie flat with its
   ribs up in one piece, so print the upper and lower sheets separately, ribs up, and let the
-  upper sheet's tail lap over the lower one, the way the real steel goes on. Steep sheets get
-  pegs square to their slope.
+  upper sheet's tail lap over the lower one, the way the real steel goes on. Give the steep
+  sheets pegs standing straight up, not square to the slope: square to the slope, the sheet's
+  bottom swings out and it falls off with the model tipped about 20 degrees. Put each hole its
+  clearance further out than its peg so the sheet rests where it's drawn, and put roof pegs on
+  the face of a wall that prints on the bed, so they lie on the bed instead of in the air.
 
 ### Checking a print file without opening it
 - Flash Studio slices from the command line without opening a window:
@@ -175,7 +183,7 @@ played with, change these:
 | `test print/` | Sword blade PLA vs PETG tests | |
 | `desktop prints/` | Project files (.3mf) and big STLs | The 4 biggest STLs are stored with Git LFS |
 | `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility that snaps together, no glue: floor, four mitred walls that print flat with two-colour trim, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Made by `make_shed.py`; `check_shed.py` proves the parts fit, snap together and print flat |
-| `shed model 8x12 side lofted barn/` | 1:24 model of the 8x12 Side Lofted Barn, built from the Side Utility model with the same snap joints: floor, four mitred walls with your loft framing, two lofts, a barn roof in four lift-off sheets, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Long walls go on first, end walls last. Made by `make_barn.py`; `check_barn.py` proves the parts fit, snap together and print flat; `draw_barn.py` draws the assembly picture |
+| `shed model 8x12 side lofted barn/` | 1:24 model of the 8x12 Side Lofted Barn, built from the Side Utility model with the same snap joints: floor, four mitred walls with your loft framing, two lofts, a barn roof in four lift-off sheets, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Long walls go on first, then the lofts, end walls last. Made by `make_barn.py`; `check_barn.py` proves the parts fit, snap together and print flat; `draw_barn.py` draws the assembly picture |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in
