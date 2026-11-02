@@ -42,25 +42,27 @@ The end truss also has a collar tie across the knees, as the 3D designer draws b
 | `1 fit test.3mf` | A short doorway and door, a roof peg and a bit of roof, and one short corner of the barn (a bit of floor and short pieces of the back wall and an end wall) | Any | about 25 min. **Print this first.** See "Checking the fit" below. |
 | `2 all plates.3mf` | Everything else, one plate per print: | | |
 | plate 1 | Both long walls | 1 white, 2 black | about 2 h 20 min, 1 colour change |
-| plate 2 | The four roof sheets: two upper, two lower | 2 black only | about 1 h 25 min |
+| plate 2 | The four roof sheets: two upper, two lower | 2 black only | about 1 h 30 min |
 | plate 3 | The door | 1 white, 2 black | about 20 min, 3 colour changes |
-| plate 4 | Both end walls | 1 white, 2 black | about 2 h 50 min, 3 colour changes |
-| plate 5 | The floor, both skids and both lofts | 1 white only | about 2 h 10 min |
+| plate 4 | Both end walls | 1 white, 2 black | about 2 h 35 min, 3 colour changes |
+| plate 5 | The floor, both skids and both lofts | 3 brown only | about 1 h 50 min |
 
-The times are worked out from the Side Utility's, which Flash Studio sliced; Flash Studio shows
-the real time for each plate when you slice it.
+The times are Flash Studio's own for each plate (sliced Nov 2 2026): about 8 1/2 hours in
+all, with about 130 g of white, 67 g of black and 60 g of brown.
 
-Open them in Flash Studio with **File → Open Project** (Ctrl+O). Flash Studio says the file
-is from a newer version: click OK, it loads fine. The files carry no printer settings, so the
-printer stays the Flashforge AD5X 0.4. Pick a plate, then Slice plate and Print plate as usual.
+Start Flash Studio first, then open them with **File → Open Project** (Ctrl+O), or **Open
+Project** on its Home page. Starting Flash Studio by opening the file itself can leave it stuck
+on "Loading". If Flash Studio says the file is from a newer version, click OK; it loads fine. If
+it asks about unsaved changes to your settings, click **Discard** (the file brings its own). The
+files carry their settings: the Flashforge AD5X 0.4, `0.20mm Standard @FF AD5X`, and three
+filaments, 1 white, 2 black and 3 brown. Pick a plate, then Slice plate and Print plate as usual.
 
 Each wall prints lying flat, inside face down, so its trim (corner boards, door and window
 casings, the band across each barn end and the rake board under the roof edge) is on top and
-already set to **filament 2**; the siding is filament 1. Before slicing, add a second filament
-in the Filament panel (the **+** next to Filament) and make it black, or whatever colour you
-want the trim and roof. Filament 1 is the siding colour on every plate, filament 2 the trim
-and the roof. When you send the print, match filament 1 and 2 to the right spools in the
-AD5X's material station. On the two-colour plates (1, 3 and 4) the prime tower goes in the
+already set to **filament 2**; the siding is filament 1. Filament 1 (white) is the siding on
+every plate, filament 2 (black) the trim and the roof, and filament 3 (brown) the floor, skids
+and lofts. For other colours, click a filament's colour square in the Filament panel. When you
+send the print, match filaments 1, 2 and 3 to slots 1, 2 and 3 in the AD5X's material station. On the two-colour plates (1, 3 and 4) the prime tower goes in the
 back right corner, and those plates are laid out to keep it clear; plates 2 and 5 are one
 colour and need no tower. The roof prints on its own, so if you want a grey roof and white
 trim, load the grey spool as filament 2 just for plate 2.
@@ -75,9 +77,10 @@ The `.stl` files are the same pieces one at a time, all one colour, if you'd rat
 a plate yourself (`end wall.stl`, `upper roof.stl`, `lower roof.stl` and `loft.stl` each print
 twice; `floor.stl` and `loft.stl` are already upside down). For two colours use the `.3mf` files.
 
-**Settings:** `0.20mm Standard @FF AD5X` is fine. Set **Wall generator → Arachne**: the
-siding is only 1.4 mm thick, and Arachne fills thin walls solid. Set **Elephant foot
-compensation** to 0.1 mm (Quality tab, under Precision): the barbs, stops and posts under the
+**Settings:** already in the file: `0.20mm Standard @FF AD5X` with **Wall generator →
+Arachne** (it shows in orange as changed), because the siding is only 1.4 mm thick and Arachne
+fills thin walls solid. **Elephant foot compensation** is 0.1 mm, the AD5X's own setting (Quality
+tab, under Precision); keep it there: the barbs, stops and posts under the
 walls print on the bed and fit with 0.2 mm to spare, and the floor's face with 0.4 mm, so a
 flared first layer would make them tight. No supports or brim are needed.
 

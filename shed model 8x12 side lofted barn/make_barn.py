@@ -4,7 +4,8 @@ Run:  python3 make_barn.py      (needs: pip install manifold3d numpy)
 
 Makes the print files in this folder:
   1 fit test.3mf    a doorway, door, roof peg and one short corner of the barn to try first
-  2 all plates.3mf  everything, one plate per print, the trim already set to filament 2
+  2 all plates.3mf  everything, one plate per print, the trim and roof already set to filament 2,
+                    the floor, skids and lofts to filament 3
   floor.stl         floor frame and floor sheets, printed upside down; the walls snap onto it
   door wall.stl     the long wall with the door and windows, framing, trim; prints lying
                     flat, inside face down, so the trim is the top few layers
@@ -1179,7 +1180,8 @@ def write_3mf(name, plates):
     """A plain 3MF project for Orca. plates: [(plate name, items), ...], each a plate in Orca in
     that order. items: (object name, [(part name, manifold, filament), ...], (x, y)) placed with
     its lower-left corner at x, y on its plate. An object with two parts opens in Orca as one
-    object, each part already set to its filament (1 siding, 2 trim)."""
+    object, each part already set to its filament (1 siding, 2 trim and roof, 3 floor, skids
+    and lofts)."""
     import zipfile
     from xml.sax.saxutils import quoteattr
 
@@ -1196,6 +1198,9 @@ def write_3mf(name, plates):
                          f'<metadata key="locked" value="false"/>')
         for obj_name, parts, (x, y) in items:
             bb = union([m for _, m, _ in parts]).bounding_box()
+            # store each object's shape centred on its own middle and place that middle on the
+            # plate, the way Flash Studio saves its own projects
+            mid = np.array([(bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2, (bb[2] + bb[5]) / 2])
             comp_ids = []
             cfg.append(f'<object id="{oid + len(parts)}"><metadata key="name" value={quoteattr(obj_name)}/>'
                        f'<metadata key="extruder" value="{parts[0][2]}"/>')
@@ -1203,7 +1208,7 @@ def write_3mf(name, plates):
                 cfg.append(f'<part id="{oid}" subtype="normal_part"><metadata key="name" value={quoteattr(part_name)}/>'
                            f'<metadata key="extruder" value="{filament}"/></part>')
                 mesh = man.to_mesh()
-                v = np.asarray(mesh.vert_properties)[:, :3]
+                v = np.asarray(mesh.vert_properties)[:, :3] - mid
                 t = np.asarray(mesh.tri_verts)
                 vs = "".join(f'<vertex x="{a:.4f}" y="{b:.4f}" z="{c:.4f}"/>' for a, b, c in v)
                 ts = "".join(f'<triangle v1="{a}" v2="{b}" v3="{c}"/>' for a, b, c in t)
@@ -1214,7 +1219,7 @@ def write_3mf(name, plates):
             comps = "".join(f'<component objectid="{c}"/>' for c in comp_ids)
             res.append(f'<object id="{oid}" name={quoteattr(obj_name)} type="model"><components>{comps}</components></object>')
             build.append(f'<item objectid="{oid}" transform="1 0 0 0 1 0 0 0 1 '
-                         f'{ox + x - bb[0]:.4f} {oy + y - bb[1]:.4f} {-bb[2]:.4f}"/>')
+                         f'{ox + x + mid[0] - bb[0]:.4f} {oy + y + mid[1] - bb[1]:.4f} {mid[2] - bb[2]:.4f}"/>')
             cfg.append('</object>')
             plate_cfg.append(f'<model_instance><metadata key="object_id" value="{oid}"/>'
                              f'<metadata key="instance_id" value="0"/></model_instance>')
@@ -1223,10 +1228,14 @@ def write_3mf(name, plates):
     model = ('<?xml version="1.0" encoding="UTF-8"?>\n'
              '<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">'
              f'<metadata name="Title">{NAME}</metadata>'
-             # without this Flash Studio loads the shapes only and drops each part's filament. It
-             # says the file is from a newer version (click OK). No printer or process settings
-             # are in the file, so it keeps the printer that is set.
+             # Flash Studio opens a file as a project, plates and parts where they were put and each
+             # part on its filament, only if it carries project settings (flash studio settings.json,
+             # saved from Flash Studio: AD5X 0.4, 0.20mm Standard, Arachne, filaments 1 white,
+             # 2 black, 3 brown) and these version tags. Without them it centres everything on
+             # plate 1 and puts every part on filament 1 (Nov 2 2026). It says the file is from a
+             # newer version: click OK.
              '<metadata name="Application">BambuStudio-02.06.00.51</metadata>'
+             '<metadata name="OrcaSlicer">2.4.2</metadata>'
              '<metadata name="BambuStudio:3mfVersion">1</metadata>'
              f'<resources>{"".join(res)}</resources><build>{"".join(build)}</build></model>')
     types = ('<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -1241,6 +1250,7 @@ def write_3mf(name, plates):
         z.writestr("[Content_Types].xml", types)
         z.writestr("_rels/.rels", rels)
         z.writestr("3D/3dmodel.model", model)
+        z.write(os.path.join(HERE, "flash studio settings.json"), "Metadata/project_settings.config")
         z.writestr("Metadata/model_settings.config",
                    '<?xml version="1.0" encoding="UTF-8"?>\n<config>' + "".join(cfg + plate_cfg) + '</config>')
 
@@ -1294,7 +1304,8 @@ def main():
 
     # One Orca project with a plate for each print, in the Side Utility's order: both long walls,
     # the roof, the door, both end walls, then the floor, skids and lofts. Filament 1 is the siding
-    # colour, filament 2 the trim. The prime tower goes at x 165, y 195 on every plate, so the
+    # colour (white), filament 2 the trim and roof (black), filament 3 the floor, skids and lofts
+    # (brown, Alan Nov 2 2026). The prime tower goes at x 165, y 195 on every plate, so the
     # two-colour plates keep that corner clear.
     skid_p = skid().transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
     loft_p = lf.transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
@@ -1333,11 +1344,11 @@ def main():
         ("end walls", [wall_item("end wall 1", (220 - 2 * ew - 6) / 2, 4),
                        wall_item("end wall 2", (220 + 6) / 2, 4)]),
         ("floor, skids and lofts", [
-            ("floor", [("floor", fl, 1)], (fx, (220 - fh) / 2)),
-            ("skid 1", [("skid", skid_p, 1)], (fx + fw + 6, (220 - sh_) / 2)),
-            ("skid 2", [("skid", skid_p, 1)], (fx + fw + sw_ + 12, (220 - sh_) / 2)),
-            ("loft 1", [("loft", loft_p, 1)], (fx + fw + 2 * sw_ + 18, (220 - 2 * lfh - 6) / 2)),
-            ("loft 2", [("loft", loft_p, 1)], (fx + fw + 2 * sw_ + 18, (220 + 6) / 2))]),
+            ("floor", [("floor", fl, 3)], (fx, (220 - fh) / 2)),                   # brown
+            ("skid 1", [("skid", skid_p, 3)], (fx + fw + 6, (220 - sh_) / 2)),
+            ("skid 2", [("skid", skid_p, 3)], (fx + fw + sw_ + 12, (220 - sh_) / 2)),
+            ("loft 1", [("loft", loft_p, 3)], (fx + fw + 2 * sw_ + 18, (220 - 2 * lfh - 6) / 2)),
+            ("loft 2", [("loft", loft_p, 3)], (fx + fw + 2 * sw_ + 18, (220 + 6) / 2))]),
     ])
     for name, (siding, trim) in walls_p.items():
         bb = union([siding, trim]).bounding_box()

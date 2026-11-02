@@ -64,8 +64,9 @@ Temperatures are the ones we've actually printed with.
 | Generic TPU (flexible) | 240 °C | 35 °C | iPhone 15 Pro case, airless ball, TPU knife blade |
 | PETG | 245–255 °C | 80 °C | Sword blades. **Dry it first** — see below. |
 
-**Still to fill in:** which colours are loaded in the IFS slots right now, and what spools are
-on the shelf.
+**IFS slots (Nov 2 2026):** 1 white, 2 black, 3 brown, 4 empty. The printer's screen still shows
+them as teal, orange and magenta because their colours weren't changed there.
+**Still to fill in:** what spools are on the shelf.
 
 ---
 
@@ -157,9 +158,18 @@ played with, change these:
 - A change happens on every layer that has both colours. Something tall in the second colour
   (a handle, a knob) only adds changes while the first colour is still printing on those
   layers; above the last of the first colour it is free.
-- Flash Studio keeps each part's filament from a `.3mf` only if the file names a slicer
-  version. Files made by our scripts say BambuStudio 2.6, so Flash Studio shows a "newer
-  3MF version" notice: click OK, the parts and colours load fine.
+- **A `.3mf` made by a script must carry Flash Studio's project settings**
+  (`Metadata/project_settings.config`, taken from a project Flash Studio saved) and both version
+  tags (`Application` BambuStudio-02.06.00.51 and `OrcaSlicer` 2.4.2). Without them Flash Studio
+  opens it as a plain model: it moves the whole layout so its middle sits on plate 1 (parts end
+  up off their plates) and puts every part on filament 1. A setting changed from the stock
+  preset (Arachne) only sticks if `different_settings_to_system` names it, as Flash Studio saves
+  it: `["wall_generator", "", "", "", ""]` (the process, then each filament, then the printer).
+  The shed and barn folders keep these settings in `flash studio settings.json` (Alan, Nov 2026).
+- **Open a project from inside Flash Studio** (File → Open Project, or Open Project on its Home
+  page). Starting Flash Studio with a project file, while other Flash Studio windows were open,
+  stuck at about two-thirds of "Loading" with one CPU core busy, even for a file Flash Studio had
+  saved itself (Nov 2026).
 
 ### Bed adhesion
 - Long, thin parts or parts with a small footprint need a **5 mm brim** (knife handle, sword

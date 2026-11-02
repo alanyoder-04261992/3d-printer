@@ -25,18 +25,21 @@ between the door and each end wall, louvred vents in both gable ends, two 4x6 sk
 | plate 2 | Both roof halves | 2 black only | about 1 h 5 min |
 | plate 3 | The door | 1 white, 2 black | about 22 min, 3 colour changes |
 | plate 4 | Both end walls | 1 white, 2 black | about 2 h 15 min, 3 colour changes |
-| plate 5 | The floor and both skids | 1 white only | about 1 h 30 min |
+| plate 5 | The floor and both skids | 3 brown only | about 1 h 30 min |
 
-Open them in Flash Studio with **File → Open Project** (Ctrl+O). Flash Studio says the file
-is from a newer version: click OK, it loads fine. The files carry no printer settings, so the
-printer stays the Flashforge AD5X 0.4. Pick a plate, then Slice plate and Print plate as usual.
+Start Flash Studio first, then open them with **File → Open Project** (Ctrl+O), or **Open
+Project** on its Home page. Starting Flash Studio by opening the file itself can leave it stuck
+on "Loading". If Flash Studio says the file is from a newer version, click OK; it loads fine. If
+it asks about unsaved changes to your settings, click **Discard** (the file brings its own). The
+files carry their settings: the Flashforge AD5X 0.4, `0.20mm Standard @FF AD5X`, and three
+filaments, 1 white, 2 black and 3 brown. Pick a plate, then Slice plate and Print plate as usual.
 
 Each wall prints lying flat, inside face down, so its trim (corner boards, door and window
 casings, gable bands) is on top and already set to **filament 2**; the siding is filament 1.
-Before slicing, add a second filament in the Filament panel (the **+** next to Filament) and
-make it black, or whatever colour you want the trim and roof. Filament 1 is the siding colour
-on every plate, filament 2 the trim and the roof. When you send the print, match filament 1
-and 2 to the right spools in the AD5X's material station. The prime tower goes in the back
+Filament 1 (white) is the siding on every plate, filament 2 (black) the trim and the roof, and
+filament 3 (brown) the floor and skids. For other colours, click a filament's colour square in
+the Filament panel. When you send the print, match filaments 1, 2 and 3 to slots 1, 2 and 3 in
+the AD5X's material station. The prime tower goes in the back
 right corner of the plate; every plate is laid out to keep it clear.
 
 The walls meet at the corners on 45-degree mitres, so each wall carries only the trim on its
@@ -49,9 +52,10 @@ The `.stl` files are the same pieces one at a time, all one colour, if you'd rat
 a plate yourself (`end wall.stl` serves for both ends, `floor.stl` is already upside down).
 For two colours use the `.3mf` files.
 
-**Settings:** `0.20mm Standard @FF AD5X` is fine. Set **Wall generator → Arachne**: the
-siding is only 1.4 mm thick, and Arachne fills thin walls solid. Set **Elephant foot
-compensation** to 0.1 mm (Quality tab, under Precision): the barbs, stops and posts under the
+**Settings:** already in the file: `0.20mm Standard @FF AD5X` with **Wall generator →
+Arachne** (it shows in orange as changed), because the siding is only 1.4 mm thick and Arachne
+fills thin walls solid. **Elephant foot compensation** is 0.1 mm, the AD5X's own setting (Quality
+tab, under Precision); keep it there: the barbs, stops and posts under the
 walls print on the bed and fit with 0.2 mm to spare, and the floor's face with 0.4 mm, so a
 flared first layer would make them tight. No supports or brim are needed.
 
