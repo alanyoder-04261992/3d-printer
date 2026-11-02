@@ -170,6 +170,12 @@ played with, change these:
   page). Starting Flash Studio with a project file, while other Flash Studio windows were open,
   stuck at about two-thirds of "Loading" with one CPU core busy, even for a file Flash Studio had
   saved itself (Nov 2026).
+- **Check the slots in the Send dialog every time.** Flash Studio matches each filament to the
+  slot whose colour on the printer is closest, and the printer still has the old colours, so it
+  put white on slot 2 and black on slot 1. Click each filament's slot box and pick the slot by
+  number: 1 white, 2 black, 3 brown. After Send, a red "No Flashforge-AD5X idle printer" note
+  can appear: that only means the printer is now busy with the job, and the Device tab shows
+  it printing (Nov 2 2026).
 
 ### Bed adhesion
 - Long, thin parts or parts with a small footprint need a **5 mm brim** (knife handle, sword
