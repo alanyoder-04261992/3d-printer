@@ -29,6 +29,7 @@ def overlap(a, b):
 
 
 RND = m3.JoinType.Round
+MIT = m3.JoinType.Miter
 
 
 def layers(top):
@@ -117,16 +118,24 @@ door_all = door + trim
 
 WALLS = list(s.WALL_CUTS)
 zone = s.trim_zone()
-flat = {name: s.to_print(s.WALL_TO_PRINT[name], s.two_colour(p[name], zone)) for name in WALLS}
+flat = {name: s.wall_parts(p, name, zone) for name in WALLS}
+angle_flat = s.angle_prints()
+
+
+def corner_name(sx, sy):
+    return f"({'+' if sx > 0 else '-'},{'+' if sy > 0 else '-'})"
+
 
 # 1. every printed piece is one solid piece and fits the bed
 for name, part in ([("floor", p["floor"])] + [(n, s.union(flat[n])) for n in WALLS] +
-                   [("roof half", s.roof_to_print(roof)), ("door", door_all),
-                    ("skids", p["skids"]), ("fit test", p["fit"])]):
+                   [("roof half", s.roof_to_print(roof))] +
+                   [("corner angle " + corner_name(sx, sy), a) for (sx, sy), a in zip(s.CORNERS, angle_flat)] +
+                   [("door", door_all), ("skids", p["skids"]), ("fit test new corner", p["fit corner"]),
+                    ("fit test door and roof peg", p["fit"])]):
     bb = part.bounding_box()
     size = (bb[3] - bb[0], bb[4] - bb[1], bb[5] - bb[2])
     pieces = len(part.decompose())
-    expect = {"skids": 2, "fit test": 7}.get(name, 1)
+    expect = {"skids": 2, "fit test new corner": 4, "fit test door and roof peg": 4}.get(name, 1)
     report(pieces == expect, f"{name}: {pieces} solid piece(s), expected {expect}")
     report(max(size[0], size[1]) <= BED and size[2] <= BED,
            f"{name}: {size[0]:.1f} x {size[1]:.1f} x {size[2]:.1f} mm fits the {BED:.0f} mm bed")
@@ -145,8 +154,8 @@ report(v < 0.0001, f"the walls sit round the floor with {s.FIT} mm round every p
                    f"{s.FLOOR_CLR} mm inside the skirts (moved 0.14 mm it still clears: {v:.4f} mm3)")
 
 
-# 1a. the snap joints. Each wall stands on the floor, the floor holds it in, out and along,
-# its barbs hold it down, and the corner hooks tie the tops together.
+# 1a. the snap joints. Each wall stands on the floor, the floor holds it in, out and along, and
+# its barbs hold it down. (The corner angles tie the corners together; see 1c.)
 def toward(name, d):
     """Move d mm out from the middle of the shed, square to the wall."""
     axis, sign = s.WALL_SIDE[name]
@@ -171,7 +180,6 @@ for n in WALLS:
         barb_room.append(s.wall_box(n, a0 - s.FIT, a1 + s.FIT, -s.FIT, s.BARB, -1, s.ZF + 1))
 fl_open = fl - s.union(barb_room)
 ends = s.union([p["end wall 1"], p["end wall 2"]])
-longs = s.union([p["door wall"], p["back wall"]])
 for n in WALLS:
     w = p[n]
     v = overlap(w.translate([0, 0, -0.1]), fl)
@@ -234,38 +242,6 @@ for n in WALLS:
            f"{n} as printed: each barb reaches {catch:.2f} mm under its ledge ({out_catch:.2f} with the foot "
            f"pushed out against its stops), with {ledge - top:.2f} mm over it to spring in; lifted 0.3 mm the "
            f"printed barbs catch ({held:.2f} mm3), and seated nothing rubs ({rest:.3f} mm3)")
-for n in ("end wall 1", "end wall 2"):
-    v = overlap(p[n].translate([0, 0, 0.3]), longs)
-    report(v > 0.05, f"{n} can't lift out from under the long walls' corner hooks ({v:.2f} mm3 at 0.3 mm)")
-    v = overlap(p[n].translate(toward(n, 0.3)), longs)
-    report(v > 0.05, f"{n} can't pull away from the hook tips at the top corners ({v:.2f} mm3 at 0.3 mm)")
-# the end walls lean out a little at the top until the long walls are on. Lowering a long wall,
-# the tip of its corner hook must land on the slope in front of its pocket (which pushes the end
-# wall upright) and not on a flat top. Each lean is tried as the end wall moved straight out.
-corner = s.box(s.W / 2 - 12, s.W / 2 + 2, s.L / 2 - 14, s.L / 2 + 2, s.ZWT - 12, s.ZWT + 12)
-lw_c, ew_c = p["door wall"] ^ corner, p["end wall 1"] ^ corner
-za = s.ZWT - 0.15 - s.HOOK_ARM
-worst_lean = 0.0
-e = s.HOOK_REACH - s.HOOK_TIP_W - s.FIT                  # the pocket's near side, into the end wall
-y_lo = s.L / 2 - s.WT + e - s.HOOK_GUIDE - 0.05         # where the slope starts
-for lean_mm in (0.25, 0.5, 1.0, 1.5, 2.0):
-    ew_l = ew_c.translate([0, lean_mm, 0])
-    dz = 8.0
-    while dz > 0 and overlap(lw_c.translate([0, 0, dz - 0.05]), ew_l) < 1e-4:
-        dz -= 0.05
-    touches = [c for c in (lw_c.translate([0, 0, dz - 0.05]) ^ ew_l).decompose() if c.volume() > 1e-4]
-    ok = dz <= 0.05 or all(
-        tb[0] >= s.W / 2 - s.WT - s.FIT - 0.05 and tb[3] <= s.W / 2 - s.WT + s.HOOK_T + s.FIT + 0.05
-        and tb[1] - lean_mm >= y_lo and tb[5] <= za - s.FIT + 0.05
-        for tb in (c.bounding_box() for c in touches))
-    if not ok:
-        break
-    worst_lean = lean_mm
-report(worst_lean >= 2.0, f"with an end wall leaning out up to {worst_lean} mm at the top, the long wall's hook tip lands "
-                          f"on the slope in front of its pocket and pulls the end wall upright")
-for n in ("door wall", "back wall"):
-    v = overlap(p[n].translate(toward(n, 0.3)), ends)
-    report(v > 0.05, f"{n} can't lean out of the end walls' corners at the top ({v:.2f} mm3 at 0.3 mm)")
 for n in WALLS:
     siding, trim = flat[n]
     bb = s.union(flat[n]).bounding_box()
@@ -277,30 +253,21 @@ for n in WALLS:
            f"{n} lies flat on its framing ({foot.volume() / 0.2:.0f} mm2 on the bed)")
     # layer by layer (slicer layers: 0.25 then 0.2), nothing may stick out more than 0.22 mm
     # past the layer under it (45 degrees) unless it is a bridge held at both ends, 20 mm or
-    # less: the siding between studs, the skirt between posts, the roofs of the pockets, the
-    # prong legs. Allowed: under 5 mm2 a layer of small bits (the undersides of the roof pegs),
-    # and on the end walls the flap of siding over each corner hook, kept 0.6 mm clear of it.
+    # less: the siding between studs, the skirt between posts, the plate over the slot round each
+    # prong's leg, the prong legs. Allowed: under 5 mm2 a layer of small bits (the undersides of
+    # the roof pegs).
     whole = s.union(flat[n])
-    worst, flaps, longest, prev = 0.0, 0.0, 0.0, None
+    worst, longest, prev = 0.0, 0.0, None
     for z0, z1 in layers(bb[5]):
         cs = whole.slice((z0 + z1) / 2)
         if prev is not None:
             left, span = overhangs(cs, prev)                # every bridge counted is 20 mm or less
             longest = max(longest, span)
-            rest = 0.0
-            for piece in left.decompose():
-                c = piece.bounds()
-                corner = (n.startswith("end") and abs(abs((c[0] + c[2]) / 2 - (bb[3] - bb[0]) / 2) - s.W / 2) < 6
-                          and c[3] > bb[4] - 25 and piece.area() < 25)
-                if corner:
-                    flaps = max(flaps, piece.area())
-                else:
-                    rest += piece.area()
-            worst = max(worst, rest)
+            worst = max(worst, left.area())
         prev = cs
     report(worst < 5,
            f"{n} has nothing steeper than 45 degrees that isn't a bridge of 20 mm or less ({worst:.1f} mm2 "
-           f"worst layer" + (f"; the siding flap over each corner hook {flaps:.0f} mm2" if flaps else "") + ")")
+           f"worst layer)")
     # the first two layers must have nothing narrower than one 0.4 mm line (a knife edge on
     # the bed gets dropped or blobs into a joint)
     thin = max((c - c.offset(-0.2, RND).offset(0.2, RND)).area()
@@ -308,11 +275,17 @@ for n in WALLS:
     report(thin < 2, f"{n}: no knife edges on the bed ({thin:.2f} mm2 thinner than a line in the first two layers)")
     tb = trim.bounding_box()
     sb = siding.bounding_box()
-    report(trim.volume() > 0 and abs(tb[5] - (s.WT + s.PROUD)) < 0.01 and tb[2] > s.WT - 0.01
-           and sb[5] < tb[5] + 0.01,
-           f"{n}: trim is {trim.volume() / 1000:.2f} cm3, all of it the top {s.PROUD} mm "
-           f"({tb[2]:.2f} to {tb[5]:.2f} mm, siding colour no higher), so the colour only changes "
-           f"on the last layers")
+    if n == "back wall":
+        report(trim.volume() == 0, f"{n}: no filament-2 trim left on it (its corner boards are the corner angles "
+                                   f"now), so it prints in one colour")
+    else:
+        report(trim.volume() > 0 and abs(tb[5] - (s.WT + s.PROUD)) < 0.01 and tb[2] > s.WT - 0.01,
+               f"{n}: trim is {trim.volume() / 1000:.2f} cm3, all of it the top {s.PROUD} mm "
+               f"({tb[2]:.2f} to {tb[5]:.2f} mm), so the colour only changes on the last layers")
+    # nothing in filament 1 above the siding's face (5.10 drawn, its top layer prints 4.85 to
+    # 5.05): the vent's louvres are recessed now, so the colour changes once
+    report(sb[5] <= s.WT + 1e-6,
+           f"{n}: nothing in filament 1 stands above the siding's face ({sb[5]:.3f} mm; its top layer prints at 5.05)")
     if n in ("door wall", "back wall"):
         v = p[n].trim_by_plane([0, 0, 1], s.ZWT + 0.001).volume()
         report(v == 0, f"{n}: nothing above the wall plates (the gable corners go with the end walls)")
@@ -336,13 +309,283 @@ for z in [0.125] + [0.35 + 0.2 * k for k in range(int(fbb[5] / 0.2))]:
     prev = cs
 report(worst < 0.5, f"the floor has nothing hanging over ({worst:.2f} mm2 worst layer)")
 
-# the short corner in the fit test goes together the same way
+# 1c. the corner angles (Alan, Nov 3 2026): a black L at each corner, glued into a recess in
+# both walls. It must sit on both recess floors and touch nothing else, cover the mitre, and
+# clear the roof, the other trim and the door.
+def to_corner(sx, sy):
+    """Matrix from shed coords to a corner's own (u, v, z): u out from the long wall's siding
+    face, v out from the end wall's (the inverse of make_shed.corner_frame)."""
+    return np.array([[sx, 0, 0, -s.W / 2], [0, sy, 0, -s.L / 2], [0, 0, 1, 0]], dtype=float)
+
+
+def square(u0, u1, v0, v1):
+    return m3.CrossSection.square([u1 - u0, v1 - v0]).translate([u0, v0])
+
+
+def reach_area(a, wall_set, sx, sy, zs, r):
+    """Area of wall within r of the angle, on horizontal sections at zs, leaving out the strips
+    under the angle's inside faces, which sit on the recess floors by design."""
+    ra, rb = s.angle_reach()
+    floors = square(-s.POCKET_D - r - 0.01, -s.POCKET_D, -ra - r - 0.01, -1.3) + \
+        square(-rb - r - 0.01, -1.3, -s.POCKET_D - r - 0.01, -s.POCKET_D)
+    T = to_corner(sx, sy)
+    at, wt = a.transform(T), wall_set.transform(T)
+    return max(((at.slice(z).offset(r, RND) ^ wt.slice(z)) - floors).area() for z in zs)
+
+
+def directions(d):
+    """The 26 moves of d mm to the corners, edges and faces of a cube."""
+    out = []
+    for i in (-1, 0, 1):
+        for j in (-1, 0, 1):
+            for k in (-1, 0, 1):
+                if i or j or k:
+                    n = math.sqrt(i * i + j * j + k * k)
+                    out.append([d * i / n, d * j / n, d * k / n])
+    return out
+
+
+angles = {c: s.corner_angle(*c) for c in s.CORNERS}
+ra, rb = s.angle_reach()
+trim_all = s.union(s.trims())
+zs = (1.0, s.ZF, 40.0, 80.0, s.ZWT - 1, s.ZWT + 1)
+for (sx, sy), a in angles.items():
+    cn = corner_name(sx, sy)
+    ln, en = s.corner_walls(sx, sy)
+    lw_, ew_ = p[ln], p[en]
+    pair = s.union([lw_, ew_])
+    # seated: into neither wall, and pushed only 0.005 mm into either recess floor it meets it all
+    # along (about 1.1 mm3 when it is right on it), so it is down on both floors, not just near them
+    v0 = max(overlap(a, lw_), overlap(a, ew_))
+    in_l = overlap(a.translate([-sx * 0.005, 0, 0]), lw_)
+    in_e = overlap(a.translate([0, -sy * 0.005, 0]), ew_)
+    report(v0 < 0.001 and in_l > 0.5 and in_e > 0.5,
+           f"corner angle {cn} sits in the recesses of the {ln} and {en}: into neither ({v0:.4f} mm3), on both "
+           f"recess floors (pushed 0.005 mm in it meets them: {in_l:.2f} and {in_e:.2f} mm3)")
+    # clear by 0.09 everywhere but the recess floors: the fillet is c off the chamfer, square to it,
+    # worked out from the constants, and the legs' edges POCKET_CLR from the ends of the recesses.
+    # So the test isn't empty, at c + 0.02 the fillet must reach the chamfer
+    c = (s.CORNER_CHAMFER - s.ANGLE_FILLET) / math.sqrt(2)
+    near = reach_area(a, pair, sx, sy, zs, 0.09)
+    fil = reach_area(a, pair, sx, sy, zs, c + 0.02)
+    report(c >= 0.09 and near < 1e-4 and fil > 0.001,
+           f"corner angle {cn} touches the walls only on the recess floors: nothing else within 0.09 mm "
+           f"({near:.5f} mm2 on sections from the foot to above the plates; the fillet is {c:.3f} mm off the "
+           f"chamfer, and at {c + 0.02:.3f} mm it reaches it, {fil:.3f} mm2)")
+    # either wall's foot 0.15 mm in or out, the angle on its recess floor going with it
+    worst = 0.0
+    for n, other in ((ln, ew_), (en, lw_)):
+        for d in (0.15, -0.15):
+            worst = max(worst, overlap(a.translate(toward(n, d)), other))
+    t_in = s.POCKET_CLR + 0.1
+    tight = overlap(a.translate(toward(ln, -t_in)), ew_)
+    report(worst < 0.001 and tight > 0.001,
+           f"corner angle {cn} still misses the other wall with either wall's foot 0.15 mm in or out "
+           f"({worst:.4f} mm3; at {t_in:.2f} mm in it would meet it, {tight:.3f} mm3)")
+    # covers the corner on both faces, from the foot up: measured from the siding's outer corner
+    # (u = v = 0), and past the joint where the mitre meets the chamfer, which is what shows
+    T = to_corner(sx, sy)
+    at = a.transform(T)
+    cover_l, cover_e = 99.0, 99.0
+    for z in (0.3, s.ZF, 50.0, s.ZWT - 0.6):
+        sec = at.slice(z)
+        lp, ep = sec ^ square(-s.POCKET_D, 1, -30, 1), sec ^ square(-30, 1, -s.POCKET_D, 1)
+        cover_l = min(cover_l, -lp.bounds()[1] if lp.area() > 0 else 0)
+        cover_e = min(cover_e, -ep.bounds()[0] if ep.area() > 0 else 0)
+    seam_v = (lw_.transform(T).slice(50.0) ^ square(-3, 1, -3, 1)).bounds()[3]   # the long wall's last bit
+    seam_u = (ew_.transform(T).slice(50.0) ^ square(-3, 1, -3, 1)).bounds()[2]   # the end wall's
+    face = (at ^ s.box(s.ANGLE_T - s.POCKET_D - 0.01, 1, -30, 1, -1, 400)).bounding_box()
+    report(cover_l >= 3 and cover_e >= 3 and at.bounding_box()[2] == 0,
+           f"corner angle {cn} covers the corner by {cover_l:.2f} mm along the long wall and {cover_e:.2f} mm along "
+           f"the end wall from the siding's outer corner ({cover_l + seam_v:.2f} and {cover_e + seam_u:.2f} mm past the "
+           f"joint at the chamfer), from its foot (level with the bottom of the skirts) to {s.ZWT - face[5]:.2f} mm "
+           f"under the top of the wall plates")
+    # the roof: 0.2 under it, square to it; still clear with the roof 0.15 mm lower
+    rf = roof if sx > 0 else roof.mirror([1, 0, 0])
+    nrm = [sx * math.sin(s.ALPHA), 0, math.cos(s.ALPHA)]
+    v19 = overlap(a, rf.translate([-0.19 * c for c in nrm]))
+    v21 = overlap(a, rf.translate([-0.21 * c for c in nrm]))
+    vlow = overlap(a, rf.translate([0, 0, -0.15]))
+    report(overlap(a, rf) == 0 and v19 < 1e-5 and vlow < 1e-5 and v21 > 1e-3,
+           f"corner angle {cn} is 0.2 mm under the roof, square to it, across both legs (the roof moved 0.19 mm "
+           f"toward it still clears, at 0.21 it meets it: {v21:.3f} mm3), and still clears the roof 0.15 mm lower")
+    # the other trim (the gable band ends 0.15 short of it)
+    v = max(overlap(a.translate(d), trim_all) for d in directions(0.1))
+    report(v < 1e-5, f"corner angle {cn} is at least 0.1 mm from all the other trim ({v:.5f} mm3 moved 0.1 mm any way)")
+v = max(overlap(door_all.transform(s.door_to_shed(deg)), p["angles"]) for deg in range(0, 100, 2))
+report(v == 0, f"the door swings clear of the corner angles from shut to 98 degrees ({v:.4f} mm3)")
+pa = [s.on_bed(a) for a in angle_flat]
+same = max((pa[0] - pa[3]).volume(), (pa[3] - pa[0]).volume(), (pa[1] - pa[2]).volume(), (pa[2] - pa[1]).volume())
+mir = s.on_bed(pa[0].mirror([1, 0, 0]))
+hand = max((mir - pa[1]).volume(), (pa[1] - mir).volume())
+report(same < 0.001 and hand < 0.001 and (pa[0] - pa[1]).volume() > 1,
+       f"the angles are two mirror pairs: (+,+) prints the same as (-,-) and (+,-) as (-,+), each pair the "
+       f"other's mirror image")
+# printed lying on the long-face leg's outside face: nothing over 45 degrees, nothing in mid-air
+for (sx, sy), a in list(zip(s.CORNERS, angle_flat))[:2]:
+    bb = a.bounding_box()
+    worst, prev = 0.0, None
+    for z0, z1 in layers(bb[5]):
+        cs = a.slice((z0 + z1) / 2)
+        if prev is not None:
+            worst = max(worst, (cs - prev.offset(0.22, RND)).area())
+        prev = cs
+    nl = len(layers(bb[5] - 0.001))
+    report(worst < 0.001 and abs(bb[5] - s.ANGLE_UP) < 1e-9 and a.slice(0.125).area() > 0.95 * bb[4] * (bb[3] - 0.05),
+           f"corner angle {corner_name(sx, sy)} prints on its long-face leg's outside face "
+           f"({a.slice(0.125).area():.0f} mm2 on the plate), {bb[5]:.2f} mm tall ({nl} layers), with nothing hanging "
+           f"past the layer under it ({worst:.4f} mm2)")
+
+# the same as printed: the walls and the angle each cut into their own print's layers, with anything
+# thinner than a line rounded off. The recess floors print on the 4.65 layer, 0.054 deeper than
+# drawn, and the chamfer and the fillet both come out stepped, the end wall's steps across the
+# angle's. Pushed onto both printed floors the angle must still miss the chamfer.
+for sx, sy in s.CORNERS:
+    ln, en = s.corner_walls(sx, sy)
+    region = s.box(-12, 2, -12, 2, 30, 60).transform(s.corner_frame(sx, sy))
+    T = to_corner(sx, sy)
+    pl = printed_in_shed(p[ln], s.WALL_TO_PRINT[ln], region).transform(T)
+    pe = printed_in_shed(p[en], s.WALL_TO_PRINT[en], region).transform(T)
+    pa = printed_in_shed(angles[(sx, sy)], s.angle_to_print(sx), region).transform(T)
+    floor_u = (pl ^ s.box(-3, 1, -3.3, -2.0, 40, 50)).bounding_box()[3]
+    floor_v = (pe ^ s.box(-3.3, -2.0, -3, 1, 40, 50)).bounding_box()[4]
+    du = floor_u - (pa ^ s.box(-1, 1, -3.3, -2.0, 40, 50)).bounding_box()[0]
+    dv = floor_v - (pa ^ s.box(-3.3, -2.0, -1, 1, 40, 50)).bounding_box()[1]
+    seated = pa.translate([du, dv, 0])
+    v = overlap(seated, s.union([pl, pe]))
+    on_l, on_e = overlap(seated.translate([-0.01, 0, 0]), pl), overlap(seated.translate([0, -0.01, 0]), pe)
+    # how close the fillet's steps come to the walls' steps, on a section away from the recess floors.
+    # The nearest are corners of steps, where the printed lines are rounded, so the real gap is wider;
+    # a 0.85 fillet would have its steps touching the long wall's, and a 1.0 one runs into the end wall's
+    away = square(-3, -0.6, -3, -0.6)
+    ws, fs = s.union([pl, pe]).slice(45.0) ^ away, seated.slice(45.0) ^ away
+    lo, hi = 0.0, 0.5
+    for _ in range(14):
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if (fs.offset(mid, RND) ^ ws).area() > 1e-7 else (mid, hi)
+    report(v < 1e-4 and on_l > 0.05 and on_e > 0.05 and lo >= 0.03,
+           f"corner angle {corner_name(sx, sy)} as printed: pushed {-du:.3f} and {-dv:.3f} mm in, onto both printed "
+           f"recess floors ({floor_u:.3f}, {floor_v:.3f}), it runs "
+           + (f"into neither wall ({max(v, 0):.4f} mm3 over 30 mm); " if v < 1e-4 else f"{v:.3f} mm3 into the walls over 30 mm; ")
+           + f"its fillet's steps stay {lo:.3f} mm clear of the walls' steps")
+
+# each wall's recesses, as printed: the floor on the 4.65 layer and the siding round it on 5.05,
+# and no edge sharper than square where the chamfer meets the mitre and the recess floor
+for n in WALLS:
+    axis, sign = s.WALL_SIDE[n]
+    for sx, sy in s.CORNERS:
+        if (sx, sy)[axis] != sign:
+            continue
+        T = to_corner(sx, sy)
+        Ti = s.corner_frame(sx, sy)
+        region = s.box(-12, 2, -12, 2, 15, 35).transform(Ti)
+        pw = printed_in_shed(p[n], s.WALL_TO_PRINT[n], region).transform(T)
+        k = axis                                               # 0: depth is u, 1: depth is v
+        def probe(a0, a1):
+            b = [-3, 1, -3, 1, 20, 30]
+            b[2 * (1 - k)], b[2 * (1 - k) + 1] = a0, a1
+            return (pw ^ s.box(*b)).bounding_box()[3 + k] + s.WT
+        floor_z, face_z = probe(-3.3, -2.0), probe(-6.5, -4.5)
+        # square edges: the wall's horizontal section at the corner, the angle at each corner of it
+        wl = p[n].transform(T)
+        sharp = 180.0
+        for z in (3.0, 30.0, 60.0, s.ZWT - 1):
+            for poly in (wl.slice(z) ^ square(-3, 1, -3, 1)).to_polygons():
+                P = np.asarray(poly)
+                for i in range(len(P)):
+                    a_, b_, c_ = P[i - 1], P[i], P[(i + 1) % len(P)]
+                    if min(b_) < -2.9 or max(b_) > 0.9:            # the cut-off edge of the window
+                        continue
+                    e1, e2 = a_ - b_, c_ - b_
+                    turn = (b_ - a_)[0] * (c_ - b_)[1] - (b_ - a_)[1] * (c_ - b_)[0]
+                    if turn > 1e-9:                             # a convex corner of the wall
+                        cosang = np.dot(e1, e2) / np.linalg.norm(e1) / np.linalg.norm(e2)
+                        sharp = min(sharp, math.degrees(math.acos(max(-1, min(1, cosang)))))
+        # slivers: anything thinner than a 0.42 line in the print's layers near the corner, out to the
+        # nearest siding groove (a mitred opening, so it keeps square corners and finds only slivers)
+        near = s.box(-1.45, 1, -10, 1, -1, 400) if k == 0 else s.box(-10, 1, -1.45, 1, -1, 400)
+        part = (p[n] ^ near.transform(Ti))
+        R = np.column_stack([np.array(s.WALL_TO_PRINT[n], dtype=float), np.zeros(3)])
+        wb = p[n].transform(R).bounding_box()
+        pp = part.transform(R).translate([-wb[0], -wb[1], -wb[2]])
+        thin = max((c - c.offset(-0.21, MIT, 2).offset(0.21, MIT, 2)).area()
+                   for c in (pp.slice((z0 + z1) / 2) for z0, z1 in layers(pp.bounding_box()[5])))
+        nd = round((face_z - floor_z) / 0.2)
+        report(abs(floor_z - 4.65) < 1e-6 and abs(face_z - 5.05) < 1e-6 and sharp >= 89.9 and thin < 0.01,
+               f"{n} at corner {corner_name(sx, sy)}: as printed the recess floor is at {floor_z:.2f} mm and the siding "
+               f"round it at {face_z:.2f} ({nd} layers deep); the sharpest corner of the wall there is {sharp:.0f} degrees "
+               f"({'no knife edge' if sharp >= 89.9 else 'a knife edge'}); at most {thin:.3f} mm2 a layer thinner than "
+               f"a line out to the nearest groove")
+
+# the gable vents: frame flush, louvres in a recess whose floor is on a layer line with 3 layers of
+# siding under it, the louvres printing on every layer up to the siding's top one and no higher
+for n, side in (("end wall 1", 1), ("end wall 2", -1)):
+    rbb = s.gable_vent(side)[1].bounding_box()
+    region = s.box(rbb[0] - 1, rbb[3] + 1, -s.BIG, s.BIG, rbb[2] - 1, rbb[5] + 1)
+    pw = printed_in_shed(p[n], s.WALL_TO_PRINT[n], region)
+    field = s.box(rbb[0] + 0.3, rbb[3] - 0.3, -s.BIG, s.BIG, rbb[2] + 0.3, rbb[5] - 0.3)
+    area = (rbb[3] - rbb[0] - 0.6) * (rbb[5] - rbb[2] - 0.6)
+    fill = {}
+    for z0, z1 in layers(5.3):
+        if z0 >= 3.6:
+            ya, yb = sorted([side * (s.L / 2 - s.WT + z0), side * (s.L / 2 - s.WT + z1)])
+            fill[round(z0, 2)] = (pw ^ field ^ s.box(-s.BIG, s.BIG, ya, yb, -s.BIG, s.BIG)).volume() / (area * (z1 - z0))
+    under = [fill[z] for z in (3.65, 3.85, 4.05)]
+    louvres = [fill[z] for z in (4.25, 4.45, 4.65, 4.85)]
+    # the gaps between the louvres, on each layer's section the way the slicer cuts it: none
+    # narrower than a 0.42 line, which would print shut (a mitred opening keeps square corners, so
+    # only thin gaps go missing), and the narrowest one down the vent's middle
+    R = np.column_stack([np.array(s.WALL_TO_PRINT[n], dtype=float), np.zeros(3)])
+    wb = p[n].transform(R).bounding_box()
+    def to_bed(m):
+        return m.transform(R).translate([-wb[0], -wb[1], -wb[2]])
+    pp = to_bed(p[n] ^ region)
+    fb = to_bed(s.gable_vent(side)[1] ^ s.box(-s.BIG, s.BIG, -s.L / 2, s.L / 2, -s.BIG, s.BIG)).bounding_box()
+    hole = square(fb[0], fb[3], fb[1], fb[4])
+    shut, narrow = 0.0, 99.0
+    for z0, z1 in layers(5.05 - 0.001):
+        if z0 >= 4.25 - 1e-9:
+            gaps = hole - pp.slice((z0 + z1) / 2)
+            shut = max(shut, (gaps - gaps.offset(-0.21, MIT, 2).offset(0.21, MIT, 2)).area())
+            for x0, x1 in scan(gaps.rotate(90), [(fb[0] + fb[3]) / 2])[0]:
+                narrow = min(narrow, x1 - x0)
+    report(abs(s.WT - s.VENT_DEPTH - 4.25) < 1e-9 and min(under) > 0.999 and 0.2 < min(louvres) and max(louvres) < 0.95
+           and all(a >= b for a, b in zip(louvres, louvres[1:])) and fill[5.05] < 1e-9 and shut < 0.01,
+           f"{n}'s vent: the louvres' recess floor is on the 4.25 layer line with 3 full layers of siding under it; "
+           f"the louvres fill {', '.join(f'{f * 100:.0f}' for f in louvres)} % of the 4 layers above it, narrowing "
+           f"toward the face, the gaps between them are {narrow:.2f} mm or wider ({shut:.3f} mm2 narrower than a "
+           f"line), and nothing of the vent prints above the siding's top layer")
+
+# the short corner in the fit test goes together the same way, and its 20 mm stub of angle sits
+# in the recesses the way a whole one does
 lw, ew, cf = s.corner_test({n: p[n] for n in WALLS}, fl)
+stub = s.angle_stub()
 ok = (overlap(lw, ew) < 0.001 and overlap(lw, cf) < 0.001 and overlap(ew, cf) < 0.001
       and overlap(lw.translate([0, 0, 0.3]), cf) > 0.05 and overlap(ew.translate([0, 0, 0.3]), cf) > 0.05
-      and overlap(ew.translate([0, 0, 0.3]), lw) > 0.05 and overlap(ew.translate([0, 0.3, 0]), lw) > 0.05
-      and overlap(lw.translate([0.3, 0, 0]), ew) > 0.05)
-report(ok, "the fit test's short corner snaps onto its bit of floor and hooks together like the real ones")
+      and overlap(stub, s.union([lw, ew, cf])) < 0.001
+      and overlap(stub.translate([-0.005, 0, 0]), lw) > 0.1 and overlap(stub.translate([0, -0.005, 0]), ew) > 0.1
+      and reach_area(stub, s.union([lw, ew]), 1, 1, (1.0, 10.0, 19.0), 0.09) < 1e-4)
+report(ok, "the fit test's short corner snaps onto its bit of floor like the real ones, and the stub of corner angle "
+           "sits on both recess floors and touches nothing else")
+
+# every plate: inside the bed, 3 mm or more between parts, and on the two-colour plates the prime
+# tower's corner (x 165 to 200, y 195 up) kept clear by 3 mm
+for fname, plates in (("1 fit test.3mf", s.fit_plates(p)), ("2 all plates.3mf", s.all_plates(p, flat))):
+    for i, (pname, items) in enumerate(plates):
+        boxes, fils = [], set()
+        for name, parts, (x, y), *own in items:
+            bb = s.union([m for _, m, _ in parts]).bounding_box()
+            boxes.append((x, y, x + bb[3] - bb[0], y + bb[4] - bb[1]))
+            fils |= {f for _, _, f in parts}
+        def gap(b, c):
+            return max(c[0] - b[2], b[0] - c[2], c[1] - b[3], b[1] - c[3])
+        inside = all(b[0] >= 0 and b[1] >= 0 and b[2] <= BED and b[3] <= BED for b in boxes)
+        apart = min((gap(b, c) for j, b in enumerate(boxes) for c in boxes[j + 1:]), default=BED)
+        tower = min(gap(b, (165, 195, 200, BED + 50)) for b in boxes) if len(fils) > 1 else BED
+        report(inside and apart >= 3 and tower >= 3,
+               f"{fname} plate {i + 1} ({pname}): "
+               + (f"{len(boxes)} parts on the bed, {apart:.1f} mm apart" if len(boxes) > 1 else "one part on the bed")
+               + (f", {tower:.1f} mm from the prime tower" if len(fils) > 1 else ", one filament, no tower"))
 
 # 2. the roof halves sit on the body and the pegs go in their holes
 right = roof

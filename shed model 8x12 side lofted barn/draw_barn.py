@@ -91,30 +91,38 @@ def main():
     zone = s.trim_zone()
     skids = [(s.skid().transform(m), SKID) for m in s.skids_to_shed()]
     up, lo = p["upper"], p["lower"]
-    # left: the long walls and the lofts on them; the far end wall held up above its place
-    left = skids + [(p["floor"], FLOOR), (s.loft(1), LOFT), (s.loft(-1), LOFT)]
+    angles = {(sx, sy): s.corner_angle(sx, sy) for sx, sy in s.CORNERS}
+    # left: on the table without its skids, the long walls and the lofts on them, the near end wall
+    # on with its corner angle held out from the corner, the far end wall held up above its place
+    left = [(p["floor"], FLOOR), (s.loft(1), LOFT), (s.loft(-1), LOFT)]
     left += wall_items(p, zone, "back wall") + wall_items(p, zone, "door wall") + wall_items(p, zone, "end wall 2")
     left += wall_items(p, zone, "end wall 1", (0, 0, 70))
-    # right: the whole barn, the roof sheets on the door side lifted off straight up
+    left += [(angles[(1, -1)].translate([9, -9, 0]), TRIM), (angles[(-1, -1)], TRIM)]
+    # right: the whole barn on its skids with an angle on each corner, the roof sheets on the
+    # door side lifted off straight up
     right = skids + [(p["floor"], FLOOR), (s.loft(-1), LOFT), (s.loft(1), LOFT)]
     for n in s.WALL_CUTS:
         right += wall_items(p, zone, n)
+    right += [(a, TRIM) for a in angles.values()]
     right += [(up.mirror([1, 0, 0]), ROOF), (lo.mirror([1, 0, 0]), ROOF),
               (lo.translate([0, 0, 24]), ROOF), (up.translate([0, 0, 52]), ROOF)]
     a = render(left, size=(820, 900), scale=2.9, centre=(0, 0, 95))
     b = render(right, size=(820, 900), scale=2.9, centre=(0, 0, 95))
-    out = Image.new("RGB", (1640, 1180), "white")
-    out.paste(a, (0, 270))
-    out.paste(b, (820, 270))
+    out = Image.new("RGB", (1640, 1265), "white")
+    out.paste(a, (0, 365))
+    out.paste(b, (820, 365))
     d = ImageDraw.Draw(out)
-    d.text((40, 24), "How it goes together (no glue)", fill="black", font=font(30, True))
-    lines = ["1  Skids push onto the floor's ends. Floor on its skids.",
+    d.text((40, 24), "How it goes together", fill="black", font=font(30, True))
+    lines = ["1  Floor face up on the table. The skids go on last.",
              "2  Long walls: press each straight down onto the floor's long sides until its prongs click.",
              "3  Lofts: push the back wall straight and drop a loft in at each end, onto both long walls'",
              "    top plates; its lugs go in the notches. The lofts hold the long walls upright.",
-             "4  End walls: lower straight down past the lofts, so the hooks on their top corners drop",
-             "    into the long walls' corners; press until each prong clicks.",
-             "5  Roof: lower sheets straight down onto the pegs on the steep edges, then upper sheets",
+             "4  End walls: lower straight down past the lofts; press until each prong clicks.",
+             "5  Corners: a rubber band round the walls near the top and near the bottom pulls them shut.",
+             "    Ease the bands off a corner, glue a black corner angle into its recesses, foot on the table,",
+             "    and let the bands back over it.",
+             "6  Skids: lift the barn onto them, the pegs into the holes in the floor's ends.",
+             "7  Roof: lower sheets straight down onto the pegs on the steep edges, then upper sheets",
              "    onto the pegs halfway up, their tails lapping over the lower sheets."]
     for i, line in enumerate(lines):
         d.text((40, 74 + i * 25), line, fill="black", font=font(19))

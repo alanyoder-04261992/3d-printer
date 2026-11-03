@@ -4,7 +4,7 @@ Everything about our 3D printing setup in one place: the printer, the slicer, th
 filament, the settings that work, and what we've learned the hard way.
 **Keep it up to date** — when something changes or a print teaches us something, add it here.
 
-_Last updated: 2026-11-02_
+_Last updated: 2026-11-03_
 
 ---
 
@@ -118,10 +118,25 @@ played with, change these:
   0.8 mm thick and 5.5 mm long, the barb hooks 0.45 mm under its ledge, 0.2 mm gap all round,
   about 1.8 % strain going in (keep it under 2 % for PLA). Put each size on a layer line
   (first layer 0.25, then 0.2). Use Elephant foot compensation 0.1 mm.
+- **Glue a corner piece over a mitre; don't hook it** (shed and barn models, Nov 3 2026). The
+  hooks that tied the tops of the corners had tips only 1.0 × 1.2 mm, printed into the flat
+  walls. On the first barn they snapped, held nothing, and the mitres showed a hairline gap.
+  Now each wall has a shallow recess beside the corner, exactly 2 layers (0.4 mm) deep. A
+  separate L angle in the trim colour glues into both recesses, covering the joint from bottom
+  to top. It hides the gap and holds the corner along its whole height. The angles print on
+  the one-colour roof plate, so they add no colour changes. For walls already printed with
+  the old corner boards, a thin L cap glues over the old boards instead.
+- **Check a fit as printed, not just as drawn** (Nov 3 2026). The angle's 1.0 mm inside fillet
+  cleared the walls' 45 degree corner chamfer by 0.1 mm in CAD, but sliced into 0.2 mm layers
+  both became staircases, and the steps ran into each other. A leg drawn 4.354 mm tall printed
+  22 layers (4.45) and used up its clearance. Put every height on a layer line, and test parts
+  that meet on a slope layer by layer. `check_shed.py` and `check_barn.py` do this now; the
+  fillet is 0.8.
 - **The taller wall goes on last** (barn model, Nov 2026). Where one wall stands much taller
   than the other at a corner (a barn end's gable over the long wall), put the corner hooks on
   the tall wall and fit it last. A hook on the short wall would have to come down through the
   tall wall's corner, leaving a big flap of siding over nothing when the tall wall prints flat.
+  (The corner hooks are gone now, see above, but the end walls still go on last.)
 - **Check where a tall wall's weight is.** A wall with no door or windows has most of its
   weight in its siding, out past the edge of the floor it stands on, so it leans out on its own
   (the barn's back wall: 2 1/2 mm at the top, more than a corner hook can catch). Tie the tops
@@ -154,7 +169,8 @@ played with, change these:
   nothing in the first colour reaches the trim layers, otherwise one per trim layer (3 for
   0.6 mm); the same trim standing up the side of a part costs one per layer. The shed walls went from
   25–28 changes a plate to 1–3 by mitring the corners so every wall's trim is on top
-  (Alan, Nov 2026).
+  (Alan, Nov 2026). The barn's white gable vent stood out past the siding into the trim layers
+  and cost the end-wall plate 3 changes; sunk flush with the siding, it costs 1 (Nov 3 2026).
 - A change happens on every layer that has both colours. Something tall in the second colour
   (a handle, a knob) only adds changes while the first colour is still printing on those
   layers; above the last of the first colour it is free.
@@ -200,8 +216,8 @@ played with, change these:
 | `flying prop/` | Flying propeller toy | |
 | `test print/` | Sword blade PLA vs PETG tests | |
 | `desktop prints/` | Project files (.3mf) and big STLs | The 4 biggest STLs are stored with Git LFS |
-| `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility that snaps together, no glue: floor, four mitred walls that print flat with two-colour trim, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Made by `make_shed.py`; `check_shed.py` proves the parts fit, snap together and print flat |
-| `shed model 8x12 side lofted barn/` | 1:24 model of the 8x12 Side Lofted Barn, built from the Side Utility model with the same snap joints: floor, four mitred walls with your loft framing, two lofts, a barn roof in four lift-off sheets, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Long walls go on first, then the lofts, end walls last. Made by `make_barn.py`; `check_barn.py` proves the parts fit, snap together and print flat; `draw_barn.py` draws the assembly picture |
+| `shed model 8x12 side utility/` | 1:24 model of the 8x12 Side Utility: floor, four mitred walls that snap onto the floor and print flat with two-colour trim, black corner angles glued over the corners, two lift-off roof halves, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first (plate 1 is the new corner), then the five plates in `2 all plates.3mf`. Made by `make_shed.py`; `check_shed.py` proves the parts fit, snap together and print flat, also layer by layer as sliced |
+| `shed model 8x12 side lofted barn/` | 1:24 model of the 8x12 Side Lofted Barn, built from the Side Utility model with the same snap joints and glued black corner angles: floor, four mitred walls with your loft framing, two lofts, a barn roof in four lift-off sheets, opening door, skids | Read `read me first.md`. Print `1 fit test.3mf` first, then the five plates in `2 all plates.3mf`. Long walls go on first, then the lofts, end walls last. Made by `make_barn.py`; `check_barn.py` proves the parts fit, snap together and print flat; `draw_barn.py` draws the assembly picture |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in
@@ -216,7 +232,7 @@ Add a line after each print worth remembering, good or bad.
 
 | Date | Print | Filament | Result / what to change next time |
 |---|---|---|---|
-| | | | |
+| 2026-11-03 | Shed model 8x12 side lofted barn, first set of walls | PLA white + black | The little corner hooks snapped and held nothing, and a hairline gap showed at the corners. Redesigned both shed models: black L corner angles glued into 2-layer recesses, and a gable vent sunk flush (end-wall plate down from 3 colour changes to 1). For the walls already printed: `3 corner caps for printed walls.3mf`. Print the new fit test's plate 1 first. |
 
 ---
 

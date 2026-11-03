@@ -3,9 +3,14 @@
 Run:  python3 make_barn.py      (needs: pip install manifold3d numpy)
 
 Makes the print files in this folder:
-  1 fit test.3mf    a doorway, door, roof peg and one short corner of the barn to try first
-  2 all plates.3mf  everything, one plate per print, the trim and roof already set to filament 2,
-                    the floor, skids and lofts to filament 3
+  1 fit test.3mf    to try first: plate 1 one short corner of the barn and a stub of its corner
+                    angle, plate 2 a doorway, door and roof peg
+  2 all plates.3mf  everything, one plate per print, the trim, roof and corner angles already set
+                    to filament 2, the floor, skids and lofts to filament 3
+  3 corner caps for printed walls.3mf   only for walls printed before Nov 3 2026 (with corner
+                    hooks and printed corner boards): four black caps glued over the old boards
+  corner angle.stl  the four black corner angles, two of each hand, glued on the corners
+  corner cap.stl    the four caps in 3 corner caps for printed walls.3mf
   floor.stl         floor frame and floor sheets, printed upside down; the walls snap onto it
   door wall.stl     the long wall with the door and windows, framing, trim; prints lying
                     flat, inside face down, so the trim is the top few layers
@@ -17,7 +22,8 @@ Makes the print files in this folder:
   door.stl          48 in wooden door with its trim, handle and hinge pins, one piece, all
                     one colour; in 2 all plates.3mf its trim is on filament 2
   skids.stl         the two 4x6 skids the floor frame sits on
-  fit test.stl      a small doorway, door, roof peg and one short corner of the barn
+  fit test.stl      a small doorway, door, roof peg and one short corner of the barn with its
+                    stub of corner angle
 
 It is the 8x12 Side Utility model (../shed model 8x12 side utility/make_shed.py), the same
 snap joints, door, floor and skids, built as a Side Lofted Barn. Sizes are the shop standard
@@ -102,6 +108,10 @@ PROUD = 0.6            # how far trim stands off the siding
 EMBED = 0.4            # trim and window parts reach this far into the siding, so they join it
 RAKE_W = 2.0           # the rake board showing under the roof edge round each barn end
 BAND_Z = ZWT + 0.40 * (ZPK - ZWT)   # the gable band across each end at the loft line
+VENT_FLOOR = 4.25 - WT # the gable vent's louvres sit in a recess this deep in the siding (0.85): in
+                       # the end walls' print (inside face down, 0.25 mm first layer, then 0.2) its
+                       # floor is the layer line at 4.25, over 3 of the siding's 7 layers (3.65 to
+                       # 4.25; the first of them bridges the framing)
 
 # door: 48 in wooden door, opening 48 1/4 x 71 1/2 in (the loft header's underside), hinged on
 # the left from outside (-y)
@@ -159,11 +169,15 @@ LOFT_JOIST = 5.5 * S
 LOFT_DECK = 1.0
 LOFT_Z = ZWT - 0.15    # bottom of the loft joists: the top of the long walls
 LOFT_CLR = 0.4         # clear of the steep roof sheets, square to them
-LOFT_END = 0.4         # gap between a loft and the end wall: a loft can slide 0.2 toward it on its lugs
+LOFT_END = 0.4         # gap between a loft and the end wall: a loft can slide 0.1 toward it on its
+                       # lugs (0.2 before the notch fills, Nov 3 2026)
 LUG_U, LUG_D = 1.8, 1.8   # a lug under two of the joists at each wall drops into a notch in the top
                        # plate; 1.8 deep, so it stays in even with the loft lifted up against the roof
 LUG_JOISTS = (0, -1)   # the end joist and the edge joist, the same distance from the loft's middle,
                        # so a loft goes in either way round
+NOTCH_FILL = 0.3       # 45 degree fill in the corner end of each end joist's notch, at the wall's
+                       # inside face (notch_fills()). The lug's corner comes within 0.07 of it;
+                       # at 0.25 Flash Studio still warned about the sliver it is there to fill
 
 # skids: 4x6 laid on edge, inside face 30 in in from the outside of the wall
 SKID_W = 3.5 * S
@@ -180,8 +194,7 @@ SKID_PEG_D, SKID_PEG_UP = 2.0, 2.5   # a peg at each end of a skid pushes into t
 # catches under a ledge at the bottom of the slot, and beside it a stiff stop. The barb is built
 # up from the bed in layers. On the barn the LONG walls go on first and the end walls last: an
 # end wall's tall gable stands over its top corners, so a long wall could not come down past it.
-# A hook on each top corner of an end wall drops into the long wall's corner and ties it down.
-FIT = 0.2              # gap round every post, prong, hook and peg (0.2 a side is snug)
+FIT = 0.2              # gap round every post, prong and peg (0.2 a side is snug)
 PRONG_W = 3.0          # the leg's width along the wall
 PRONG_T = 0.8          # its thickness, the way it bends (4 layers)
 BARB = 0.65            # the barb stands this far in from the leg, down to the bed (3 layers)
@@ -194,17 +207,43 @@ STOP_U = 2.05          # how deep the stop is, on a layer line of the wall's pri
 SLOT_U = STOP_U + 0.15 # the slot's outside wall
 LEG_ROOT = ZF + 1.2    # the leg is freed from the bottom plate up to here
 BARB_RELIEF = 0.1      # the barb's top is this much lower on its first layer, for first-layer squish
-HOOK_REACH = SD - 0.6  # how far the corner hook reaches into the long wall; 0.6 short of its siding
-HOOK_ARM = 2.85        # height of its arm: the end wall's top plates carried on over the corner
-HOOK_T = 1.2           # thickness of the tip that hangs down from the end of the arm, out from
-HOOK_TIP_W, HOOK_TIP_H = 1.0, 3.5   # the inside face of the end wall; its width and depth
-HOOK_GUIDE = 1.8       # a 45 degree slope in front of the tip's pocket: a long wall leaning out
-                       # is pulled upright as the tip slides down it
-LEAD = 0.3             # 45 degree lead-in on the hook's tip and the front of its arm
 MITRE_GAP = 0.1        # relief between mitred ends, so they slide past each other going on
 MITRE_BEVEL = 0.6      # a 45 degree bevel along the top of each long wall's mitre: an end wall
                        # coming down past a long wall pushed in a little at the top slides off it
                        # instead of landing flat on the mitre's sharp corner (review, Nov 2 2026)
+
+# the corners: the printed hook tips snapped and the corners showed a gap, so there are no hooks
+# and no printed corner boards now (Alan, Nov 3 2026). Once the walls are on, a band round them
+# pulls the mitres shut and a black corner angle is glued into a recess in both walls at each
+# corner. The angles print on their own in filament 2, with the roof.
+POCKET_D = 0.4         # the recess: 2 layers of the walls' print (the wall top slices at 5.05,
+                       # the recess floor at 4.65)
+POCKET_CLR = 0.15      # the recess reaches TRIM + this along each wall from the corner, and this
+                       # far over an angle's top
+CORNER_CHAMFER = 1.15  # the walls' outside corner is cut off square to the mitre, this far past
+                       # where the recess floors meet, so neither wall ends in a knife edge at the
+                       # recess floor
+ANGLE_T = 1.05         # each leg of an angle, 5 layers thick (0.25 + 4 x 0.2) as it lies on the bed
+ANGLE_P = ANGLE_T - POCKET_D   # 0.65, how far an angle stands out of the siding
+ANGLE_UP = 0.25 + 20 * 0.2     # 4.25, the end-face leg's width, which stands up in the print: 21
+                       # layers. At TRIM + ANGLE_P (4.35) it printed 22 layers, 4.45, and with the
+                       # recess floors printing 0.054 deeper than drawn its end met the end of the
+                       # recess (review, Nov 3 2026). It covers 3.6 of the end wall.
+ANGLE_FILLET = 0.8     # 45 degree fillet in an angle's inside corner, 0.25 clear of the chamfer as
+                       # drawn. As printed both are stepped and the angle sits 0.054 deeper, and a
+                       # 1.0 fillet ran into the end wall's steps; at 0.8 they miss by 0.04 (review)
+ROOF_CLR = 0.2         # the walls' top edges and the angles keep this clear of the lower roof
+                       # sheets, square to them
+RAKE_CLR = 0.15        # an angle's end-face leg stops this far under the rake board
+# caps for walls printed before Nov 3 2026, which have hooks and black corner boards printed on
+# them: a black L glued over the old boards at each corner
+CAP_T = 0.6            # leg thickness
+CAP_CLR = 0.1          # each leg's inside face is this far off the old board's face
+CAP_OVER = 0.2         # and it reaches this far past the old board's inner edge, so that edge is
+                       # covered
+CAP_RELIEF = 0.3       # a 45 degree relief this far into both legs beside its inside corner, and the
+                       # corner itself cut back half that, so a blob on the old boards' corner or on
+                       # either board's tip can't hold it off (review, Nov 3 2026)
 
 
 # ---------------------------------------------------------------- helpers
@@ -558,42 +597,42 @@ def window_unit(yc):
 
 
 def gable_vent(side):
-    """Louvred vent centred under the ridge, 0.92 ft below it, 1.12 x 0.76 ft."""
+    """Louvred vent centred under the ridge, 0.92 ft below it, 1.12 x 0.76 ft, in the siding colour
+    and none of it out past the siding (Alan, Nov 3 2026: white, but it needn't stand out), so the
+    end walls change colour only once. Returns (frame, cuts, slats): the frame is flush with the
+    siding, filling its grooves, with a groove round it; inside the frame the louvre field is
+    recessed to VENT_FLOOR, and five slats stand in it, wedges that narrow from the recess floor
+    up to their front edges at the siding face, so nothing overhangs in the print."""
     vw, vh = 1.12 * FT, 0.76 * FT
     zc = ZPK - 0.92 * FT
     yf = side * L / 2
 
-    def slab(x0, x1, z0, z1, d):
-        ya, yb = sorted([yf - side * EMBED, yf + side * d])
+    def slab(x0, x1, z0, z1, d0, d1):
+        """A box from d0 to d1 mm out from the siding face."""
+        ya, yb = sorted([yf + side * d0, yf + side * d1])
         return box(x0, x1, ya, yb, z0, z1)
-    fr = 1.0
+    fr, g = 1.0, GROOVE_W
     x0, x1, z0, z1 = -vw / 2, vw / 2, zc - vh / 2, zc + vh / 2
-    parts = [slab(x0, x1, z0, z1, 0.0)]                       # flat back, covers the siding grooves
-    parts += [slab(x0, x1, z0, z0 + fr, 0.5), slab(x0, x1, z1 - fr, z1, 0.5),
-              slab(x0, x0 + fr, z0, z1, 0.5), slab(x1 - fr, x1, z0, z1, 0.5)]
-    # five louvre slats: wedges, flat underneath, sloping back to the siding at the top
+    frame = slab(x0, x1, z0, z1, -EMBED, 0.0)
+    cuts = [slab(x0 - g, x1 + g, z0 - g, z1 + g, -GROOVE_D, 1) - slab(x0, x1, z0, z1, -1, 2),   # groove round it
+            slab(x0 + fr, x1 - fr, z0 + fr, z1 - fr, VENT_FLOOR, 1)]                        # the louvre field
+    # five louvre slats: wedges, flat underneath, sloping back down into the recess at the top;
+    # each front edge is 0.4 tall at the siding face, so it still prints a line wide on the top layer
     inner_h = vh - 2 * fr
+    slats = []
     for i in range(5):
         zb = z0 + fr + inner_h * i / 5 + 0.25
         zt = zb + inner_h / 5 - 0.1
-        # out as far as the trim and no further, so nothing in the siding colour stands above it
-        poly = [(yf - side * EMBED, zb), (yf + side * PROUD, zb), (yf + side * PROUD, zb + 0.2), (yf - side * EMBED, zt)]
-        parts.append(prism(poly, 1, 2, 0, x1 - x0 - 2 * fr).translate([x0 + fr, 0, 0]))
-    return parts
+        poly = [(yf + side * (VENT_FLOOR - 0.05), zb), (yf, zb), (yf, zb + 0.4), (yf + side * (VENT_FLOOR - 0.05), zt)]
+        slats.append(prism(poly, 1, 2, 0, x1 - x0 - 2 * fr).translate([x0 + fr, 0, 0]))
+    return frame, cuts, slats
 
 
 def trims():
-    """Corner boards, the gable band at the loft line, the rake board round each barn end under
-    the roof, door and window casings (raised so they can be painted)."""
+    """The gable band at the loft line, the rake board round each barn end under the roof, door
+    and window casings (raised so they can be painted). The corners have no boards printed on the
+    walls: the corner angles are separate (corner_angle(), Alan, Nov 3 2026)."""
     p = []
-    for sx in (1, -1):
-        for sy in (1, -1):
-            xa, xb = sorted([sx * (W / 2 - EMBED), sx * (W / 2 + PROUD)])
-            ya, yb = sorted([sy * (L / 2 - TRIM), sy * (L / 2 + PROUD)])
-            p.append(box(xa, xb, ya, yb, 0, ZWT))                        # on the long wall face
-            xa2, xb2 = sorted([sx * (W / 2 - TRIM), sx * (W / 2 + PROUD)])
-            ya2, yb2 = sorted([sy * (L / 2 - EMBED), sy * (L / 2 + PROUD)])
-            p.append(box(xa2, xb2, ya2, yb2, 0, ZWT))                    # on the end face
     g = gable_cs()
     above = m3.CrossSection.square([4 * W, 400]).translate([-2 * W, ZWT])
     rake = (g.offset(-0.1, m3.JoinType.Miter) - g.offset(-(0.1 + RAKE_W), m3.JoinType.Miter)) ^ above
@@ -619,16 +658,22 @@ def trims():
     return p
 
 
+def eave_line(u):
+    """Height of the line ROOF_CLR under the steep lower roof sheets, square to them, u mm out
+    from the long walls' siding face (in from it where u < 0). The lower sheets reach END_OH past
+    each barn end, so it holds over both faces of each corner."""
+    return ZWT - u * LOW_M - ROOF_CLR * math.sqrt(1 + LOW_M ** 2)
+
+
 def roof_clearance():
     """What comes out of the walls for the roof: the long walls stop 0.15 under the wall top, so
-    the roof bears on the barn ends only, and everything at or outside the long walls keeps 0.2
-    clear of the steep lower sheets, square to them (the corner boards' tops, the siding's top
-    edge)."""
+    the roof bears on the barn ends only, and everything at or outside the long walls keeps
+    ROOF_CLR clear of the steep lower sheets, square to them (the siding's top edge). The corner
+    angles and caps keep to the same line (corner_top())."""
     out = []
-    off = 0.2 * math.sqrt(1 + LOW_M ** 2)          # 0.2 square to the slope, measured up
     for sx in (1, -1):
         a0, a1 = W / 2 - WT - 1, W / 2 + 12
-        poly = [(a0, ZWT + (W / 2 - a0) * LOW_M - off), (a1, ZWT + (W / 2 - a1) * LOW_M - off), (a1, 400), (a0, 400)]
+        poly = [(a0, eave_line(a0 - W / 2)), (a1, eave_line(a1 - W / 2)), (a1, 400), (a0, 400)]
         if sx < 0:
             poly = [(-x, z) for (x, z) in reversed(poly)]
         above = prism_xz(poly, -L, L)
@@ -672,6 +717,23 @@ def loft_notches():
             for sx in (1, -1):
                 xa, xb = sorted([sx * (W / 2 - WT - 1), sx * (W / 2 - WT + LUG_U + FIT)])
                 out.append(box(xa, xb, y - SW / 2 - FIT, y + SW / 2 + FIT, LOFT_Z - LUG_D - FIT, ZWT + 1))
+    return out
+
+
+def notch_fills():
+    """A 45 degree fill, NOTCH_FILL each way, in the corner end of the notch for each loft's end
+    joist, along the long wall's inside face. With the corner hooks gone (Nov 3 2026) the top
+    plate runs on past that notch to the mitre, and where it starts on the bed it was a sliver
+    about 0.25 wide that Flash Studio warned about as a floating region; the fill makes it wide
+    enough to print. In the print it only widens the first layer."""
+    out = []
+    y_end = loft_joist_ys()[0] + SW / 2 + FIT
+    z0 = LOFT_Z - LUG_D - FIT - 0.01
+    for sx in (1, -1):
+        for sy in (1, -1):
+            xi = sx * (W / 2 - WT)
+            tri = [(xi, sy * y_end), (xi, sy * (y_end - NOTCH_FILL)), (xi + sx * NOTCH_FILL, sy * y_end)]
+            out.append(prism(tri, 0, 1, 2, ZWT - 0.15 - z0).translate([0, 0, z0]))
     return out
 
 
@@ -765,7 +827,9 @@ def walls():
     for (y0, y1, z0, z1) in [door] + wins:
         op_cuts.append(box(W / 2 - WT - 0.5, W / 2 + 2, y0, y1, z0, z1))
     b = b - union(op_cuts)
-    b = union([b] + window_unit(-WIN_YC) + window_unit(WIN_YC) + gable_vent(1) + gable_vent(-1))
+    vents = [gable_vent(1), gable_vent(-1)]
+    b = union([b] + window_unit(-WIN_YC) + window_unit(WIN_YC) + [v[0] for v in vents])
+    b = union([b - union([c for v in vents for c in v[1]])] + [sl for v in vents for sl in v[2]])
 
     # door stop inside the latch jamb, so the door only swings out. It runs back to the inside
     # face of the framing so the wall prints flat.
@@ -776,7 +840,7 @@ def walls():
              cyl_z(AXIS_X, AXIS_Y, ZF + DOOR_OPEN_H - 1, ZF + DOOR_OPEN_H + HOLE_TOP_DEPTH, PIN_HOLE_D),
              box(AXIS_X, W / 2 + 2, AXIS_Y - PIN_HOLE_D / 2, AXIS_Y + PIN_HOLE_D / 2, ZF - TRENCH_DEPTH, ZF + 1)]
     b = b - union(holes + roof_clearance() + loft_notches())
-    return b + union(roof_pegs())
+    return b + union(roof_pegs() + notch_fills())
 
 
 def body():
@@ -786,7 +850,8 @@ def body():
 
 # the four walls meet at 45 degree mitres through the inside and outside corners, so each
 # wall carries only the trim on its own face and it all prints on top (Alan, Nov 1 2026). Each
-# prints lying flat on the inside face of its framing, outside up.
+# prints lying flat on the inside face of its framing, outside up. At each outside corner both
+# walls have a recess for a corner angle glued on after (Alan, Nov 3 2026).
 BIG = 500
 
 
@@ -830,47 +895,106 @@ def split_walls(w):
     return {name: w ^ cut for name, cut in WALL_CUTS.items()}
 
 
-def corner_hooks():
-    """{wall: [parts]}: the hook on each top corner of an end wall, and what comes out of the long
-    wall for it. The hook's arm is the end wall's top plates carried on past the mitre, over the
-    long wall's corner, to just short of the long wall's siding; the long wall's corner behind its
-    siding stops under it. A thin tip hangs from the end of the arm into a pocket in the long
-    wall. The long wall can't lift off from under the arm, the end wall can't pull away from the
-    tip, and the long wall can't lean out of it. (The Side Utility model has the hooks the other
-    way round, on the long walls; a barn end's gable stands too tall over its corners for a long
-    wall to come down past it.)"""
-    out = {name: [] for name in WALL_SIDE}
-    c = FIT
-    zt = ZWT + 0.02                                   # top of the end walls' plates
-    za, zb = zt - HOOK_ARM, zt - HOOK_ARM - HOOK_TIP_H
-    r, w = HOOK_REACH, HOOK_TIP_W
-    for end, sy in (("end wall 1", 1), ("end wall 2", -1)):
-        for name, sx in (("door wall", 1), ("back wall", -1)):
-            def xs(e0, e1):                           # into the long wall from its inside face
-                return sorted([sx * (W / 2 - WT + e0), sx * (W / 2 - WT + e1)])
+def cbox(u0, u1, v0, v1, z0, z1):
+    """A box at the (+x, +y) corner: u out from the long wall's siding face, v out from the end
+    wall's, z up. The outside corner of the siding is u = v = 0."""
+    return box(W / 2 + u0, W / 2 + u1, L / 2 + v0, L / 2 + v1, z0, z1)
 
-            def ys(u0, u1):                           # into the end wall from its inside face
-                return sorted([sy * (L / 2 - WT + u0), sy * (L / 2 - WT + u1)])
 
-            def chamfer(e, z, de, dz):
-                """A 45 degree corner off the hook, at (e into the long wall, z), toward (de, dz)."""
-                x0 = sx * (W / 2 - WT + e)
-                tri = [(x0, z), (x0 + sx * de * LEAD, z), (x0, z + dz * LEAD)]
-                y0, y1 = ys(-0.1, SD + 0.1)
-                return prism(tri, 0, 2, 1, y1 - y0).translate([0, y0, 0])
-            arm = box(*xs(-1, r), *ys(0, SD), za, zt) - chamfer(r, za, -1, 1)
-            tip = box(*xs(r - w, r), *ys(0, HOOK_T), zb, za + 0.01) - chamfer(r, zb, -1, 1) - chamfer(r - w, zb, 1, 1)
-            out[end] += [arm, tip]
-            # the long wall's corner behind its siding, the tip's pocket, and the slope down into
-            # the pocket from in front of it
-            e = r - w - c
-            x0, x1 = sx * (W / 2 - WT + e - HOOK_GUIDE), sx * (W / 2 - WT + e)
-            slope = [(x0, za - c), (x1, za - c - HOOK_GUIDE), (x1, za), (x0, za)]
-            gy0, gy1 = ys(-c, HOOK_T + c)
-            out[name] += [box(*xs(-1, SD), *ys(-c, WT + 1), za - c, 400),
-                          box(*xs(e, r + c), gy0, gy1, zb - c, 400),
-                          prism(slope, 0, 2, 1, gy1 - gy0).translate([0, gy0, 0])]
-    return out
+def at_corner(m, sx, sy):
+    """A part made at the (+x, +y) corner, moved to the corner on side sx of the width and sy of
+    the length: mirrored, so each corner gets its own hand. The (+, +) and (-, -) corners take
+    the same part turned round, and so do (+, -) and (-, +)."""
+    m = m if sx > 0 else m.mirror([1, 0, 0])
+    return m if sy > 0 else m.mirror([0, 1, 0])
+
+
+def corner_top(m, out, cap, lift=0.0):
+    """m, at the (+x, +y) corner, with its top cut off: a 45 degree slope rising inward from the
+    line ROOF_CLR under the lower roof sheets (eave_line()) at m's outside face, out mm past the
+    long wall's siding, so the steep roof stays clear of all of it and it still prints lying on
+    that face; and nothing above cap. lift raises the slope and the cap."""
+    c = eave_line(out) + out + W / 2 + lift                      # the slope: x + z = c
+    r = m.trim_by_plane([-1 / math.sqrt(2), 0, -1 / math.sqrt(2)], -c / math.sqrt(2))
+    return r ^ box(-BIG, BIG, -BIG, BIG, -BIG, cap + lift)
+
+
+def corner_angle(sx=1, sy=1):
+    """The black L glued on a corner (Alan, Nov 3 2026), made at (+x, +y) and moved to (sx, sy):
+    a leg on each wall's face, ANGLE_T thick, its inside face on the floor of the recess in the
+    wall and ANGLE_P of it out of the siding, with a 45 degree fillet in its inside corner. The
+    long-face leg covers TRIM of the long wall and the end of the other leg; the end-face leg is
+    ANGLE_UP wide, a whole number of layers as it stands in the print, and covers 3.6 of the end
+    wall. Its foot is level with the bottom of the skirts. Its top keeps ROOF_CLR under the lower
+    roof sheets (they reach past the barn ends, so the end-face leg is under one too), and the
+    end-face leg stops RAKE_CLR under the rake board. It prints lying on the long-face leg's
+    outside face, the end-face leg standing up."""
+    d, f, e = POCKET_D, ANGLE_FILLET, 0.2
+    x, y = W / 2 - d, L / 2 - d                                   # the inside corner of the legs
+    # the fillet reaches e into the legs, so it joins them
+    fillet = prism([(x - f, y + e), (x - f, y), (x, y - f), (x + e, y - f), (x + e, y + e)], 0, 1, 2, ZWT)
+    a = union([cbox(-d, ANGLE_P, -TRIM, ANGLE_P, 0, ZWT), cbox(ANGLE_P - ANGLE_UP, ANGLE_P, -d, ANGLE_P, 0, ZWT),
+               fillet])
+    return at_corner(corner_top(a, ANGLE_P, ZWT - RAKE_CLR), sx, sy)
+
+
+def corner_recess(sx=1, sy=1):
+    """What comes out of the walls at a corner for its angle, made at (+x, +y) and moved to (sx,
+    sy): a recess POCKET_D deep in each wall's face, reaching TRIM + POCKET_CLR along it from the
+    corner, from under the skirts up to POCKET_CLR over the angle's top (open at the top where the
+    wall stops lower); and the walls' outside corner cut off at 45 degrees, square to the mitre,
+    CORNER_CHAMFER past where the recess floors meet. The long wall's recess has a level top
+    POCKET_CLR over the angle's highest point there, its inside top edge, so the angle presses
+    straight in under it; sloped like the angle's top, it hung over that edge (review, Nov 3
+    2026). The chamfer runs on up past the recess to the top of the corner, so it never stops
+    against the bevel on a long wall's mitre in a sliver thinner than a line. Neither goes higher
+    than the top of the wall plates, where the rake board starts."""
+    c, d = TRIM + POCKET_CLR, POCKET_D
+    k = -(2 * d + CORNER_CHAMFER)                                 # the chamfer: u + v > k
+    h = 1 / math.sqrt(2)
+    chamfer = cbox(-4, 2, -4, 2, -1, ZWT).trim_by_plane([h, h, 0], (k + W / 2 + L / 2) * h)
+    top = eave_line(ANGLE_P) + ANGLE_P + d + POCKET_CLR           # POCKET_CLR over the angle's inside top edge
+    end_recess = corner_top(cbox(-c, 2, -d, 2, -1, ZWT), ANGLE_P, ZWT - POCKET_CLR, lift=POCKET_CLR)
+    return at_corner(union([cbox(-d, 2, -c, 2, -1, top), end_recess, chamfer]), sx, sy)
+
+
+def corner_cap(sx=1, sy=1):
+    """For walls printed before Nov 3 2026, which have black corner boards printed on them (PROUD
+    out of the siding, TRIM wide from the corner, meeting at the mitre) and hooks: a black L
+    glued over the old boards at a corner, made at (+x, +y) and moved to (sx, sy). Each leg is
+    CAP_T thick, its inside face CAP_CLR off the old board's face, and reaches CAP_OVER past the
+    old board's inner edge. Beside its inside corner a 45 degree relief, CAP_RELIEF each way, is
+    cut into both legs, and the corner itself is cut back CAP_RELIEF / 2, which leaves room for
+    a blob on the old boards' corner or on either board's tip. (Cut back the full CAP_RELIEF, the
+    corner left a strip under the standing leg too thin to print, and Flash Studio warned of
+    floating regions.) Its foot is level with the bottom of the skirts, its top keeps ROOF_CLR
+    under the lower roof sheets (lower than an angle's, as it stands further out) and the end-face
+    leg stops RAKE_CLR under the old rake board. It prints like the angles."""
+    a = PROUD + CAP_CLR
+    b, c, r = a + CAP_T, TRIM + CAP_OVER, CAP_RELIEF
+    legs = union([cbox(a, b, -c, b, 0, ZWT), cbox(-c, b, a, b, 0, ZWT)])
+    x, y = W / 2 + a, L / 2 + a                                   # the inside corner
+    relief = prism([(x - r, y), (x, y - r), (x + r, y), (x + r / 2, y), (x, y + r / 2), (x, y + r)],
+                   0, 1, 2, ZWT + 2).translate([0, 0, -1])
+    return at_corner(corner_top(legs - relief, b, ZWT - RAKE_CLR), sx, sy)
+
+
+CORNERS = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
+# a corner angle or cap from barn coords to print coords: lying on the long-face leg's outside
+# face, its foot at the left, the end-face leg standing up (each a rotation, det +1)
+CORNER_TO_PRINT = {1: [[0, 0, 1], [0, 1, 0], [-1, 0, 0]], -1: [[0, 0, 1], [0, -1, 0], [1, 0, 0]]}
+
+
+def corner_walls(sx, sy):
+    """(long wall, end wall) that meet at the corner on side sx, sy."""
+    return ("door wall" if sx > 0 else "back wall"), ("end wall 1" if sy > 0 else "end wall 2")
+
+
+def corner_prints(make):
+    """The four corner angles (make=corner_angle) or caps (make=corner_cap), each lying the way
+    it prints: [(name, part)]."""
+    return [("%s at %s" % corner_walls(sx, sy), to_print(CORNER_TO_PRINT[sx], [make(sx, sy)])[0])
+            for sx, sy in CORNERS]
 
 
 def mitre_bevels(sx):
@@ -892,21 +1016,19 @@ def mitre_bevels(sx):
 
 
 def wall_pieces(w):
-    """The four walls cut apart at the mitres, with the corner hooks on the end walls and the
-    long walls' corners and pockets cut out for them, and the bevels on the long walls' mitres."""
+    """The four walls cut apart at the mitres, with the recesses for the corner angles cut in
+    every corner and the bevels on the long walls' mitres."""
     pieces = split_walls(w)
-    joints = corner_hooks()
+    recesses = union([corner_recess(sx, sy) for sx, sy in CORNERS])
     for name in pieces:
-        if WALL_SIDE[name][0] == 1:
-            pieces[name] = union([pieces[name]] + joints[name])
-        else:
-            pieces[name] = pieces[name] - union(joints[name] + mitre_bevels(WALL_SIDE[name][1]))
+        cuts = [recesses] + (mitre_bevels(WALL_SIDE[name][1]) if WALL_SIDE[name][0] == 0 else [])
+        pieces[name] = pieces[name] - union(cuts)
     return pieces
 
 
 def trim_zone():
-    """Everything standing proud of the siding that is trim (corner boards, gable band, rake
-    board, door and window casings). It prints in the second colour."""
+    """Everything standing proud of the siding that is trim (gable band, rake board, door and
+    window casings). It prints in the second colour."""
     return union(trims()) - box(-W / 2, W / 2, -L / 2, L / 2, -1, 400)
 
 
@@ -1085,14 +1207,16 @@ def skids_to_shed():
 
 # ---------------------------------------------------------------- fit test
 FIT_LONG, FIT_END = "back wall", "end wall 1"     # the corner the fit test copies (no window over it)
+FIT_STUB = 20.0                                   # length of its stub of corner angle, from the foot
 
 
 def corner_test(pieces, f):
     """The corner where the back wall meets end wall 1, made short: the bottom 8 mm of each
     wall above the floor joined to its top 10 mm below the wall top, on that corner of the
-    floor (the end wall's gable left off). It has a real prong, posts, skirt and corner hook.
-    Each wall is cut along the far side of a stud, so the siding at the cut is held. Returns
-    (long wall, end wall, floor) in barn coords."""
+    floor (the end wall's gable left off), and the bottom FIT_STUB of that corner's angle. The
+    walls have a real prong, posts, skirt and the recesses and chamfer for the angle. Each wall
+    is cut along the far side of a stud, so the siding at the cut is held. Returns (long wall,
+    end wall, floor, angle stub) in barn coords."""
     z_lo, z_hi = ZF + 8, ZWT - 10
     y0 = layout(-L / 2, L / 2, 16 * S)[-2] - SW / 2
     x0 = END_STUDS[-1] - SW / 2
@@ -1102,17 +1226,28 @@ def corner_test(pieces, f):
         lo = piece ^ keep ^ box(-BIG, BIG, -BIG, BIG, -5, z_lo)
         hi = piece ^ keep ^ box(-BIG, BIG, -BIG, BIG, z_hi, ZWT)
         return lo + hi.translate([0, 0, z_lo - z_hi])
+    stub = corner_angle(WALL_SIDE[FIT_LONG][1], WALL_SIDE[FIT_END][1]) ^ box(-BIG, BIG, -BIG, BIG, -1, FIT_STUB)
     return (short(pieces[FIT_LONG], -W / 2 - 2, -(W / 2 - 10), y0, L / 2 + 2),
             short(pieces[FIT_END], -W / 2 - 2, -x0, L / 2 - 10, L / 2 + 2),
-            f ^ box(-W / 2, -x0, y0, L / 2, -5, 400))
+            f ^ box(-W / 2, -x0, y0, L / 2, -5, 400), stub)
+
+
+def corner_test_parts(pieces, f):
+    """The short corner and its angle stub from corner_test(), each lying the way it prints:
+    [(name, part)]."""
+    lw, ew, fl, stub = corner_test(pieces, f)
+    return [("short long wall", to_print(WALL_TO_PRINT[FIT_LONG], [lw])[0]),
+            ("short end wall", to_print(WALL_TO_PRINT[FIT_END], [ew])[0]),
+            ("bit of floor", to_print(FLOOR_TO_PRINT, [fl])[0]),
+            ("corner angle stub", to_print(CORNER_TO_PRINT[WALL_SIDE[FIT_LONG][1]], [stub])[0])]
 
 
 def fit_test(pieces=None, whole_floor=None):
     """A short doorway with the same pin holes, slot and stop, a short door with the same
     pins, and a block with a roof peg next to a roof coupon with the peg hole. The doorway and
     the peg block print lying flat, inside face down, the way the door wall and the end walls
-    do. With the walls and floor given, the short corner from corner_test() goes in a row
-    behind them."""
+    do. With the walls and floor given, the short corner and its angle stub from
+    corner_test_parts() go in a row behind them."""
     ow, oh = 14.0, 24.0
     jamb = ow / 2
     ax_x, ax_y = W / 2 - 1.8, -jamb + DOOR_R + DOOR_GAP
@@ -1147,11 +1282,9 @@ def fit_test(pieces=None, whole_floor=None):
     cpn = cpn.translate([bx, 22, 0])
     row = [f, d, blk, cpn]
     if pieces is not None:
-        lw, ew, fl = corner_test(pieces, whole_floor)
         y = union(row).bounding_box()[4] + 6
         x = 0
-        for part, mat in ((lw, WALL_TO_PRINT[FIT_LONG]), (ew, WALL_TO_PRINT[FIT_END]), (fl, FLOOR_TO_PRINT)):
-            pp = to_print(mat, [part])[0]
+        for _, pp in corner_test_parts(pieces, whole_floor):
             row.append(pp.translate([x, y, 0]))
             x += pp.bounding_box()[3] + 6
     return union(row)
@@ -1282,6 +1415,107 @@ def wall_parts(p, name, zone):
     return to_print(WALL_TO_PRINT[name], two_colour(p[name], zone))
 
 
+def size(m):
+    """Width and depth of a part on the bed."""
+    bb = m.bounding_box()
+    return bb[3] - bb[0], bb[4] - bb[1]
+
+
+def stacked(parts, gap=6.0):
+    """[(name, part)] one behind the other along y, gap apart, as one part (for an .stl)."""
+    out, y = [], 0.0
+    for _, m in parts:
+        out.append(m.translate([0, y, 0]))
+        y += size(m)[1] + gap
+    return union(out)
+
+
+def plates(p):
+    """The plates of each Orca project, from build()'s parts, as write_3mf() takes them:
+    {file name: [(plate name, items)]}.
+
+    2 all plates.3mf has a plate for each print, in the Side Utility's order: both long walls,
+    the roof and the corner angles, the door, both end walls, then the floor, skids and lofts.
+    Filament 1 is the siding colour (white), filament 2 the trim, roof and corner angles (black),
+    filament 3 the floor, skids and lofts (brown, Alan Nov 2 2026). The prime tower goes at x 165,
+    y 195 on every plate, so the two-colour plates keep that corner clear."""
+    zone = trim_zone()
+    walls_p = {name: wall_parts(p, name, zone) for name in WALL_CUTS}
+    fl = to_print(FLOOR_TO_PRINT, [p["floor"]])[0]
+    lf = to_print(LOFT_TO_PRINT, [p["loft"]])[0]
+    up = panel_to_print(p["upper"], UPPER_A, UPPER_B)
+    lo = panel_to_print(p["lower"], LOWER_A, LOWER_B)
+    skid_p = skid().transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
+    loft_p = lf.transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
+    door = p["door"] + p["door_trim"]
+
+    def wall_item(name, x, y):
+        siding, trim = walls_p[name]                 # the back wall has no trim now
+        return (name, [("siding", siding, 1)] + ([] if trim.is_empty() else [("trim", trim, 2)]), (x, y))
+
+    def row(parts, filament, y=None):
+        """[(name, part)] side by side along x, 6 mm apart, the row centred on the bed."""
+        x = (220 - sum(size(m)[0] for _, m in parts) - 6 * (len(parts) - 1)) / 2
+        out = []
+        for name, m in parts:
+            out.append((name, [(name, m, filament)], (x, (220 - size(m)[1]) / 2 if y is None else y)))
+            x += size(m)[0] + 6
+        return out
+
+    def column(parts, filament):
+        """[(name, part)] one behind the other along y, 6 mm apart, centred on the bed."""
+        y = (220 - sum(size(m)[1] for _, m in parts) - 6 * (len(parts) - 1)) / 2
+        out = []
+        for name, m in parts:
+            out.append((name, [(name, m, filament)], ((220 - size(m)[0]) / 2, y)))
+            y += size(m)[1] + 6
+        return out
+
+    # the fit test: what is new on its own plate, the rest as it was
+    fit = fit_test()
+    tw, th = size(fit)
+    fit_test_3mf = [("new corner", row(corner_test_parts({n: p[n] for n in WALL_CUTS}, p["floor"]), 1)),
+                    ("fit test", [("fit test", [("fit test", fit, 1)], ((220 - tw) / 2, (220 - th) / 2))])]
+
+    lh = size(union(walls_p["door wall"]))[1]
+    y0 = (220 - 2 * lh - 3) / 2
+    ew = size(union(walls_p["end wall 1"]))[0]
+    dw, dh = size(door)
+    uw, uh = size(up)
+    lw_, lh_ = size(lo)
+    rx = (220 - (2 * uw + 2 * lw_ + 3 * 4)) / 2
+    # the corner angles: two end to end in the strip in front of the roof sheets, two behind them
+    angles = [("corner angle, " + n, m) for n, m in corner_prints(corner_angle)]
+    ay = ((220 - uh) / 2 - size(angles[0][1])[1]) / 2
+    fw, fh = size(fl)
+    sw_, sh_ = size(skid_p)
+    lfw, lfh = size(loft_p)
+    fx = (220 - (fw + 2 * sw_ + lfw + 18)) / 2
+    all_plates = [
+        ("long walls", [wall_item("door wall", 3, y0), wall_item("back wall", 3, y0 + lh + 3)]),
+        ("roof and corner angles",                                                             # filament 2
+         [("upper roof 1", [("upper roof", up, 2)], (rx, (220 - uh) / 2)),
+          ("upper roof 2", [("upper roof", up, 2)], (rx + uw + 4, (220 - uh) / 2)),
+          ("lower roof 1", [("lower roof", lo, 2)], (rx + 2 * uw + 8, (220 - lh_) / 2)),
+          ("lower roof 2", [("lower roof", lo, 2)], (rx + 2 * uw + lw_ + 12, (220 - lh_) / 2))]
+         + row(angles[:2], 2, ay) + row(angles[2:], 2, 220 - ay - size(angles[0][1])[1])),
+        ("door", [("door", [("door", p["door"], 1), ("door trim", p["door_trim"], 2)],
+                   ((220 - dw) / 2, (190 - dh) / 2))]),
+        ("end walls", [wall_item("end wall 1", (220 - 2 * ew - 6) / 2, 4),
+                       wall_item("end wall 2", (220 + 6) / 2, 4)]),
+        ("floor, skids and lofts", [
+            ("floor", [("floor", fl, 3)], (fx, (220 - fh) / 2)),                   # brown
+            ("skid 1", [("skid", skid_p, 3)], (fx + fw + 6, (220 - sh_) / 2)),
+            ("skid 2", [("skid", skid_p, 3)], (fx + fw + sw_ + 12, (220 - sh_) / 2)),
+            ("loft 1", [("loft", loft_p, 3)], (fx + fw + 2 * sw_ + 18, (220 - 2 * lfh - 6) / 2)),
+            ("loft 2", [("loft", loft_p, 3)], (fx + fw + 2 * sw_ + 18, (220 + 6) / 2))]),
+    ]
+    caps = [("corner cap, " + n, m) for n, m in corner_prints(corner_cap)]
+    return {"1 fit test.3mf": fit_test_3mf,
+            "2 all plates.3mf": all_plates,
+            "3 corner caps for printed walls.3mf": [("corner caps", column(caps, 2))]}
+
+
 def main():
     p = build()
     zone = trim_zone()
@@ -1297,64 +1531,20 @@ def main():
     write_stl(up, "upper roof.stl")
     write_stl(lo, "lower roof.stl")
     write_stl(lf, "loft.stl")
-    door = p["door"] + p["door_trim"]
-    write_stl(door, "door.stl")
+    write_stl(p["door"] + p["door_trim"], "door.stl")
     write_stl(p["skids"], "skids.stl")
     write_stl(on_bed(p["fit"]), "fit test.stl")
-
-    # One Orca project with a plate for each print, in the Side Utility's order: both long walls,
-    # the roof, the door, both end walls, then the floor, skids and lofts. Filament 1 is the siding
-    # colour (white), filament 2 the trim and roof (black), filament 3 the floor, skids and lofts
-    # (brown, Alan Nov 2 2026). The prime tower goes at x 165, y 195 on every plate, so the
-    # two-colour plates keep that corner clear.
-    skid_p = skid().transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
-    loft_p = lf.transform(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0]], dtype=float))
-    fit = on_bed(p["fit"])
-    fbb = fit.bounding_box()
-    write_3mf("1 fit test.3mf", [("fit test", [("fit test", [("fit test", fit, 1)],
-                                                 (110 - fbb[3] / 2, 110 - fbb[4] / 2))])])
-
-    def wall_item(name, x, y):
-        siding, trim = walls_p[name]
-        return (name, [("siding", siding, 1), ("trim", trim, 2)], (x, y))
-
-    def size(m):
-        bb = m.bounding_box()
-        return bb[3] - bb[0], bb[4] - bb[1]
-
-    lh = size(union(walls_p["door wall"]))[1]
-    y0 = (220 - 2 * lh - 3) / 2
-    ew = size(union(walls_p["end wall 1"]))[0]
-    dw, dh = size(door)
-    uw, uh = size(up)
-    lw_, lh_ = size(lo)
-    rx = (220 - (2 * uw + 2 * lw_ + 3 * 4)) / 2
-    fw, fh = size(fl)
-    sw_, sh_ = size(skid_p)
-    lfw, lfh = size(loft_p)
-    fx = (220 - (fw + 2 * sw_ + lfw + 18)) / 2
-    write_3mf("2 all plates.3mf", [
-        ("long walls", [wall_item("door wall", 3, y0), wall_item("back wall", 3, y0 + lh + 3)]),
-        ("roof", [("upper roof 1", [("upper roof", up, 2)], (rx, (220 - uh) / 2)),            # filament 2
-                  ("upper roof 2", [("upper roof", up, 2)], (rx + uw + 4, (220 - uh) / 2)),
-                  ("lower roof 1", [("lower roof", lo, 2)], (rx + 2 * uw + 8, (220 - lh_) / 2)),
-                  ("lower roof 2", [("lower roof", lo, 2)], (rx + 2 * uw + lw_ + 12, (220 - lh_) / 2))]),
-        ("door", [("door", [("door", p["door"], 1), ("door trim", p["door_trim"], 2)],
-                   ((220 - dw) / 2, (190 - dh) / 2))]),
-        ("end walls", [wall_item("end wall 1", (220 - 2 * ew - 6) / 2, 4),
-                       wall_item("end wall 2", (220 + 6) / 2, 4)]),
-        ("floor, skids and lofts", [
-            ("floor", [("floor", fl, 3)], (fx, (220 - fh) / 2)),                   # brown
-            ("skid 1", [("skid", skid_p, 3)], (fx + fw + 6, (220 - sh_) / 2)),
-            ("skid 2", [("skid", skid_p, 3)], (fx + fw + sw_ + 12, (220 - sh_) / 2)),
-            ("loft 1", [("loft", loft_p, 3)], (fx + fw + 2 * sw_ + 18, (220 - 2 * lfh - 6) / 2)),
-            ("loft 2", [("loft", loft_p, 3)], (fx + fw + 2 * sw_ + 18, (220 + 6) / 2))]),
-    ])
+    write_stl(stacked(corner_prints(corner_angle)), "corner angle.stl")
+    write_stl(stacked(corner_prints(corner_cap)), "corner cap.stl")
+    for name, pl in plates(p).items():
+        write_3mf(name, pl)
     for name, (siding, trim) in walls_p.items():
         bb = union([siding, trim]).bounding_box()
-        print(f"{name:10s} flat {bb[3]-bb[0]:7.1f} x {bb[4]-bb[1]:7.1f} x {bb[5]-bb[2]:6.1f} mm  "
-              f"trim {trim.volume()/1000:5.2f} cm3, from {trim.bounding_box()[2]:.2f} mm up")
-    for k, v in list(p.items()) + [("upper flat", up), ("lower flat", lo), ("loft flat", lf)]:
+        print(f"{name:10s} flat {bb[3]-bb[0]:7.1f} x {bb[4]-bb[1]:7.1f} x {bb[5]-bb[2]:6.1f} mm  " +
+              ("no trim" if trim.is_empty() else
+               f"trim {trim.volume()/1000:5.2f} cm3, from {trim.bounding_box()[2]:.2f} mm up"))
+    corners = [("angle flat", corner_prints(corner_angle)[0][1]), ("cap flat", corner_prints(corner_cap)[0][1])]
+    for k, v in list(p.items()) + [("upper flat", up), ("lower flat", lo), ("loft flat", lf)] + corners:
         bb = v.bounding_box()
         print(f"{k:10s} {bb[3]-bb[0]:7.1f} x {bb[4]-bb[1]:7.1f} x {bb[5]-bb[2]:6.1f} mm  "
               f"{v.volume()/1000:6.1f} cm3  {v.num_tri()} triangles")
