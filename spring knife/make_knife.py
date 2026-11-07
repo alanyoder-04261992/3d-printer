@@ -1,25 +1,36 @@
-"""Spring knife toy for the Flashforge AD5X, designed from scratch.
+"""Double-action spring knife toy for the Flashforge AD5X, designed from scratch.
 
 Run:  python3 make_knife.py      (needs: pip install manifold3d numpy)
 
-A blunt plastic fidget toy. Press the rear button on the side and two printed TPU bands
-pull the blade out until it locks open. Press the front button and push the blade back
-in until it clicks shut, which also stretches the bands for the next go.
+A blunt plastic fidget toy. Slide the knob on the side forward: two printed TPU bands
+stretch, and at the end of the stroke the blade is let go and snaps out until it locks open.
+Slide the knob back: the bands stretch the other way and the blade snaps back in. Every part
+is printed, the screws and nuts too.
 
-Makes the print files in this folder:
-  handle bottom.stl   lower half of the handle, inside up
-  handle top.stl      upper half with the two buttons, printed inside up (outside on the bed)
-  blade.stl           blade and the carrier it slides on, with the latch arm
-  pin.stl             the pin through the carrier that both bands hook onto
-  roller.stl          print TWO; each spins on a post at the front of the handle
-  band.stl            print TWO in TPU (band firm.stl is a stronger pair)
-  1 knife plates.3mf    Flash Studio project: plate 1 handle, pin, rollers (black),
-                        plate 2 blade (white)
+How it works
+  * Band F (top level) runs from the blade's pin forward round a front roller, back round a
+    rear roller and forward to the knob's pin. Band B (lower level) is its mirror. Slide the
+    knob forward and band F stretches while the blade is held; slide it back and band B does.
+  * The blade is held by a tooth on a springy arm, sitting in a window in the handle wall:
+    one window for closed, one for open.
+  * A pushrod lies beside the blade. The knob's shuttle moves it 12 mm at each end of its
+    stroke, and a bump on the pushrod rides over the tooth, pushes it out of its window and
+    lets the blade go. The bumps rest beside the windows, so the tooth can drop back in.
+
+Parts (print files in this folder)
+  handle 1 base.stl ... handle 4 top.stl   four plates, stacked and held by four screws
+  blade.stl                                blade and carrier, with the latch arm
+  slider.stl                               shuttle with its knob, printed upside down
+  pushrod.stl                              the release bar with its two bumps
+  pin long.stl, pin short.stl              blade pin and knob pin, pressed in
+  roller.stl (print 4), screw.stl (4), nut.stl (4)
+  band.stl (print 2, TPU), band soft.stl   a gentler pair
+  1 knife plates.3mf    Flash Studio project: handle, small parts (black), blade and slider (white)
   2 bands (TPU).3mf     the two bands; pick your TPU filament before slicing
 
-Axes for the assembled knife: x along the knife (blade comes out at +x), y across it
-(buttons on +y), z through it. z = 0 is the outside of the bottom half; the halves
-meet at z = 7.5. The carrier is drawn closed; open is 86 mm further along x.
+Axes for the assembled knife: x along it (the blade comes out at +x), y across it (the knob is
+on +y), z through it (z = 0 is the outside of the base plate). Drawn closed: blade at c = 0,
+knob at s = 5, pushrod at p = 0.
 """
 
 import math
@@ -34,80 +45,97 @@ import manifold3d as m3
 M = m3.Manifold
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# Every height sits on a layer line (first layer 0.25, then 0.2: 0.25, 0.45, 0.65 ...),
-# measured from the face each part prints on (PRINTER-BRAIN, "Check a fit as printed").
+
 def layer(n):
-    """Top of layer n (n = 1 is the first, 0.25 mm)."""
+    """Top of layer n from the face a part prints on (first layer 0.25, then 0.2)."""
     return 0.05 + 0.2 * n
 
 
-# ---------------------------------------------------------------- handle
-HL, HW = 165.0, 30.0                # length, width
-SPLIT = layer(37)                   # 7.45: each half's thickness
-HT = 2 * SPLIT                      # 14.9
+# ---------------------------------------------------------------- handle plates
+HL, HW = 178.0, 38.0
 CORNER_R = 6.0
-CHAMFER = layer(7)                  # 1.45
-WALL_T = layer(11)                  # 2.25: top and bottom walls
-GAP = 0.3                           # sliding gap at the sides of the carrier and blade
+CHAMFER = layer(7)                  # 1.45 round the two outside faces
+WALL_T = layer(11)                  # 2.25 bottom and top walls
+Z1 = layer(23)                      # 4.65  base plate / channel plate (through the middle of the blade)
+Z2 = Z1 + layer(15)                 # 7.70  channel plate / band deck
+Z3 = Z2 + layer(22)                 # 12.15 band deck / top plate
+HT = Z3 + layer(27)                 # 17.60
 
-# ---------------------------------------------------------------- carrier and blade
-CAR_L, CAR_W, CAR_T = 55.0, 22.0, layer(21)    # carrier 4.25 thick
-BLADE_L, BLADE_W = 90.0, 18.0       # blade in front of the carrier
-CAR_Z0 = SPLIT - CAR_T / 2          # 5.325
+# ---------------------------------------------------------------- blade and carrier
+CAR_L, CAR_W, CAR_T = 55.0, 22.0, layer(21)    # carrier 55 x 22 x 4.25
+BLADE_L, BLADE_W = 90.0, 18.0
+CAR_Z0 = WALL_T + 0.275             # 2.525: 0.275 over the channel floor
+GAP = 0.3                           # sliding gap at the sides
 CHAN_Y = CAR_W / 2 + GAP            # 11.3
-CHAN_Z0 = layer(25)                 # 5.05: channel floor, 0.275 under the carrier
-CHAN_Z1 = HT - CHAN_Z0              # 9.85
 SLOT_Y = BLADE_W / 2 + GAP          # 9.3
-FRONT_IN = 159.0                    # inside face of the front wall
-CLOSED_X = 18.0                     # carrier's back end when closed
-TRAVEL = FRONT_IN - CAR_L - CLOSED_X   # 86: closed to open
-REAR_STOP = CLOSED_X - 0.4          # back end of the carrier channel
+CHAN_TOP = Z1 + layer(12)           # 7.10: channel ceiling, 0.325 over the carrier
+FLOOR_TOP = Z2                      # the channel plate's floor, 0.6 thick, under the bands
+FRONT_IN = 166.0
+C0 = 25.0                           # carrier's back end, closed
+REAR_STOP = C0 - 0.4
+TRAVEL = FRONT_IN - CAR_L - C0      # 86
 
-# latch: an arm cut from the carrier, a tooth that pops into a window in the +y wall
-ARM_X0, ARM_X1 = 15.0, 40.0         # arm along the carrier (free end at ARM_X0)
-ARM_T = 1.6
-ARM_GAP = 1.4                       # room for the arm to bend in
-TOOTH_L = 4.0
-TOOTH_OUT = 1.3                     # past the carrier's side, 1.0 into the wall
-TOOTH_Z0 = CAR_Z0 + layer(11)      # 7.575: top 10 layers of the carrier (as it prints)
-TOOTH_Z1 = CAR_Z0 + CAR_T          # 9.575
-WIN_PAD = 0.3                       # window bigger than the tooth, each end
+# latch: an arm cut from the carrier's +y side, a tooth that drops into a window
+ARM_X0, ARM_X1 = 14.0, 40.0         # free end at ARM_X0
+ARM_T, ARM_GAP = 1.6, 1.4
+TOOTH_L, TOOTH_OUT = 4.0, 1.3       # tooth reaches 1.0 into the wall
+WIN_PAD = 0.3
 
-# buttons: a flexible tab in the outside of the +y wall, over each window
-SKIN = 0.8                          # wall between the channel and the button pocket
-POCKET = 1.6                        # room for the tab to press in (tab left 1.3 thick)
-TAB_L = 18.0
-TAB_Z0 = HT - layer(34)             # 7.85: the tab, measured from the top half's outside face
-TAB_Z1 = HT - layer(12)             # 12.45
-SLIT_TOP = HT - layer(8)            # 13.25: top of the slit over the tab
-SLIT = 0.8
-NUB_Z0, NUB_Z1 = HT - layer(35), HT - layer(27)     # 7.85 to 9.45, inside the tooth's height
-WIN_Z1 = HT - layer(24)             # 10.05: top of the window
-NUB_GAP = 0.1                       # nub to tooth, unpressed
-PRESS = 1.45                        # how far a button goes in: tooth ends 0.35 clear of the wall
+# pushrod: lies in the channel plate beside the blade; bumps push the tooth in
+PUSH_Z0 = Z1 + 0.1                  # 4.75
+PUSH_H = layer(11)                  # 2.25: under the floor, which bridges over it to the backing wall
+BUMP_H = layer(10)                  # 2.05: bumps cover the tooth's top half (4.65 to 6.775)
+BUMP_IN = CAR_W / 2 + 0.1           # 11.10: a bump pushes the tooth this far in
+PUSH_Y0, PUSH_Y1 = 12.45, 13.85     # pushrod body
+LIP_Y = 12.35                       # inner edge of the pushrod's lane
+WALL_Y0, WALL_Y1 = PUSH_Y1 + 0.1, PUSH_Y1 + 0.8   # backing wall: the tooth can't push the pushrod away
+                                    # more than 0.1 mm; gaps in it at the ends let the dogs through
+RAMP, FLAT = 2.5, 1.0               # each bump: ramp, flat top, ramp
+P_MOVE = 12.0                       # pushrod moves this far at each end of the knob's stroke
 
-# bands: TPU straps from a rear post, round a roller at the front, back to the carrier pin
-CAV_Y = 7.5
-CAV_Z1 = layer(26)                  # 5.25: top of the bottom band cavity (floor is WALL_T)
-STRAND_Y = 4.0
-ANCHOR_X = 10.0
-ROLLER_X = 150.0
-PIN_X = 8.0                         # along the carrier
-POST_D = 3.0
-PIN_D = 3.0
-HOLE_PLAY = 0.4                     # holes print small: 0.4 mm all round (PRINTER-BRAIN)
-ROLLER_D = 7.0
+# shuttle and knob
+E_REST = 5.0                        # knob pin sits 5 mm behind the blade pin at closed rest
+S_MAX = TRAVEL + 2 * E_REST         # 96: knob travel
+S_PIN_Y = 13.5                      # knob pin: band strands 3 run at this y
+SHUT_BACK, SHUT_FRONT = 4.0, 10.0   # shuttle reaches this far behind and in front of its pin
+SHUT_Y_LOW = WALL_Y1 + 0.1          # 14.75: shuttle's lower part, outside the backing wall
+LOW_BACK, LOW_FRONT = 9.0, 25.0     # the lower part reaches past the wall's ends to the dogs
+SHUT_Y_UP = 11.4                    # shuttle's upper part (over the pushrod)
+SHUT_Y1 = 16.5
+LANE_Y1 = 16.6                      # outer wall starts here
+STEM_Z0, STEM_Z1 = 5.0, 7.5
+
+# bands
+PIN_D = 3.0                         # both pins, pressed into their parts (holes print small)
+PIN_PLAY = 0.4                      # band eyes and slots: 0.4 all round
+C_PIN_X, C_PIN_Y = 8.0, -0.5        # blade pin on the carrier
+X_B, X_F = 18.0, 158.0              # rear and front rollers
+Y_LO, Y_HI = 3.0, 10.0
+ROLLER_D = 6.0
 ROLLER_H = layer(13)                # 2.65
+POST_D = 3.0
+BAND_T, BAND_T_SOFT = 1.0, 0.8
 BAND_H = layer(12)                  # 2.45
-POST_TOP = layer(25)                # 5.05: posts stop short of the carrier (5.325)
-BAND_T = 1.0
-BAND_T_FIRM = 1.3
-BAND_RELAXED = 180.0                # printed length between the two eye centres
+BAND_RELAXED = 205.0                # printed length, eye to eye
+CAV_X0, CAV_X1 = 12.0, 164.0
+CAV_Y0 = -4.0
+LEVEL_B = (Z2, Z2 + layer(15))      # 7.70 to 10.75
+LEVEL_F = (Z3, HT - WALL_T)         # 12.15 to 15.35
+GROOVE = WALL_T - layer(8)          # pin groove in the top wall: 0.6 deep, leaving 1.65
 
-# screws: four M3 x 16 mm, self-tapping into the bottom half
-SCREWS = [(11.0, 11.0), (11.0, -11.0), (162.0, 12.3), (162.0, -12.3)]
-SCREW_CLEAR, SCREW_PILOT = 3.6, 2.8
-HEAD_D, HEAD_DEPTH = 6.2, layer(15)   # 3.05
+# printed screws: M6-ish, 2 mm pitch, nuts in the top plate
+SCREWS = [(6.0, 13.0), (6.0, -13.0), (172.0, 13.0), (172.0, -13.0)]
+THREAD_MAJ, THREAD_MIN, PITCH = 6.0, 4.4, 2.0
+THREAD_PLAY = 0.25                  # nut thread bigger all round
+SCREW_HOLE = 6.8
+HEAD_D, HEAD_H = 10.0, layer(15)    # 3.05
+NUT_AF, NUT_H = 9.0, layer(20)      # 4.05 thick
+NUT_POCKET_AF = 9.4
+PEGS = [(14.0, -15.0), (166.0, -15.0)]
+PEG_D, PEG_H, PEG_HOLE_D, PEG_HOLE_H = 3.0, 1.0, 3.3, layer(6)
+
+FINGERS = [60.0, 84.0, 108.0]
+FINGER_R, FINGER_DEPTH = 9.0, 1.6
 
 
 # ---------------------------------------------------------------- helpers
@@ -128,110 +156,195 @@ def extrude(cs, z0, z1):
     return M.extrude(cs, z1 - z0).translate([0, 0, z0])
 
 
+def prism(poly, z0, z1):
+    cs = m3.CrossSection([poly])
+    if cs.area() <= 0:
+        cs = m3.CrossSection([list(reversed(poly))])
+    return extrude(cs, z0, z1)
+
+
 def rounded_rect(x0, x1, y0, y1, r):
     cs = m3.CrossSection.square([x1 - x0 - 2 * r, y1 - y0 - 2 * r]).translate([x0 + r, y0 + r])
     return cs.offset(r, m3.JoinType.Round, 2.0, 64)
 
 
-def mirror_z(man):
-    """Mirror about the plane where the halves meet."""
-    return man.mirror([0, 0, 1]).translate([0, 0, HT])
+def hexagon(af):
+    r = af / math.sqrt(3)
+    return m3.CrossSection([[(r * math.cos(math.radians(60 * i)), r * math.sin(math.radians(60 * i))) for i in range(6)]])
+
+
+# ---------------------------------------------------------------- threads
+def thread(x, y, z0, z1, r_min, r_maj):
+    """A right-hand thread between z0 and z1, phased by absolute z so a screw and its nut
+    made separately mesh where they meet."""
+    pts, n = [], 72
+    flat = 0.3 / PITCH                     # crest and root flats, as a share of a turn
+    flank = (1 - 2 * flat) / 2
+    for i in range(n):
+        u = i / n
+        if u < flat:
+            r = r_min
+        elif u < flat + flank:
+            r = r_min + (r_maj - r_min) * (u - flat) / flank
+        elif u < 2 * flat + flank:
+            r = r_maj
+        else:
+            r = r_maj - (r_maj - r_min) * (u - 2 * flat - flank) / flank
+        a = 2 * math.pi * u
+        pts.append((r * math.cos(a), r * math.sin(a)))
+    cs = m3.CrossSection([pts]).rotate(360 * z0 / PITCH)
+    h = z1 - z0
+    t = M.extrude(cs, h, max(8, int(h / PITCH * 36)), 360 * h / PITCH)
+    return t.translate([x, y, z0])
+
+
+def screw(x=0.0, y=0.0):
+    """Screw as fitted: head in the base plate's counterbore, tip just under the top face."""
+    head = cyl_z(x, y, 0, HEAD_H, HEAD_D, 64) - box(x - HEAD_D, x + HEAD_D, y - 0.7, y + 0.7, -1, layer(6))
+    tip = HT - 0.15
+    shank = thread(x, y, HEAD_H - 0.01, tip - 0.6, THREAD_MIN / 2, THREAD_MAJ / 2)
+    point = M.cylinder(0.6, THREAD_MAJ / 2 - 0.1, THREAD_MIN / 2, 48).translate([x, y, tip - 0.6]) \
+        ^ thread(x, y, tip - 0.6, tip, THREAD_MIN / 2, THREAD_MAJ / 2)
+    return union([head, shank, point, cyl_z(x, y, HEAD_H - 0.01, tip, THREAD_MIN - 0.01)])
+
+
+def nut(x=0.0, y=0.0):
+    """Nut as fitted, flush with the top face."""
+    z0 = HT - NUT_H
+    body = extrude(hexagon(NUT_AF).translate([x, y]), z0, HT)
+    hole = thread(x, y, z0 - 0.5, HT + 0.5, THREAD_MIN / 2 + THREAD_PLAY, THREAD_MAJ / 2 + THREAD_PLAY)
+    return body - hole
+
+
+# ---------------------------------------------------------------- the handle
+def outline():
+    return rounded_rect(0, HL, -HW / 2, HW / 2, CORNER_R)
+
+
+def slab(z0, z1, chamfer_bottom=False, chamfer_top=False):
+    full = outline()
+    inner = rounded_rect(CHAMFER, HL - CHAMFER, -HW / 2 + CHAMFER, HW / 2 - CHAMFER, CORNER_R - CHAMFER)
+    if chamfer_bottom:
+        s = M.hull_points(np.vstack([np.asarray(extrude(inner, z0, z0 + 0.01).to_mesh().vert_properties)[:, :3],
+                                     np.asarray(extrude(full, z0 + CHAMFER, z1).to_mesh().vert_properties)[:, :3]]))
+    elif chamfer_top:
+        s = M.hull_points(np.vstack([np.asarray(extrude(full, z0, z1 - CHAMFER).to_mesh().vert_properties)[:, :3],
+                                     np.asarray(extrude(inner, z1 - 0.01, z1).to_mesh().vert_properties)[:, :3]]))
+    else:
+        s = extrude(full, z0, z1)
+    fingers = union([cyl_z(x, -HW / 2 - FINGER_R + FINGER_DEPTH, z0 - 1, z1 + 1, 2 * FINGER_R, 64) for x in FINGERS])
+    return s - fingers
+
+
+def screw_holes(z0, z1):
+    return union([cyl_z(x, y, z0 - 1, z1 + 1, SCREW_HOLE) for x, y in SCREWS])
+
+
+def pegs(z):
+    return union([cyl_z(x, y, z, z + PEG_H, PEG_D) for x, y in PEGS])
+
+
+def peg_holes(z):
+    return union([cyl_z(x, y, z - 0.01, z + PEG_HOLE_H, PEG_HOLE_D) for x, y in PEGS])
 
 
 def window_x(open_):
-    """x range of the tooth window for the closed (False) or open (True) carrier."""
-    x = CLOSED_X + (TRAVEL if open_ else 0) + ARM_X0
+    x = C0 + (TRAVEL if open_ else 0) + ARM_X0
     return x - WIN_PAD, x + TOOTH_L + WIN_PAD
 
 
-def tabs():
-    """(x start, x end, free end x) of the rear and front buttons; the free end is over the window."""
-    r0, r1 = window_x(False)
-    f0, f1 = window_x(True)
-    rear = (r1 + 0.5 - TAB_L, r1 + 0.5, r1 + 0.5)
-    front = (f0 - 0.5, f0 - 0.5 + TAB_L, f0 - 0.5)
-    return [(rear, (r0, r1)), (front, (f0, f1))]
+def channel(z0, z1):
+    return union([box(REAR_STOP, FRONT_IN, -CHAN_Y, CHAN_Y, z0, z1),
+                  box(FRONT_IN - 1, HL + 1, -SLOT_Y, SLOT_Y, z0, z1)])
 
 
-# ---------------------------------------------------------------- handle halves
-FINGERS = [55.0, 78.0, 101.0]       # finger scallops along the -y side (the side away from the buttons)
-FINGER_R, FINGER_DEPTH = 9.0, 1.6
+def plate1():
+    """Base plate: bottom wall, the lower half of the channel, the two latch windows,
+    the screw heads' counterbores."""
+    p = slab(0, Z1, chamfer_bottom=True) - channel(WALL_T, Z1 + 1)
+    cuts = [box(w0, w1, CHAN_Y - 0.5, CAR_W / 2 + TOOTH_OUT + 0.3, WALL_T, Z1 + 1) for w0, w1 in (window_x(False), window_x(True))]
+    cuts += [cyl_z(x, y, -1, HEAD_H, HEAD_D + 0.4, 64) for x, y in SCREWS]
+    p = p - union(cuts) - screw_holes(0, Z1)
+    return p + pegs(Z1)
 
 
-def half_shell():
-    """Bottom half's outside: a rounded slab with a chamfer round the outside face, and three
-    shallow finger scallops in the -y side. Grip texture on the faces would be grooves in the
-    first layers, which the slicer has to bridge (PRINTER-BRAIN), so the grip is in the outline."""
-    outline = rounded_rect(0, HL, -HW / 2, HW / 2, CORNER_R)
-    inner = rounded_rect(CHAMFER, HL - CHAMFER, -HW / 2 + CHAMFER, HW / 2 - CHAMFER, CORNER_R - CHAMFER)
-    slab = M.hull_points(np.vstack([
-        np.asarray(extrude(inner, 0, 0.01).to_mesh().vert_properties)[:, :3],
-        np.asarray(extrude(outline, CHAMFER, SPLIT).to_mesh().vert_properties)[:, :3]]))
-    scallops = union([cyl_z(x, -HW / 2 - FINGER_R + FINGER_DEPTH, -1, SPLIT + 1, 2 * FINGER_R, 64)
-                      for x in FINGERS])
-    return slab - scallops
+def push_x():
+    """x range of the pushrod's lane and the shuttle's lower lane."""
+    return DOG_REAR[0] - 0.2, DOG_FRONT[1] + P_MOVE + 0.4
 
 
-def inside_cuts_bottom():
-    """Channel, blade slot and band cavity in the bottom half (z up to the split)."""
-    return union([
-        box(REAR_STOP, FRONT_IN, -CHAN_Y, CHAN_Y, CHAN_Z0, SPLIT + 1),
-        box(FRONT_IN - 1, HL + 1, -SLOT_Y, SLOT_Y, CHAN_Z0, SPLIT + 1),
-        box(ANCHOR_X - 5, ROLLER_X + 6, -CAV_Y, CAV_Y, WALL_T, CAV_Z1),
-    ])
+def wall_x():
+    """The backing wall runs between the dogs' gaps."""
+    return DOG_REAR[1] + P_MOVE + 0.4, DOG_FRONT[0] - 0.4
 
 
-POST_TIP = layer(4)                 # 0.85: pointed tip, so a band eye or roller finds the post blind
+def plate2():
+    """Channel plate: the upper half of the channel, its floor (with a slot for the blade pin),
+    the pushrod's lane and the room its bumps work in, the shuttle's lower lane, the knob slot,
+    and the two posts for band B's rollers."""
+    p = slab(Z1, Z2)
+    lx0, lx1 = push_x()
+    pin_x0, pin_x1 = C0 + C_PIN_X - 1.9, C0 + TRAVEL + C_PIN_X + 1.9
+    s_x0, s_x1 = 28.0 - 1 - 0.2, 28.0 + S_MAX + 7 + 0.2
+    wx0, wx1 = wall_x()
+    cuts = [channel(Z1 - 1, CHAN_TOP),
+            box(lx0, lx1, CAR_W / 2, PUSH_Y0, Z1 - 1, CHAN_TOP),                 # where the bumps work
+            box(lx0, lx1, LIP_Y, WALL_Y0, Z1 - 1, CHAN_TOP),                     # pushrod lane, floor over it
+            box(lx0, wx0, WALL_Y0 - 0.01, WALL_Y1 + 0.01, Z1 - 1, CHAN_TOP),     # dog gaps either end of the wall
+            box(wx1, lx1, WALL_Y0 - 0.01, WALL_Y1 + 0.01, Z1 - 1, CHAN_TOP),
+            box(lx0, lx1, WALL_Y1, LANE_Y1, Z1 - 1, Z2 + 1),                     # shuttle's lower lane
+            box(s_x0, s_x1, LANE_Y1 - 0.1, HW / 2 + 1, Z1 - 1, Z2 + 1),          # knob slot
+            box(pin_x0, pin_x1, C_PIN_Y - PIN_D / 2 - PIN_PLAY, C_PIN_Y + PIN_D / 2 + PIN_PLAY, CHAN_TOP - 1, Z2 + 1),
+            peg_holes(Z1), screw_holes(Z1, Z2)]
+    p = p - union(cuts)
+    posts = [post(X_B, Y_LO, Z2, LEVEL_B[1] - 0.25), post(X_F, Y_HI, Z2, LEVEL_B[1] - 0.25)]
+    return p + union(posts) + pegs(Z2)
 
 
-def post(x, y):
-    tip = M.cylinder(POST_TIP, POST_D / 2, POST_D / 4, 40).translate([x, y, POST_TOP - POST_TIP])
-    return cyl_z(x, y, WALL_T - 0.5, POST_TOP - POST_TIP, POST_D) + tip
+def post(x, y, z0, z1):
+    tip = layer(4)
+    return cyl_z(x, y, z0 - 0.5, z1 - tip, POST_D) + M.cylinder(tip, POST_D / 2, POST_D / 4, 40).translate([x, y, z1 - tip])
 
 
-def posts_bottom():
-    return union([post(ANCHOR_X, -STRAND_Y), post(ROLLER_X, 0)])
+def cavity(z0, z1):
+    return box(CAV_X0, CAV_X1, CAV_Y0, LANE_Y1, z0, z1)
 
 
-def handle_bottom():
-    h = half_shell() - inside_cuts_bottom()
-    h = h - union([cyl_z(x, y, SPLIT - 6, SPLIT + 1, SCREW_PILOT) for x, y in SCREWS])
-    return h + posts_bottom()
+def plate3():
+    """Band deck: band B's level, and over it the divider band F sits on, with the lane for the
+    shuttle down the +y side and the two posts for band F's rollers."""
+    p = slab(Z2, Z3)
+    pin_x0, pin_x1 = C0 + C_PIN_X - 1.9, C0 + TRAVEL + C_PIN_X + 1.9
+    cuts = [cavity(Z2 - 1, LEVEL_B[1]),
+            box(CAV_X0, CAV_X1, CHAN_Y, LANE_Y1, Z2 - 1, Z3 + 1),                  # shuttle lane
+            box(pin_x0, pin_x1, C_PIN_Y - PIN_D / 2 - PIN_PLAY, C_PIN_Y + PIN_D / 2 + PIN_PLAY, Z2, Z3 + 1),
+            peg_holes(Z2), screw_holes(Z2, Z3)]
+    p = p - union(cuts)
+    posts = [post(X_B, Y_HI, Z3, LEVEL_F[1] - 0.2), post(X_F, Y_LO, Z3, LEVEL_F[1] - 0.2)]
+    return p + union(posts) + pegs(Z3)
 
 
-def handle_top():
-    h = mirror_z(half_shell()) - mirror_z(inside_cuts_bottom())
-    h = h - union([cyl_z(x, y, SPLIT - 1, HT + 1, SCREW_CLEAR) for x, y in SCREWS])
-    h = h - union([cyl_z(x, y, HT - HEAD_DEPTH, HT + 1, HEAD_D) for x, y in SCREWS])
-    h = h + mirror_z(posts_bottom())
-    # buttons in the +y wall
-    y_skin = CHAN_Y + SKIN                  # outside of the skin
-    y_tab = y_skin + POCKET                 # inside of the tab
-    cuts, adds = [], []
-    for (ta, tb, free), (w0, w1) in tabs():
-        lo, hi = min(ta, tb), max(ta, tb)
-        slit_lo, slit_hi = (lo, hi + SLIT) if free == hi else (lo - SLIT, hi)
-        cuts += [box(slit_lo, slit_hi, y_skin, y_tab, SPLIT - 0.01, SLIT_TOP),             # pocket
-                 box(slit_lo, slit_hi, y_skin, HW / 2 + 1, TAB_Z1, SLIT_TOP),               # slit above
-                 box(slit_lo, slit_hi, y_skin, HW / 2 + 1, SPLIT - 0.01, TAB_Z0),           # gap below
-                 (box(hi, hi + SLIT, y_skin, HW / 2 + 1, SPLIT - 0.01, SLIT_TOP) if free == hi
-                  else box(lo - SLIT, lo, y_skin, HW / 2 + 1, SPLIT - 0.01, SLIT_TOP)),     # slit at the free end
-                 box(w0, w1, CHAN_Y - 0.5, y_skin + 0.01, SPLIT - 0.01, WIN_Z1)]            # window
-        tooth_out = CAR_W / 2 + TOOTH_OUT
-        adds.append(box(w0 + 0.3, w1 - 0.3, tooth_out + NUB_GAP, y_tab + 0.2, NUB_Z0, NUB_Z1))
-    return (h - union(cuts)) + union(adds)
+def plate4():
+    """Top plate: band F's level, the top wall with a groove the blade pin's top runs in, and
+    hex pockets for the nuts."""
+    p = slab(Z3, HT, chamfer_top=True)
+    pin_x0, pin_x1 = C0 + C_PIN_X - 1.9, C0 + TRAVEL + C_PIN_X + 1.9
+    cuts = [cavity(Z3 - 1, LEVEL_F[1]),
+            box(pin_x0, pin_x1, C_PIN_Y - PIN_D / 2 - PIN_PLAY, C_PIN_Y + PIN_D / 2 + PIN_PLAY, LEVEL_F[1] - 0.1, LEVEL_F[1] + GROOVE),
+            peg_holes(Z3), screw_holes(Z3, HT)]
+    cuts += [extrude(hexagon(NUT_POCKET_AF).translate([x, y]), HT - NUT_H, HT + 1) for x, y in SCREWS]
+    return p - union(cuts)
 
 
-# ---------------------------------------------------------------- blade and carrier
+# ---------------------------------------------------------------- blade, pins, rollers
 def blade_outline():
-    """Blade from the carrier forward, as seen from above: a drop point with a round tip."""
     x0, x1 = CAR_L - 3, CAR_L + BLADE_L
     w = BLADE_W / 2
     pts = [(x0, -w), (CAR_L + 40, -w)]
-    for i in range(1, 21):                    # edge sweeping up to the tip
+    for i in range(1, 21):
         t = i / 20
         pts.append((CAR_L + 40 + t * (x1 - CAR_L - 40), -w + (w + 1.5) * t ** 1.8))
-    for i in range(1, 21):                    # back of the blade dropping to the tip
+    for i in range(1, 21):
         t = 1 - i / 20
         pts.append((CAR_L + 62 + t * (x1 - CAR_L - 62), w - (w - 1.5) * t ** 1.4))
     pts.append((x0, w))
@@ -239,78 +352,153 @@ def blade_outline():
     return cs.offset(-2.5, m3.JoinType.Round, 2.0, 32).offset(2.5, m3.JoinType.Round, 2.0, 32)
 
 
-def carrier_parts(at=0.0):
-    """(body without the tooth, tooth), drawn closed and moved `at` mm toward open."""
+def carrier_parts(c=0.0):
+    """(body, tooth) with the blade c mm toward open."""
     z0, z1 = CAR_Z0, CAR_Z0 + CAR_T
     body = box(0, CAR_L, -CAR_W / 2, CAR_W / 2, z0, z1) + extrude(blade_outline(), z0, z1)
     y_arm = CAR_W / 2 - ARM_T
     body = body - union([
-        box(ARM_X0 - 1.4, ARM_X1, y_arm - ARM_GAP, y_arm, z0 - 1, z1 + 1),          # slot behind the arm
-        box(ARM_X0 - 1.4, ARM_X0, y_arm - ARM_GAP, CAR_W / 2 + 1, z0 - 1, z1 + 1),   # frees the arm's end
-        cyl_z(PIN_X, STRAND_Y, z0 - 1, z1 + 1, PIN_D + 2 * HOLE_PLAY),
-        # fuller along the top of the blade
+        box(ARM_X0 - 1.4, ARM_X1, y_arm - ARM_GAP, y_arm, z0 - 1, z1 + 1),
+        box(ARM_X0 - 1.4, ARM_X0, y_arm - ARM_GAP, CAR_W / 2 + 1, z0 - 1, z1 + 1),
+        cyl_z(C_PIN_X, C_PIN_Y, z0 - 1, z1 + 1, PIN_D),
         extrude(m3.CrossSection.square([44, 2.6]).translate([CAR_L + 8, 1.6])
                 .offset(0.6, m3.JoinType.Round, 2.0, 16), z1 - 0.8, z1 + 1),
     ])
-    tooth = box(ARM_X0, ARM_X0 + TOOTH_L, CAR_W / 2 - 0.2, CAR_W / 2 + TOOTH_OUT, TOOTH_Z0, TOOTH_Z1)
-    return body.translate([CLOSED_X + at, 0, 0]), tooth.translate([CLOSED_X + at, 0, 0])
+    tooth = box(ARM_X0, ARM_X0 + TOOTH_L, CAR_W / 2 - 0.2, CAR_W / 2 + TOOTH_OUT, z0, z1)
+    return body.translate([C0 + c, 0, 0]), tooth.translate([C0 + c, 0, 0])
 
 
-def carrier(at=0.0):
-    b, t = carrier_parts(at)
+def carrier(c=0.0):
+    b, t = carrier_parts(c)
     return b + t
 
 
-def pin(at=0.0):
-    x = CLOSED_X + at + PIN_X
-    return cyl_z(x, STRAND_Y, WALL_T + 0.2, HT - WALL_T - 0.2, PIN_D)
+C_PIN_TOP = LEVEL_F[1] + GROOVE - 0.1
+
+
+def blade_pin(c=0.0):
+    return cyl_z(C0 + c + C_PIN_X, C_PIN_Y, CAR_Z0, C_PIN_TOP, PIN_D)
 
 
 def rollers():
-    one = cyl_z(ROLLER_X, 0, WALL_T, WALL_T + ROLLER_H, ROLLER_D, 48) - \
-        cyl_z(ROLLER_X, 0, 0, HT, POST_D + 2 * HOLE_PLAY)
-    return one + mirror_z(one)
+    def one(x, y, z0):
+        return cyl_z(x, y, z0, z0 + ROLLER_H, ROLLER_D, 48) - cyl_z(x, y, z0 - 1, z0 + 4, POST_D + 2 * PIN_PLAY)
+    return union([one(X_B, Y_LO, LEVEL_B[0]), one(X_F, Y_HI, LEVEL_B[0]),
+                  one(X_B, Y_HI, LEVEL_F[0]), one(X_F, Y_LO, LEVEL_F[0])])
+
+
+# ---------------------------------------------------------------- pushrod and shuttle
+def bump(x0, y_in, z0, z1):
+    pts = [(x0, PUSH_Y0 + 0.01), (x0 + RAMP, y_in), (x0 + RAMP + FLAT, y_in), (x0 + 2 * RAMP + FLAT, PUSH_Y0 + 0.01)]
+    return prism(pts, z0, z1)
+
+
+BUMP_C_X = window_x(False)[0] + WIN_PAD - 0.6 - (2 * RAMP + FLAT)    # 32.4: rests behind the closed tooth
+BUMP_O_X = window_x(True)[0] + WIN_PAD - 0.6 - (2 * RAMP + FLAT)     # 118.4: rests behind the open tooth
+# the shuttle's lower part meets the rear dog at s = P_MOVE and the front dog at s = S_MAX - P_MOVE
+DOG_REAR = (28.0 - LOW_BACK + P_MOVE - P_MOVE - 4.0, 28.0 - LOW_BACK)                      # 15 to 19
+DOG_FRONT = (28.0 + S_MAX - P_MOVE + LOW_FRONT, 28.0 + S_MAX - P_MOVE + LOW_FRONT + 4.0)   # 137 to 141
+
+
+def pushrod(p=0.0):
+    """Pushrod at p (0 = back, P_MOVE = forward)."""
+    z0, z1 = PUSH_Z0, PUSH_Z0 + PUSH_H
+    body = box(DOG_REAR[0], DOG_FRONT[1], PUSH_Y0, PUSH_Y1, z0, z1)
+    dogs = [box(DOG_REAR[0], DOG_REAR[1], PUSH_Y1 - 0.1, SHUT_Y_LOW + 1.0, z0, z1),
+            box(DOG_FRONT[0], DOG_FRONT[1], PUSH_Y1 - 0.1, SHUT_Y_LOW + 1.0, z0, z1)]
+    bumps = [bump(BUMP_C_X, BUMP_IN, z0, z0 + BUMP_H), bump(BUMP_O_X, BUMP_IN, z0, z0 + BUMP_H)]
+    return union([body] + dogs + bumps).translate([p, 0, 0])
+
+
+SHUT_TOP = LEVEL_F[1] - 0.1                  # 15.25
+SHUT_UP_Z0 = SHUT_TOP - layer(37)            # 7.80: upper part, on layer lines from its top
+SHUT_MID = (SHUT_TOP - layer(22), SHUT_TOP - layer(15))   # 10.80 to 12.20: solid round the pin
+SHUT_Z0 = SHUT_TOP - layer(52)               # 4.80
+
+
+def slider_pin_x(s):
+    return 28.0 + s
+
+
+def shuttle(s=0.0):
+    """Shuttle and knob, one piece, with the knob pin's hole. s is the knob's travel."""
+    px = slider_pin_x(0)
+    x0, x1 = px - SHUT_BACK, px + SHUT_FRONT
+    lower = box(px - LOW_BACK, px + LOW_FRONT, SHUT_Y_LOW, SHUT_Y1, SHUT_Z0, SHUT_UP_Z0 + 0.01)
+    upper = box(x0, x1, SHUT_Y_UP, SHUT_Y1, SHUT_UP_Z0, SHUT_TOP)
+    stem = box(px - 1, px + 7, SHUT_Y1 - 0.1, HW / 2 + 0.4, STEM_Z0, STEM_Z1)
+    knob_z0 = SHUT_TOP - layer(58)               # 3.65, so the knob prints down to the bed
+    knob = box(px - 3, px + 9, HW / 2 + 0.3, HW / 2 + 3.3, knob_z0, SHUT_TOP)
+    ridges = union([box(px - 3 + 1.5 + 2.5 * i, px - 3 + 2.5 + 2.5 * i, HW / 2 + 2.8, HW / 2 + 3.4, knob_z0 - 1, SHUT_TOP + 1)
+                    for i in range(4)])
+    sh = union([lower, upper, stem, knob]) - ridges
+    eye_r = PIN_D / 2 + PIN_PLAY + BAND_T + 0.3       # round the band's eye
+    strand = (S_PIN_Y - BAND_T / 2 - PIN_PLAY, S_PIN_Y + BAND_T / 2 + PIN_PLAY)
+    cuts = [cyl_z(px, S_PIN_Y, SHUT_Z0 - 1, SHUT_TOP + 1, PIN_D),
+            # band B's eye and strand at the lower level, the strand leaving forward
+            cyl_z(px, S_PIN_Y, LEVEL_B[0] - 1, SHUT_MID[0], 2 * eye_r),
+            box(px, x1 + 1, strand[0], strand[1], LEVEL_B[0] - 1, SHUT_MID[0]),
+            # band F's eye and strand at the upper level, the strand leaving backward
+            cyl_z(px, S_PIN_Y, SHUT_MID[1], SHUT_TOP + 1, 2 * eye_r),
+            box(x0 - 1, px, strand[0], strand[1], SHUT_MID[1], SHUT_TOP + 1)]
+    return (sh - union(cuts)).translate([s, 0, 0])
+
+
+def slider_pin(s=0.0):
+    return cyl_z(slider_pin_x(s), S_PIN_Y, SHUT_UP_Z0, SHUT_TOP, PIN_D)
+
+
+def knob_slot_x():
+    return slider_pin_x(0) - 1 - 0.2, slider_pin_x(S_MAX) + 7 + 0.2
 
 
 # ---------------------------------------------------------------- bands
-def band_2d(ax, bx, t):
-    """Band seen from above: eye at (ax, -STRAND_Y), round the roller, eye at (bx, +STRAND_Y)."""
+def band_fitted(kind, c, s, t=BAND_T):
+    """Band F or B stretched in place, blade at c, knob at s."""
     r = ROLLER_D / 2 + t / 2
-    eye_in = POST_D + 2 * HOLE_PLAY
-    eye_out = eye_in + 2 * t
+    cx, sx = C0 + c + C_PIN_X, slider_pin_x(s)
+    y1, y2, y3 = C_PIN_Y, C_PIN_Y + 2 * r, C_PIN_Y + 4 * r
+    if kind == "F":
+        z0 = LEVEL_F[0] + 0.1
+        segs = [(cx, X_F, y1), (X_B, X_F, y2), (X_B, sx, y3)]
+        turns = [(X_F, (y1 + y2) / 2, +1), (X_B, (y2 + y3) / 2, -1)]
+    else:
+        z0 = LEVEL_B[0] + 0.1
+        segs = [(X_B, cx, y1), (X_B, X_F, y2), (sx, X_F, y3)]
+        turns = [(X_B, (y1 + y2) / 2, -1), (X_F, (y2 + y3) / 2, +1)]
+    return extrude(band_shape(segs, turns, [(cx, y1), (sx, y3)], t), z0, z0 + BAND_H)
+
+
+def band_shape(segs, turns, eyes, t):
+    r = ROLLER_D / 2 + t / 2
+    eye_in = PIN_D + 2 * PIN_PLAY
     sq = m3.CrossSection.square
-    parts = [sq([ROLLER_X + 0.01 - ax, t]).translate([ax, -r - t / 2]),    # 0.01 into the arc so they join
-             sq([ROLLER_X + 0.01 - bx, t]).translate([bx, r - t / 2]),
-             ((m3.CrossSection.circle(r + t / 2, 64) - m3.CrossSection.circle(r - t / 2, 64))
-              - sq([30, 30]).translate([-30, -15])).translate([ROLLER_X, 0]),
-             m3.CrossSection.circle(eye_out / 2, 32).translate([ax, -r]),
-             m3.CrossSection.circle(eye_out / 2, 32).translate([bx, r])]
+    parts = [sq([abs(x1 - x0) + 0.02, t]).translate([min(x0, x1) - 0.01, y - t / 2]) for x0, x1, y in segs]
+    for x, y, side in turns:
+        ring = m3.CrossSection.circle(r + t / 2, 64) - m3.CrossSection.circle(r - t / 2, 64)
+        half = sq([20, 20]).translate([0 if side > 0 else -20, -10])
+        parts.append((ring ^ half).translate([x, y]))
+    parts += [m3.CrossSection.circle(eye_in / 2 + t, 32).translate(e) for e in eyes]
     cs = m3.CrossSection.batch_boolean(parts, m3.OpType.Add)
-    holes = m3.CrossSection.batch_boolean([m3.CrossSection.circle(eye_in / 2, 32).translate([ax, -r]),
-                                           m3.CrossSection.circle(eye_in / 2, 32).translate([bx, r])],
-                                          m3.OpType.Add)
-    return cs - holes
+    return cs - m3.CrossSection.batch_boolean([m3.CrossSection.circle(eye_in / 2, 32).translate(e) for e in eyes], m3.OpType.Add)
 
 
-def band_path(ax, bx, t):
+def band_length(kind, c, s, t=BAND_T):
     r = ROLLER_D / 2 + t / 2
-    return (ROLLER_X - ax) + math.pi * r + (ROLLER_X - bx)
+    cx, sx = C0 + c + C_PIN_X, slider_pin_x(s)
+    if kind == "F":
+        return (X_F - cx) + (X_F - X_B) + (sx - X_B) + 2 * math.pi * r
+    return (cx - X_B) + (X_F - X_B) + (X_F - sx) + 2 * math.pi * r
 
 
 def band_print(t):
-    """A band as printed: relaxed, BAND_RELAXED long between eye centres."""
+    """A band as printed, relaxed: three equal strands in a flat S, eye to eye BAND_RELAXED."""
     r = ROLLER_D / 2 + t / 2
-    a = 133.0
-    b = BAND_RELAXED - a - math.pi * r
-    return extrude(band_2d(ROLLER_X - a, ROLLER_X - b, t), 0, BAND_H)
-
-
-def bands_fitted(at=0.0, t=BAND_T):
-    """Both bands stretched into place for the carrier at `at`."""
-    bx = CLOSED_X + at + PIN_X
-    z0 = WALL_T + (CAV_Z1 - WALL_T - BAND_H) / 2
-    one = extrude(band_2d(ANCHOR_X, bx, t), z0, z0 + BAND_H)
-    return one + mirror_z(one)
+    a = (BAND_RELAXED - 2 * math.pi * r) / 3
+    y1, y2, y3 = 0.0, 2 * r, 4 * r
+    segs = [(0, a, y1), (0, a, y2), (0, a, y3)]
+    turns = [(a, r, +1), (0, 3 * r, -1)]
+    return extrude(band_shape(segs, turns, [(0, y1), (a, y3)], t), 0, BAND_H)
 
 
 # ---------------------------------------------------------------- files
@@ -338,14 +526,14 @@ def write_3mf(name, plates):
     part on plate 1 and filament 1 (PRINTER-BRAIN). Same writer as the shed model's."""
     root = math.sqrt(len(plates))
     cols = round(root) + (1 if root > round(root) else 0)
-    stride = 220 * 1.2                    # Orca's plate grid: a fifth of a bed apart
+    stride = 220 * 1.2
     res, build, cfg, plate_cfg, oid = [], [], [], [], 1
     for i, (plate_name, items) in enumerate(plates):
         ox, oy = (i % cols) * stride, -(i // cols) * stride
         plate_cfg.append(f'<plate><metadata key="plater_id" value="{i + 1}"/>'
                          f'<metadata key="plater_name" value={quoteattr(plate_name)}/>'
                          f'<metadata key="locked" value="false"/>')
-        for obj_name, man, filament, (x, y) in items:
+        for obj_name, man, filament, (x, y), *own in items:
             bb = man.bounding_box()
             mid = np.array([(bb[0] + bb[3]) / 2, (bb[1] + bb[4]) / 2, (bb[2] + bb[5]) / 2])
             mesh = man.to_mesh()
@@ -359,7 +547,8 @@ def write_3mf(name, plates):
                        f'<components><component objectid="{oid}"/></components></object>')
             cfg.append(f'<object id="{oid + 1}"><metadata key="name" value={quoteattr(obj_name)}/>'
                        f'<metadata key="extruder" value="{filament}"/>'
-                       f'<part id="{oid}" subtype="normal_part"><metadata key="name" value={quoteattr(obj_name)}/>'
+                       + "".join(f'<metadata key="{key}" value={quoteattr(v)}/>' for key, v in (own[0] if own else {}).items())
+                       + f'<part id="{oid}" subtype="normal_part"><metadata key="name" value={quoteattr(obj_name)}/>'
                        f'<metadata key="extruder" value="{filament}"/></part></object>')
             build.append(f'<item objectid="{oid + 1}" transform="1 0 0 0 1 0 0 0 1 '
                          f'{ox + x + mid[0] - bb[0]:.4f} {oy + y + mid[1] - bb[1]:.4f} {mid[2] - bb[2]:.4f}"/>')
@@ -396,19 +585,32 @@ def on_bed(man):
     return man.translate([-bb[0], -bb[1], -bb[2]])
 
 
+FLIP = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0]], dtype=float)
+LIE = np.array([[0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=float)       # a z pin lying along x
+
+
+def lying_pin(length):
+    """A pin lying down, with a 0.35 flat so it sits on the bed (2.65 tall)."""
+    return cyl_z(0, 0, 0, length, PIN_D).transform(LIE) ^ box(-1, length + 1, -5, 5, PIN_D / 2 - layer(13), 5)
+
+
 def print_parts():
     """Every part turned the way it prints, sitting on the bed."""
-    flip = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, HT]], dtype=float)   # top half, outside down
     return {
-        "handle bottom": on_bed(handle_bottom()),
-        "handle top": on_bed(handle_top().transform(flip)),
+        "handle 1 base": on_bed(plate1()),
+        "handle 2 channel": on_bed(plate2()),
+        "handle 3 band deck": on_bed(plate3()),
+        "handle 4 top": on_bed(plate4().transform(FLIP)),
         "blade": on_bed(carrier()),
-        "pin": on_bed(cyl_z(0, 0, 0, HT - 2 * WALL_T - 0.4, PIN_D)
-                      .transform(np.array([[0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=float))
-                      ^ box(-20, 20, -20, 20, PIN_D / 2 - layer(13), 20)),     # lying down, flat underneath, 2.65 tall
-        "roller": on_bed(cyl_z(0, 0, 0, ROLLER_H, ROLLER_D, 48) - cyl_z(0, 0, -1, 4, POST_D + 2 * HOLE_PLAY)),
+        "slider": on_bed(shuttle().transform(FLIP)),
+        "pushrod": on_bed(pushrod()),
+        "pin long": on_bed(lying_pin(C_PIN_TOP - CAR_Z0)),
+        "pin short": on_bed(lying_pin(SHUT_TOP - SHUT_UP_Z0)),
+        "roller": on_bed(cyl_z(0, 0, 0, ROLLER_H, ROLLER_D, 48) - cyl_z(0, 0, -1, 4, POST_D + 2 * PIN_PLAY)),
+        "screw": on_bed(screw()),
+        "nut": on_bed(nut()),
         "band": on_bed(band_print(BAND_T)),
-        "band firm": on_bed(band_print(BAND_T_FIRM)),
+        "band soft": on_bed(band_print(BAND_T_SOFT)),
     }
 
 
@@ -416,30 +618,36 @@ def main():
     p = print_parts()
     for name, man in p.items():
         write_stl(man, name + ".stl")
-    hb, ht, bl = p["handle bottom"], p["handle top"], p["blade"]
-    hbw = hb.bounding_box()[3]
-    y0 = (220 - (2 * HW + 8)) / 2
+    plates = [p["handle 1 base"], p["handle 2 channel"], p["handle 3 band deck"], p["handle 4 top"]]
+    x0 = (220 - HL) / 2
+    y = 22.0
+    handle_items = []
+    for name, part in zip(("handle 1 base", "handle 2 channel", "handle 3 band deck", "handle 4 top"), plates):
+        handle_items.append((name, part, 2, (x0, y)))
+        y += HW + 6
+    solid = {"wall_loops": "6", "sparse_infill_density": "100%"}    # printed screws and nuts: solid
+    small = [("pushrod", p["pushrod"], 2, (20, 30)), ("pin long", p["pin long"], 2, (20, 52)),
+             ("pin short", p["pin short"], 2, (45, 52))]
+    for i in range(4):
+        small.append((f"roller {i + 1}", p["roller"], 2, (20 + 12 * i, 70)))
+        small.append((f"screw {i + 1}", p["screw"], 2, (20 + 16 * i, 95), solid))
+        small.append((f"nut {i + 1}", p["nut"], 2, (20 + 14 * i, 120), solid))
+    bl, sl = p["blade"], p["slider"]
     write_3mf("1 knife plates.3mf", [
-        ("handle (black)", [                      # filament 2
-            ("handle bottom", hb, 2, ((220 - hbw) / 2, y0)),
-            ("handle top", ht, 2, ((220 - hbw) / 2, y0 + HW + 8)),
-            ("pin", p["pin"], 2, ((220 - hbw) / 2, y0 - 14)),
-            ("roller 1", p["roller"], 2, ((220 - hbw) / 2 + 20, y0 - 14)),
-            ("roller 2", p["roller"], 2, ((220 - hbw) / 2 + 32, y0 - 14)),
-        ]),
-        ("blade (white)", [                       # filament 1
-            ("blade", bl, 1, ((220 - bl.bounding_box()[3]) / 2, 110 - CAR_W / 2)),
-        ]),
+        ("handle (black)", handle_items),
+        ("small parts (black)", small),
+        ("blade and slider (white)", [("blade", bl, 1, ((220 - bl.bounding_box()[3]) / 2, 60)),
+                                      ("slider", sl, 1, (90, 120))]),
     ])
     bp = p["band"]
     bw, bh = bp.bounding_box()[3], bp.bounding_box()[4]
     write_3mf("2 bands (TPU).3mf", [
-        ("bands (TPU)", [("band 1", bp, 1, ((220 - bw) / 2, 110 - bh - 5)),
-                         ("band 2", bp, 1, ((220 - bw) / 2, 115))]),
+        ("bands (TPU)", [("band 1", bp, 1, ((220 - bw) / 2, 110 - bh - 6)),
+                         ("band 2", bp, 1, ((220 - bw) / 2, 116))]),
     ])
     for name, man in p.items():
         bb = man.bounding_box()
-        print(f"{name:14s} {bb[3]-bb[0]:6.1f} x {bb[4]-bb[1]:6.1f} x {bb[5]-bb[2]:5.1f} mm  {man.volume()/1000:5.1f} cm3")
+        print(f"{name:18s} {bb[3]-bb[0]:6.1f} x {bb[4]-bb[1]:6.1f} x {bb[5]-bb[2]:5.2f} mm  {man.volume()/1000:5.1f} cm3")
 
 
 if __name__ == "__main__":
