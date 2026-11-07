@@ -129,7 +129,7 @@
     ],
     "cooling_tube_length": "0",
     "cooling_tube_retraction": "0",
-    "counterbore_hole_bridging": "none",
+    "counterbore_hole_bridging": "partiallybridge",
     "curr_bed_type": "Textured PEI Plate",
     "default_acceleration": "10000",
     "default_bed_type": "",
@@ -154,7 +154,7 @@
     "detect_overhang_wall": "1",
     "detect_thin_wall": "0",
     "different_settings_to_system": [
-        "wall_generator",
+        "counterbore_hole_bridging;wall_generator",
         "",
         "",
         "",
