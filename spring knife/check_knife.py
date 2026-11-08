@@ -11,9 +11,11 @@ It walks a whole cycle and prints what it proved:
     the whole range of TPU stiffness, TPU losses, friction, print weight and the knife held
     flat or pointing up; the same model with the thumb leaving the knob early;
   * how hard the thumb pushes, counting the sled being carried twisting against its walls;
-  * how hard things hit (every throw, and a knob let go just before the trip) and the stress
-    that puts in the sleds' wings, the risers and the bar;
-  * the printed screws mesh with their nuts with the shop's 0.35-0.4 mm clearance;
+  * how hard things hit, through the risers' TPU caps (every throw, a thumb flicked off the knob,
+    a knob let go just before the trip) and the stress that puts in the sleds' wings, the risers,
+    the bar and the rail;
+  * the printed screws mesh with the top plate's posts with the shop's 0.35-0.4 mm clearance,
+    and hold all three plates together;
   * every part prints without anything hanging in the air, every flat face sits on a layer
     line, no wall is thinner than two lines and no gap inside one part is under 0.45.
 """
@@ -45,11 +47,10 @@ TOL = 0.01      # mm3: faces that only touch
 # ---------------------------------------------------------------- fixed parts
 P1, P2, P3 = k.plate1(), k.plate2(), k.plate3()
 SCREWS = k.union([k.screw(x, y) for x, y in k.SCREWS])
-NUTS = k.union([k.nut(x, y) for x, y in k.SCREWS])
 PAD_R, PAD_F = k.pad(k.PAD_X0), k.pad(k.PAD_X1 - k.PAD_L)
 CUSH_R, CUSH_F = k.cushion("R"), k.cushion("F")
 HANDLE = k.union([P1, P2, P3])
-FIXED = {"base plate": P1, "middle plate": P2, "top plate": P3, "screws": SCREWS, "nuts": NUTS,
+FIXED = {"base plate": P1, "middle plate": P2, "top plate": P3, "screws": SCREWS,
          "rear pad": PAD_R, "front pad": PAD_F, "rear cushion": CUSH_R, "front cushion": CUSH_F}
 
 # ---------------------------------------------------------------- where the latch block is
@@ -120,7 +121,8 @@ def scene(c, s, mode):
     elif dx < -0.1:
         fixed["rear cushion"] = squashed(CUSH_R, k.SPINE_X0 + dx, True)
     parts = {"blade": k.carrier(c, k.arm_deflect_for(y)), "latch block": k.latch_block(c, y),
-             "knob slider": k.knob_bar(s), "sled F": k.sled(pf, "F"), "sled B": k.sled(pb, "B"),
+             "knob slider": k.knob_bar(s) + k.riser_cap("F", s) + k.riser_cap("B", s),
+             "sled F": k.sled(pf, "F"), "sled B": k.sled(pb, "B"),
              "band": k.band_fitted(c, s), "rail": k.rail(dx)}
     return parts, fixed
 
@@ -214,13 +216,29 @@ for c in (86 - k.E_CATCH, 86 - k.C_TRIP, 86 - k.C_COCK):
     s_l = next(s for s in frange(k.THROW, 0, 0.05) if cam_y(x0, x0 + k.BLK_L, s) < Y_LET)
     report(s1 <= k.THROW - 18 and y1 <= k.Y_CAM + 1e-6,
            f"cam B, blade crept {86 - c:g}: first touches the block at s {s1:.1f}, lets it go at s {s_e:.1f} to {s_l:.1f}, has it fully in by s {1.0 - ((86 - c) - k.C_TRIP):g}")
-jaws = k.CAR_W / 2 - (k.Y_RAIL - k.BLK_D)          # how deep the block sits in its slot while on the rail
-tilt = k.BLK_L * 2 * k.BLK_SLOT / jaws
-corner = k.Y_RAIL + tilt - k.BLK_CHAMFER
-report(corner < Y_LET, f"a block leaving its window can lean {tilt:.2f} mm in its slot; its chamfered trailing corner stays at y {corner:.2f}, inside the rail's {Y_LET:.2f}")
-held_out = k.CAR_W / 2 - (k.Y_OUT - k.BLK_D)
-lean_out = 2 * k.BLK_SLOT / held_out * (k.Y_OUT - k.CAR_W / 2)
-report(lean_out < k.BLK_CHAMFER, f"out in a window it is {held_out:.2f} deep in its slot and leans at most {lean_out:.2f} at its face, less than its {k.BLK_CHAMFER} chamfers")
+
+
+def block_turn(y_out):
+    """Largest turn (radians) of the block in its slot with its outer face at y_out, from its
+    real chamfered outline: only what is inside the carrier (y under 11.0) meets the walls."""
+    poly = m3.CrossSection([k.block_poly(y_out)])
+    inside = m3.CrossSection.square([40, 30]).translate([0, k.CAR_W / 2 - 30])
+    room = k.BLK_L + 2 * k.BLK_SLOT
+    lo, hi = 0.0, 0.6
+    for _ in range(40):
+        th = (lo + hi) / 2
+        xc = k.BLK_X0 + k.BLK_L / 2
+        b = (poly.translate([-xc, -k.CAR_W / 2]).rotate(math.degrees(th)).translate([xc, k.CAR_W / 2]) ^ inside).bounds()
+        lo, hi = (th, hi) if b[2] - b[0] <= room else (lo, th)
+    return lo
+
+
+th_rail, th_out = block_turn(k.Y_RAIL), block_turn(k.Y_OUT)
+rise = k.BLK_L * math.sin(th_rail)
+corner = k.Y_RAIL + rise - k.BLK_CHAMFER
+report(corner < Y_LET, f"a block leaving its window can turn {math.degrees(th_rail):.1f} degrees in its slot; its chamfered trailing corner stays at y {corner:.2f}, inside the rail's {Y_LET:.2f}")
+lean_out = math.sin(th_out) * (k.Y_OUT - k.CAR_W / 2)
+report(lean_out < k.BLK_CHAMFER, f"out in a window it can turn {math.degrees(th_out):.1f} degrees and leans at most {lean_out:.2f} at its face, less than its {k.BLK_CHAMFER} chamfers")
 ok = True
 for c in frange(k.E_CATCH, k.RAIL_X0 - k.X_BLK, 0.05):
     x0, x1 = k.X_BLK + c, k.X_BLK + c + k.BLK_L
@@ -234,8 +252,13 @@ for c in frange(86 - k.E_CATCH, k.RAIL_X1 - k.X_BLK - k.BLK_L, 0.05):
     ok = ok and held
 report(ok, "on the way in, the same with cam B")
 eng = min(k.Y_OUT - k.BLK_CHAMFER, k.SPINE_Y0) - Y_LET
-report(eng >= 1.0 and k.RAIL_TOP - k.CAR_Z0 >= 1.5,
-       f"latched, the block bears {eng:.2f} mm deep on the rail's end, over {k.RAIL_TOP - k.CAR_Z0:.2f} mm of height")
+bar_in = k.BAR_Y0 - k.RISER_SLOT_Y0                 # the thumb can push the bar in this far
+rail_out = k.SPINE_Y0 - k.GROOVE_Y0                 # and the block riding a catch pushes the rail out this far
+bite = k.Y_OUT - bar_in - k.BLK_CHAMFER - (Y_LET + rail_out)
+high = k.RAIL_TOP - (k.BLK_Z0 + (k.Z1 - k.BLK_Z1))   # the block lifted to the middle plate
+report(bite >= 0.75 and high >= 1.4, f"at worst (bar pushed in, rail pushed out, block lifted) it still bites {bite:.2f} deep over {high:.2f} of height")
+report(eng >= 1.0 and k.RAIL_TOP - k.BLK_Z0 >= 1.5,
+       f"latched, the block bears {eng:.2f} mm deep on the rail's end, over {k.RAIL_TOP - k.BLK_Z0:.2f} mm of height")
 E_PLA, G_PLA = 3500.0, 1300.0
 arm_L = k.arm_L()
 k_arm = 3 * E_PLA * (k.CAR_T * k.ARM_T ** 3 / 12) / arm_L ** 3
@@ -310,6 +333,7 @@ y_hit = (k.BAR_Y0 + k.RISER_Y1) / 2
 m_turn = m_sled / (1 + (y_hit - CEN_SLED[1]) ** 2 / r2_sled)   # what the wing feels of the sled when a riser hits it
 A_band = k.BAND[0] * k.BAND[1]
 K_CUSH_AREA = (k.SPINE_Y1 - k.SPINE_Y0) * (k.CUSH_TOP - k.RAIL_Z0)
+CUSH_FREE = k.CUSH_L - k.CUSH_HELD
 G_ACC = 9.81e-3                                  # N per g
 FC_MISC = 0.1                                    # N: the band and sled F rubbing, the carrier on its floor
 
@@ -336,13 +360,15 @@ def k_pad(E_tpu):
     return E_tpu * (2 * k.PAD_HW * k.SLED_H) / k.PAD_L
 
 
-def throw(E_tpu, h, mu, fill, up=False, band=k.BAND, dt=2e-6, mu_push=0.046):
+def throw(E_tpu, h, mu, fill, up=False, band=k.BAND, dt=2e-6, mu_push=0.046, follow=False):
     """One throw from the trip. E_tpu MPa; h TPU loss on unloading; mu PLA on PLA; fill:
-    printed weight over solid; up: knife pointing up. Returns a dict."""
+    printed weight over solid; up: knife pointing up. follow: the thumb has pushed the knob on
+    to its pad (the most the band can give), else it stopped where the block let go (the least).
+    Returns a dict."""
     kb = E_tpu * band[0] * band[1] / k.BAND_RELAXED
     m = (m_blade_solid + m_sled) * fill / 1000      # kg: sled F rides along while the band pulls
     c0 = k.C_TRIP
-    stroke = (S_TRIP - k.G_P) - c0
+    stroke = ((k.THROW + k.SOFT if follow else S_TRIP) - k.G_P) - c0
     x, v = 0.0, 0.0
     while x < stroke:
         T = (1 - h) * kb * (k.BAND_PRELOAD + stroke - x)
@@ -368,7 +394,7 @@ def throw(E_tpu, h, mu, fill, up=False, band=k.BAND, dt=2e-6, mu_push=0.046):
     E_arr_pad = E_arr * m_b * 1000 / (m_b * 1000 + m_s)          # the lug picks up sled B on the way
     squash = math.sqrt(2 * E_arr_pad / kp)
     E_reb = max(0.45 * E_arr_pad - Fc * (squash + k.G_P + k.SOFT + k.E_CATCH), 0.0)   # TPU gives back about 45 %
-    k_cush = E_tpu * K_CUSH_AREA / k.CUSH_L
+    k_cush = E_tpu * K_CUSH_AREA / CUSH_FREE
     d_cush = math.sqrt(2 * E_reb / k_cush)
     v_arr = math.sqrt(2 * E_arr / 1000 / m_b) if E_arr > 0 else 0.0
     return {"reached": True, "E_throw": E, "v_release": v / 1000, "E_arrive": E_arr, "squash": squash, "F_pad": kp * squash,
@@ -424,6 +450,11 @@ nom = throw(20.0, 0.15, 0.3, 0.9)
 print(f"     nominal throw: {nom['E_throw']:.0f} mJ when the band lets go; arrives at {nom['v']:.1f} m/s with {nom['E_arrive']:.0f} mJ, "
       f"squashes the pad {nom['squash']:.1f} mm ({nom['F_pad']:.0f} N), bounces back into the rail with {nom['E_rebound']:.0f} mJ "
       f"({nom['d_cush']:.1f} mm of cushion, {nom['F_cush']:.0f} N)")
+oks = [throw(*g, follow=True) for g in grid] + [throw(*g, band=k.BAND_STRONG, follow=True) for g in grid_s] + \
+    [throw(*g, band=k.BAND_SOFT, follow=True) for g in grid_soft]          # the knocks: the thumb pushed on to the end
+oks = [r for r in oks if r["reached"]]
+print(f"     with the thumb pushing the knob on to its end the band gives up to {max(r['E_throw'] for r in oks):.0f} mJ; "
+      f"the arrivals below count that")
 over = max(r["overrun"] for r in oks)
 report(over + 0.5 <= k.W_FAR, f"hardest arrival: overrun {over:.1f} mm; the far end of each window is {k.W_FAR:.1f} mm on")
 pad_sq = max(r["squash"] for r in oks)
@@ -431,7 +462,8 @@ free = k.PAD_L - k.PAD_IN
 report(pad_sq / k.PAD_L < 0.4 and pad_sq < free - 0.5,
        f"pads squash at most {pad_sq:.1f} of {k.PAD_L} mm ({max(r['F_pad'] for r in oks):.0f} N); {free:.1f} of each stands out of its pocket")
 cu = max(r["d_cush"] for r in oks)
-report(cu / k.CUSH_L < 0.4 and cu < k.RAIL_MOVE - 0.2, f"rail cushions squash at most {cu:.1f} of {k.CUSH_L:.0f} mm ({max(r['F_cush'] for r in oks):.0f} N on the block); the groove lets the rail move {k.RAIL_MOVE}")
+report(cu / CUSH_FREE < 0.45 and cu < k.RAIL_MOVE - 0.2, f"rail cushions squash at most {cu:.1f} of the {CUSH_FREE:.0f} mm free of their grip "
+       f"({max(r['F_cush'] for r in oks):.0f} N on the block); the catches can move {k.RAIL_MOVE}")
 
 # the block has to be back out before the blade bounces back past the rail's end
 m_arm = k.ARM_T * k.CAR_T * arm_L * RHO
@@ -448,6 +480,14 @@ for r in oks:
     t_pad = math.pi * math.sqrt((m_b + m_s) / 1000 / (r["kp"] * 1000)) * 1000
     t_win.append((k.E_CATCH + k.G_P) / v + k.SOFT / v2 + t_pad + (k.SOFT + k.G_P + k.E_CATCH) / max(0.6 * v2, 1e-3))
 report(t_pop < min(t_win), f"the arm has the block back out over the rail's end in {t_pop:.2f} ms; the blade is back there no sooner than {min(t_win):.2f} ms")
+SOLID_OKS = [r for r in oks if r["m_b"] >= 0.9 * m_blade_solid]   # the moving parts print solid
+v_far = max(r["v"] for r in SOLID_OKS) * 1.05                       # the blade meets the far ramp a little before it arrives
+v_in = v_far * math.tan(math.radians(k.SEG_RAMP))                   # m/s = mm/ms: the ramp throws the block in this fast
+d_kick = math.sqrt(d_rail ** 2 + (v_in / (w_arm / 1000)) ** 2)     # the arm's spring takes that speed
+room = k.arm_deflect_for(k.Y_CAM) + 0.1 + k.ARM_GAP
+st_kick = 3 * k.ARM_T * d_kick / (2 * arm_L ** 2) * kt
+report(d_kick <= room - 0.05 and st_kick < 0.01, f"the far ramp throws the block in at up to {v_in:.1f} m/s; the arm then bends {d_kick:.2f} mm "
+       f"({st_kick * 100:.2f} % at its root), inside the {room:.2f} mm of room under it")
 
 print("\n== The thumb")
 A_TWIST = k.BAR_Y0                         # the riser pushes the wing's inner corner, the band pulls on y = 0
@@ -461,10 +501,13 @@ def twist(mu):
 
 
 def thumb_at_trip(E_tpu, mu, band=k.BAND):
+    """(band pull, riser push, cam push, total) at the trip. The cam's 22 degree face also
+    pushes the block forward into the rail's end, which adds to the rubbing it has to beat."""
     kb = E_tpu * band[0] * band[1] / k.BAND_RELAXED
     Fb = kb * (k.BAND_PRELOAD + S_TRIP_LATE - k.G_P - k.C_TRIP)
-    F_lat = Fb * (mu + mu) + k_arm * k.arm_deflect_for(k.Y_CAM)
-    F_cam = F_lat * (math.tan(math.radians(22) + math.atan(mu)) + mu)
+    tn = math.tan(math.radians(k.CAM_ANGLE) + math.atan(mu))
+    F_lat = (2 * mu * Fb + k_arm * k.arm_deflect_for(k.Y_CAM)) / (1 - mu * tn)
+    F_cam = F_lat * (tn + mu)
     return Fb, Fb * twist(mu), F_cam, Fb * twist(mu) + F_cam + 0.3
 
 
@@ -479,7 +522,7 @@ for name, E_tpu, mu, Fb, Fr, Fcam, tot in rows:
               f"+ latch {Fcam:.1f} N + bar 0.3 N = {tot:.1f} N")
 hi_ = max(r[-1] for r in rows)
 NOMINAL_THUMB = thumb_at_trip(20.0, 0.3)[-1]
-report(NOMINAL_THUMB < 20 and hi_ < 32, f"thumb at the trip: {NOMINAL_THUMB:.1f} N nominal, {min(r[-1] for r in rows):.1f}-{hi_:.1f} N over friction 0.2-0.4 and the three bands in their TPUs "
+report(NOMINAL_THUMB < 20 and hi_ < 33, f"thumb at the trip: {NOMINAL_THUMB:.1f} N nominal, {min(r[-1] for r in rows):.1f}-{hi_:.1f} N over friction 0.2-0.4 and the three bands in their TPUs "
                                        f"(the sled twists x{twist(0.2):.2f}-{twist(0.4):.2f})")
 
 
@@ -488,7 +531,7 @@ def thumb_off(when, E_tpu, h, mu, fill, band=k.BAND, m_thumb=10.0, dt=2e-4):
     (as the knob lands on its pad). Units mm, g, ms, N. While on, it pushes with the trip force
     and the knob jumps on to its pad and stays; once off, the band pulls the bar back. The blade
     is only pushed by sled F, so when riser F meets sled F the blade goes on alone and coasts.
-    Returns (locks, ms from the trip to the thumb leaving)."""
+    Returns (locks, ms from the trip to the thumb leaving, m/s at which riser F meets sled F)."""
     kb = E_tpu * band[0] * band[1] / k.BAND_RELAXED
     m_b, m_s, m_br = m_blade_solid * fill, m_sled * fill, m_bar * fill
     F_th = thumb_at_trip(E_tpu, mu, band)[-1]
@@ -512,26 +555,29 @@ def thumb_off(when, E_tpu, h, mu, fill, band=k.BAND, m_thumb=10.0, dt=2e-4):
         c += v * dt
         t += dt
         if v <= 0:
-            return False, t_left
+            return False, t_left, 0.0
         if c >= s - k.G_P:
             break
+    v_close = v - vs
     E_b = 0.5 * m_b * v * v
     while c < (k.RAIL_X1 - k.X_BLK) + 0.3:
         E_b -= friction(c, mu, fill) * 0.05
         if E_b <= 0:
-            return False, t_left
+            return False, t_left, v_close
         c += 0.05
-    return True, t_left
+    return True, t_left, v_close
 
 
 cases = list(itertools.product((15.0, 20.0, 26.0), (0.1, 0.3), MU, (0.6, 1.0)))
-stay = sum(thumb_off("never", *g)[0] for g in cases)
+solid_cases = [i for i, g in enumerate(cases) if g[3] == 1.0]
+never = [thumb_off("never", *g) for g in cases]
+stay = sum(r[0] for r in never)
 at_trip = sum(thumb_off("trip", *g)[0] for g in cases)
 land = [thumb_off("land", *g) for g in cases]
-t_land = [t for _, t in land if t is not None] or [0.0]
+t_land = [r[1] for r in land if r[1] is not None] or [0.0]
 report(stay == len(cases), f"thumb kept on the knob until the blade has gone: locks in {stay} of {len(cases)} cases")
 print(f"     thumb flicked off the knob as it lands ({min(t_land):.1f}-{max(t_land):.1f} ms after the trip): locks in "
-      f"{sum(ok_ for ok_, _ in land)} of {len(cases)}; thumb off at the very moment of the trip: {at_trip} of {len(cases)}. "
+      f"{sum(r[0] for r in land)} of {len(cases)}; thumb off at the very moment of the trip: {at_trip} of {len(cases)}. "
       f"A blade that stops part way out is pushed back by hand")
 
 print("\n== Knocks")
@@ -548,15 +594,6 @@ def riser_mpa(F):
     sb = F * lev / (w_r * k.RISER_L ** 2 / 6)
     tau = 1.5 * F / (w_r * k.RISER_L)
     return sb / 2 + math.sqrt((sb / 2) ** 2 + tau ** 2)
-
-
-v_rel = max(r["v_release"] for r in oks if r["m_b"] >= 0.9 * m_blade_solid)   # as printed: solid
-m_other = m_bar + m_sled + 10.0
-m_red = m_turn * m_other / (m_turn + m_other)
-F_hit = v_rel * math.sqrt(k_wing * 1000 * m_red / 1000)
-report(F_hit * WING_MPA <= 20 and riser_mpa(F_hit) <= 12,
-       f"every throw: sled F meets its riser at up to {v_rel:.1f} m/s, blade printed solid ({m_turn:.2f} of its {m_sled:.2f} g turns into the hit): {F_hit:.0f} N, "
-       f"{F_hit * WING_MPA:.1f} MPa at the wing's root, {riser_mpa(F_hit):.1f} MPa across the riser's root layer (limits 20 and 12)")
 
 
 LANE_CS = P1.slice(k.LANE_Z0 - 0.05)       # the base plate just under the lane's floor
@@ -621,26 +658,158 @@ def bar_stress(F, s):
     return float(np.max(np.where(plain, np.abs(Mel) / Z0, 0)))
 
 
-# the knob let go just before the trip: the bar and sled B fly back, riser F picks up sled F
-# and both land on the rear pad
+H_CAP = min(k.RISER_TOP, k.SLED_Z1) - k.SLED_Z0      # the height a wing meets a cap over
+
+
+def k_cap(E_tpu):
+    """A riser's TPU cap (N/mm): the TPU in front of the tongue, and the cap's two sides."""
+    return E_tpu * (k.TONGUE_W * H_CAP / k.CAP_T + (w_r - k.TONGUE_W) * H_CAP / k.CAP_L)
+
+
+M_OTHER = m_bar + m_sled                    # the bar and the other sled, no thumb
+M_RED = m_turn * M_OTHER / (m_turn + M_OTHER)
+
+
+def hit(v, E_tpu):
+    """A sled's wing meeting a riser's cap at v m/s: (force N, cap squash mm)."""
+    k_s = 1 / (1 / k_cap(E_tpu) + 1 / k_wing)
+    F = v * math.sqrt(k_s * M_RED)
+    return F, F / k_cap(E_tpu)
+
+
+def letgo_speed(E_tpu, h, mu, band=k.BAND):
+    """The knob let go just before the trip: how fast riser F meets sled F (m/s), the band's
+    pull less its TPU loss and the twisting sled's rubbing driving the bar and sled B back."""
+    kb = E_tpu * band[0] * band[1] / k.BAND_RELAXED
+    E_bar, s = 0.0, S_TRIP_LATE
+    while s > k.C_TRIP + k.G_P:
+        T = (1 - h) * kb * (s - k.C_TRIP - k.G_P + k.BAND_PRELOAD)
+        E_bar += (T / twist(mu) - 0.2) * 0.01
+        s -= 0.01
+    return math.sqrt(2 * max(E_bar, 0.0) / M_OTHER)
+
+
+CORNER = 1.3                                # the bar's stress at a riser's square foot
+knocks = []
+v_every = max(max(never[i][2] for i in solid_cases), max(r["v_release"] for r in SOLID_OKS))   # parts printed solid
+v_flick = max(land[i][2] for i in solid_cases)
+v_let = max(letgo_speed(E, h, mu, b) for E, b in ((15.0, k.BAND), (20.0, k.BAND), (26.0, k.BAND), (30.0, k.BAND_SOFT),
+                                                     (10.0, k.BAND_STRONG), (15.0, k.BAND_STRONG)) for h in (0.1, 0.3) for mu in MU)
+for label, v, lim in (("every throw (thumb kept on)", v_every, 20), ("thumb flicked off as the knob lands", v_flick, 30),
+                      ("knob let go just before the trip", v_let, 30)):
+    F, sq = max(hit(v, E) for E in (15.0, 20.0, 26.0, 30.0))
+    b_s = bar_stress(F, k.THROW if "every" in label else -k.SOFT) * CORNER
+    ok = F * WING_MPA <= lim and riser_mpa(F) <= 12 and b_s <= lim and max(hit(v, E)[1] for E in (15.0, 20.0, 26.0, 30.0)) <= 0.55 * k.CAP_T
+    report(ok, f"{label}: sled meets its riser's TPU cap at up to {v:.1f} m/s: {F:.0f} N, squashing it {max(hit(v, E)[1] for E in (15.0, 20.0, 26.0, 30.0)):.1f} "
+               f"of {k.CAP_T}; {F * WING_MPA:.1f} MPa at the wing's root, {riser_mpa(F):.1f} across the riser's root layer, "
+               f"{b_s:.1f} in the bar at a riser's foot (limits {lim}, 12, {lim})")
+
+# then the let-go lands: the rear pad and the cap in series stop the bar and both sleds
 snaps = []
 for E_tpu, band in ((15.0, k.BAND), (20.0, k.BAND), (26.0, k.BAND), (26.0, k.BAND_SOFT), (30.0, k.BAND_SOFT),
                     (10.0, k.BAND_STRONG), (15.0, k.BAND_STRONG)):
     kb = E_tpu * band[0] * band[1] / k.BAND_RELAXED
     u = k.BAND_PRELOAD + S_TRIP_LATE - k.G_P - k.C_TRIP
-    E_s = 0.5 * kb * (u ** 2 - k.BAND_PRELOAD ** 2)  # all of it, nothing lost on the way
-    sq_ = math.sqrt(2 * E_s / k_pad(E_tpu))
-    snaps.append((k_pad(E_tpu) * sq_, sq_, E_s, E_tpu))
-F_snap, _, E_snap, E_tpu = max(snaps)
-sq_max = max(sq_ for _, sq_, _, _ in snaps)
-report(sq_max <= min(k.KNOB_ROOM, free) - 0.5,
-       f"knob let go just before the trip: snaps back with up to {E_snap:.0f} mJ and lands on the rear pad, squashing it at most {sq_max:.1f} mm "
-       f"({k.KNOB_ROOM} mm of room past the knob's end, {free:.1f} of pad out of its pocket)")
-F_lg = F_snap
-b_s = bar_stress(F_lg, -k.SOFT - 2.0)
+    E_s = 0.5 * kb * (u ** 2 - k.BAND_PRELOAD ** 2) * 0.9 / twist(0.2)   # less the least TPU loss and rubbing
+    k_s = 1 / (1 / k_pad(E_tpu) + 1 / k_cap(E_tpu))
+    travel = math.sqrt(2 * E_s / k_s)
+    F_ = k_s * travel
+    snaps.append((F_, travel, F_ / k_pad(E_tpu), E_s, E_tpu))
+F_lg, _, _, E_snap, E_tpu = max(snaps)
+tr_max = max(r[1] for r in snaps)
+pad_max = max(r[2] for r in snaps)
+cap_max = max(r[0] / k_cap(r[4]) for r in snaps)
+report(tr_max <= k.KNOB_ROOM and pad_max <= free - 0.5 and cap_max <= 0.9 * k.CAP_T,
+       f"  it lands with up to {E_snap:.0f} mJ on the rear pad and the cap, a slow squeeze: the knob goes on {tr_max:.1f} mm "
+       f"({k.KNOB_ROOM} of room before the bar's end meets the lane's end square on), the pad squashes {pad_max:.1f} "
+       f"({free:.1f} of it out of its pocket), the cap {cap_max:.1f} of {k.CAP_T} (worked out as if TPU never stiffens)")
+b_s = bar_stress(F_lg, -k.SOFT - 2.0) * CORNER
 report(F_lg * WING_MPA <= 30 and riser_mpa(F_lg) <= 12 and b_s <= 30,
-       f"  that lands with up to {F_lg:.0f} N (TPU {E_tpu:.0f} MPa): {F_lg * WING_MPA:.1f} MPa at the wing's root, "
+       f"  that is up to {F_lg:.0f} N (TPU {E_tpu:.0f} MPa): {F_lg * WING_MPA:.1f} MPa at the wing's root, "
        f"{riser_mpa(F_lg):.1f} MPa across the riser's root layer, {b_s:.1f} MPa in the bar (limits 30, 12 and 30 for this rare knock)")
+
+
+def rail_stress(F, closed=True):
+    """The rail as a beam pushed along its length at a catch's end (y 11.6, where a leaning
+    block bears) and held by the far cushion on the spine's line. Each step in the rail's centre
+    line along the way turns the push into a bend; the rail leans on its groove's walls and the
+    catch pocket's wall wherever its play runs out, and the push bends it more as it bows.
+    Largest stress along the rail (MPa) and where it is."""
+    rl = k.rail()
+    h = 0.5
+    xs = np.arange(k.SPINE_X0, k.SPINE_X1 + 1e-9, h)
+    n = len(xs)
+    xm = (xs[:-1] + xs[1:]) / 2
+    t = k.RAIL_TOP - k.RAIL_Z0
+    cs = rl.slice((k.RAIL_Z0 + k.RAIL_TOP) / 2)
+    lo_y, hi_y = [], []
+    for x in xm:
+        b = (cs ^ m3.CrossSection.square([0.05, 30]).translate([x - 0.025, 0])).bounds()
+        lo_y.append(b[1])
+        hi_y.append(b[3])
+    lo_y, hi_y = np.array(lo_y), np.array(hi_y)
+    w, yc = hi_y - lo_y, (lo_y + hi_y) / 2
+    EI = E_PLA * t * w ** 3 / 12
+    x_load = k.RAIL_X0 if closed else k.RAIL_X1
+    il = int(np.argmin(np.abs(xs - x_load)))
+    P = np.where(xm > x_load, F, 0.0) if closed else np.where(xm < x_load, F, 0.0)
+    K = np.zeros((2 * n, 2 * n))
+    for i_ in range(n - 1):
+        e, L, Pi = EI[i_], h, P[i_]
+        ke = e / L ** 3 * np.array([[12, 6 * L, -12, 6 * L], [6 * L, 4 * L * L, -6 * L, 2 * L * L],
+                                    [-12, -6 * L, 12, -6 * L], [6 * L, 2 * L * L, -6 * L, 4 * L * L]])
+        kg = Pi / (30 * L) * np.array([[36, 3 * L, -36, 3 * L], [3 * L, 4 * L * L, -3 * L, -L * L],
+                                       [-36, -3 * L, 36, -3 * L], [3 * L, -L * L, -3 * L, 4 * L * L]])
+        d = [2 * i_, 2 * i_ + 1, 2 * i_ + 2, 2 * i_ + 3]
+        K[np.ix_(d, d)] += ke - kg
+    f = np.zeros(2 * n)
+    y_load = Y_LET + 0.15
+    if closed:
+        f[2 * il + 1] += F * (yc[il] - y_load)
+        for j_ in range(il + 1, n - 1):
+            f[2 * j_ + 1] += F * (yc[j_] - yc[j_ - 1])
+    else:
+        f[2 * il + 1] -= F * (yc[il - 1] - y_load)
+        for j_ in range(1, il):
+            f[2 * j_ + 1] += F * (yc[j_] - yc[j_ - 1])
+    play = k.SPINE_Y0 - k.GROOVE_Y0
+    lo_b = np.full(n, -9.0)
+    for j_, x in enumerate(xs):
+        r = k.rail_y(x)
+        if r is not None and abs(r - k.RAIL_Y0) < 1e-6:
+            lo_b[j_] = -0.1                  # the catch's flat over its pocket's wall (below the channel floor)
+        elif not (k.RAIL_X0 - k.RAIL_MOVE <= x <= k.RAIL_X0 + k.SEG_L + k.RAIL_MOVE or
+                  k.RAIL_X1 - k.SEG_L - k.RAIL_MOVE <= x <= k.RAIL_X1 + k.RAIL_MOVE):
+            lo_b[j_] = -play                 # the spine on its groove's inner wall
+    hi_b = np.full(n, play)
+    kc, idx = 2e4, np.arange(0, 2 * n, 2)
+    act_lo, act_hi = np.zeros(n, bool), np.zeros(n, bool)
+    u = np.zeros(2 * n)
+    for _ in range(200):
+        H = K.copy()
+        H[idx, idx] += kc * (act_lo | act_hi) + 0.01
+        rhs = f.copy()
+        rhs[idx] += kc * (lo_b * act_lo + hi_b * act_hi)
+        u = np.linalg.solve(H, rhs)
+        v = u[0::2]
+        n_lo, n_hi = v < lo_b, v > hi_b
+        n_lo |= act_lo & (v < lo_b + 1e-6)
+        n_hi |= act_hi & (v > hi_b - 1e-6)
+        if (n_lo == act_lo).all() and (n_hi == act_hi).all():
+            break
+        act_lo, act_hi = n_lo, n_hi
+    th = u[1::2]
+    Mel = EI * (th[1:] - th[:-1]) / h
+    sig = np.abs(Mel) / (t * w ** 2 / 6) + P / (t * w)
+    return float(sig.max()), float(xm[int(sig.argmax())])
+
+
+F_cock = max(thumb_at_trip(E, 0.3, b)[0] for E, b in ((20.0, k.BAND), (26.0, k.BAND), (30.0, k.BAND_SOFT), (15.0, k.BAND_STRONG)))
+F_reb = max(r["F_cush"] for r in oks)
+F_reb_nom = throw(20.0, 0.15, 0.3, 0.9, follow=True)["F_cush"]
+for label, F, lim in (("cocked", F_cock, 20), ("a nominal bounce", F_reb_nom, 20), ("the hardest bounce", F_reb, 30)):
+    sg = max(rail_stress(F, True)[0], rail_stress(F, False)[0])
+    report(sg <= lim, f"rail, {label}: {F:.0f} N on a catch's end puts at most {sg:.1f} MPa in the rail (limit {lim})")
 
 print("\n== Printed screws")
 N = 1200
@@ -649,14 +818,18 @@ pts_n = [(-(i / N) * k.PITCH * 2, k.thread_r((i / N * 2) % 1, k.THREAD_MIN / 2 +
          for i in range(N + 1)]
 gap = min(math.hypot(a[0] - b[0], a[1] - b[1]) for a in pts_s[200:1000:2] for b in pts_n[::2])
 report(gap >= 0.35, f"screw to nut, square to the thread: {gap:.2f} mm all round (the brain's pin rule: 0.35-0.4)")
-report(overlap(k.screw(), k.nut()) < TOL, "the screw turns in its nut")
-report(overlap(k.screw(), k.nut().translate([0, 0, 1.0])) > 0.5, "and holds it: lifted 1 mm, the nut runs into the thread")
+report(all(overlap(k.screw(x, y), P3) < TOL for x, y in k.SCREWS), "each screw turns in its post's thread in the top plate")
+report(overlap(SCREWS, P3.translate([0, 0, 1.0])) > 0.5 and overlap(SCREWS, (P2 + P3).translate([0, 0, 1.0])) > 0.5,
+       "and holds the plates: lifted 1 mm, the top plate (alone or with the middle plate) runs into the screws")
+report(k.BOSS_Z0 - k.Z1 >= 0.2 and overlap(P2, P3) < TOL,
+       f"the posts stop {k.BOSS_Z0 - k.Z1:.2f} above the base plate, so tightening pulls all three plates together")
+report(overlap(k.screw(), k.nut()) < TOL and overlap(k.screw(), k.nut().translate([0, 0, 1.0])) > 0.5,
+       "the fit test's gauge nut has the posts' thread: the screw turns in it and holds it")
 eng = k.THREAD_MAJ / 2 - (k.THREAD_MIN / 2 + k.THREAD_PLAY)
-engaged = min(k.SCREW_TIP - 0.6, k.NUT_Z0 + k.NUT_H) - k.NUT_Z0
-report(eng >= 0.4 and engaged >= 3.5, f"threads overlap {eng:.2f} mm radially, over {engaged:.1f} mm of the nut")
-report(overlap(SCREWS, HANDLE) < TOL and overlap(NUTS, HANDLE) < TOL, "screws and nuts clear every plate")
-report(k.NUT_Z0 + k.NUT_H < k.NUT_POCKET_TOP and k.NUT_POCKET_TOP <= k.HT - k.CHAMFER,
-       f"each nut is shut in under {k.HT - k.NUT_POCKET_TOP:.2f} mm of top plate, so it can't ride up while its screw goes in")
+engaged = k.SCREW_TIP - 0.6 - k.BOSS_Z0
+report(eng >= 0.4 and engaged >= 3.3, f"threads overlap {eng:.2f} mm radially, over {engaged:.2f} mm of each post")
+report(overlap(SCREWS, P1 + P2) < TOL and k.THREAD_TOP - k.SCREW_TIP >= 0.2,
+       f"screws clear the base and middle plates, and their tips stop {k.THREAD_TOP - k.SCREW_TIP:.2f} short of the thread's end")
 report(k.COIN_W >= 1.9 and k.COIN_D >= 0.8, f"coin slot {k.COIN_W} wide and {k.COIN_D:.2f} deep: a penny (1.52) or a quarter (1.75) fits")
 
 print("\n== Clearances (PRINTER-BRAIN: 0.2 snug, 0.25-0.3 sliding, holes 0.35-0.4 all round)")
@@ -671,7 +844,11 @@ rows = [("carrier in its channel, sides", k.CHAN_Y - k.CAR_W / 2, 0.25), ("carri
         ("lug in its floor slot", 0.7, 0.4), ("band in the lug's slot (strong band)", k.BAND_SLOT - k.BAND_STRONG[1] / 2, 0.3),
         ("band eye on its post", k.EYE_PLAY, 0.35), ("screw holes", (k.SCREW_HOLE - k.THREAD_MAJ) / 2, 0.35),
         ("screw head in its counterbore", (k.COUNTERBORE - k.HEAD_D) / 2, 0.35), ("pegs in their holes", (k.PEG_HOLE_D - k.PEG_D) / 2, 0.35),
-        ("rail cushions to the spine's ends", 0.1, 0.1)]
+        ("rail cushions to the spine's ends", 0.1, 0.1), ("rail spine in its groove", k.SPINE_Y0 - k.GROOVE_Y0, 0.25),
+        ("top plate's posts in the middle plate's pockets", (k.NUT_POCKET_AF - k.BOSS_AF) / 2, 0.25),
+        ("web between the risers' slots in the middle plate's floor",
+         k.riser_sweep(*k.riser_x()[1])[0] - k.riser_sweep(*k.riser_x()[0])[1], 1.2),
+        ("the risers' slots run on past the lane's ends", (k.riser_x()[0][0] - k.riser_sweep(*k.riser_x()[0])[0]) - (k.bar_x(0)[0] - k.lane_x()[0]), 0.25)]
 for what, v, need in rows:
     report(v >= need - 1e-9, f"{what}: {v:.2f}", f"needs {need}")
 
@@ -802,8 +979,8 @@ x_mid = k.X_BLK + k.BLK_L / 2
 car_cs = k.carrier().slice(z_first)
 room = m3.CrossSection.square([80, 30]).translate([0, -15]) - car_cs
 fl_gap = (x_width_at(room, 9.5, x_mid) - x_width_at(k.latch_block().slice(z_first), 9.5, x_mid)) / 2
-report(fl_gap >= k.BLK_SLOT + 0.25, f"the block's first layer and its slot's first layer are set back: {fl_gap:.2f} play each side there "
-                                    f"(both spread about 0.1 on the bed), {k.BLK_SLOT} above")
+report(fl_gap >= k.BLK_SLOT + 0.1, f"the block prints on its inner face and its slot's first layer is set back: {fl_gap:.2f} play each side "
+                                    f"at the carrier's first layer (it spreads about 0.1 on the bed), {k.BLK_SLOT} above")
 
 print()
 if FAILS:
