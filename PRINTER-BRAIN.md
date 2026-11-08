@@ -4,7 +4,7 @@ Everything about our 3D printing setup in one place: the printer, the slicer, th
 filament, the settings that work, and what we've learned the hard way.
 **Keep it up to date** — when something changes or a print teaches us something, add it here.
 
-_Last updated: 2026-11-07_
+_Last updated: 2026-11-08_
 
 ---
 
@@ -309,7 +309,7 @@ played with, change these:
 - **Git Bash's `sed -i` turns a CRLF file into LF.** Edit CRLF files with the Edit tool or with
   Python working on bytes.
 
-### Spring toys (spring knife design review, Nov 7 2026; not printed yet)
+### Spring toys (spring knife design reviews, Nov 7-8 2026; not printed yet)
 - **Don't let two stretched bands fight each other.** A plan with two preloaded TPU bands
   pulling opposite ways stalled half way in the model. TPU loses energy in proportion to how
   hard each band pulls, and roller friction does too, so the losses swamped the small
@@ -319,6 +319,26 @@ played with, change these:
   load into the carrier; the arm only pushes it out. Cushion the bounce-back on TPU.
 - **A trailing corner can catch on the edge it just left.** A block that leans in its slot as
   it leaves a window can hit the end of the next wall. Chamfer its corners more than it can lean.
+- **A part pushed off its line of pull twists against its walls.** The knob's riser pushes a
+  sled 13.45 mm out from the band's line, so the sled turns until two corners bear on the
+  walls, and they rub. That made the thumb push 1.5 to 1.9 times what the band alone needs.
+  A longer part cuts it: the sleds went from 15 to 22 mm long. Count the twist in the force.
+- **Don't let a latch rub the whole way.** The spring arm pressing the latch block on an 82 mm
+  rail was most of the friction the blade had to coast through, so the band, and the thumb,
+  had to be stronger. Now the block rides a short catch at each end and floats out, barely
+  touching, in between; a 30 degree ramp brings it back in at the far catch.
+- **The hardest knock is a knob let go just before the trip.** The band throws the light
+  knob slider back with all its energy, and it lands through a riser on a sled, plastic on
+  plastic. Make the part it hits as long as the riser (the sleds' wings went from 6 to 14 mm),
+  stop it on TPU, and check the bar it runs on, not only the parts that touch.
+- **Gaps inside one part need 0.45 to 0.5 mm.** The latch arm's 0.3 mm gaps are the brain's
+  sliding fit, but that is for two separate parts. Inside one print a strand or a smear can
+  weld the arm solid. Print a latch test with the fit test.
+- **Two parts that slide on each other must not both print their first layer there.** The
+  latch block and its slot both started on the bed at the same height, and each first layer
+  spreads about 0.1, leaving 0.05 of play. Set the first layer back 0.15 on both.
+- **Press TPU pads into pockets.** A pad lying loose in a long room can drift where nothing
+  pushes it home, and then the blade lands on plastic.
 
 ### Bed adhesion
 - Long, thin parts or parts with a small footprint need a **5 mm brim** (knife handle, sword
@@ -349,7 +369,7 @@ played with, change these:
 | `shed model 10x20 lofted barn cabin/` | 1:32 model of the 10x20 Lofted Barn Cabin: the cabin's floor, porch, snap walls, in-swing door and standard layout, with Alan's 79 1/2 in lofted walls and a 73 1/2 in door under two flat 2x4s, with the faux loft window in the porch gable (the octagon is an option), front and back lofts and a barn roof in four lift-off sheets | Read `read me first.md`. Print `1 fit test.3mf` first, then the four plates in `2 all plates.3mf` (about 8 1/3 h). Lift the front loft out before gluing the front corners. Made by `make_barn_cabin.py`; `check_barn_cabin.py` proves the parts fit and print flat; `draw_barn_cabin.py` draws the assembly picture |
 | `shed model 12x24 garage/` | 1:36 model of the 12x24 Garage in Alan's standard layout (8 x 6.4 ft roll-up centred in one end; on the right-hand side, the steel door 4 ft in from the roll-up corner and a window halfway between it and the back), built on the shed's snap joints: floor, four walls that snap onto the floor, black corner angles glued over the corners, a lift-out roll-up door with a black handle at its bottom middle, in-swing steel door, two lift-off roof halves, four skids | Read `read me first.md`. Print `1 fit test.3mf` first (plate 1 is half the roll-up door in half its doorway, to practise putting it in and taking it out), then the four plates in `2 all plates.3mf` (about 7 1/2 h). The roll-up door goes in last. To take it out: lift it by its handle until it stops (about a millimetre), let it down a hair, pull the bottom toward you and let it drop. Made by `make_garage.py`; `check_garage.py` proves the parts fit, the door's springs hold it and it comes out; `draw_garage.py` draws the assembly picture |
 | `shed model 12x24 lofted barn garage/` | 1:36 model of the 12x24 Lofted Barn Garage: the Garage's floor, snap walls, standard layout and lift-out roll-up door, with a faux loft window in the gable over the roll-up, a 4 ft loft at each end and a barn roof in four lift-off sheets | Read `read me first.md`. Print `1 fit test.3mf` first, then the four plates in `2 all plates.3mf` (about 8 1/2 h). The roll-up door goes in and comes out the same way as on the Garage, roof on or off. Made by `make_barn_garage.py`; `check_barn_garage.py` proves the parts fit and the door works; `draw_barn_garage.py` draws the assembly picture |
-| `spring knife/` | Double-action spring knife fidget toy designed from scratch (Nov 2026) to replace the one from the Flashforge app. Push the side knob 28 mm and the blade snaps 86 mm out and locks; pull it back and it snaps in. One TPU band runs between two sleds that rest on the knob bar's risers, so at rest it pulls on nothing; a cam lets the latch block go, the band throws the blade and it coasts the rest of the way onto a TPU pad. The latch block catches on a rail that sits on a TPU cushion. Three black handle plates held by printed screws and nuts. Blunt, round-tipped toy | Read `read me first.md`. Print `1 fit test.3mf` first (a screw and three nuts), then the three plates in `2 knife plates.3mf` and `3 TPU parts.3mf`; nothing to buy. Made by `make_knife.py`; `check_knife.py` walks a whole cycle, models a throw from the real parts over a range of TPU and friction, and proves the screws mesh, nothing hangs in the air and every height sits on a layer line |
+| `spring knife/` | Double-action spring knife fidget toy designed from scratch (Nov 2026) to replace the one from the Flashforge app. Push the side knob 28 mm (about 16 N) and the blade snaps 86 mm out and locks; pull it back and it snaps in. One TPU band runs between two sleds that rest on the knob bar's risers, so at rest it pulls on nothing; a cam lets the latch block go, the band throws the blade and it coasts the rest of the way onto a TPU pad. The latch block catches on a short catch at each end of a rail that floats between two TPU cushions, and floats out, barely rubbing, in between. Three black handle plates held by printed screws and captive printed nuts. Blunt, round-tipped toy | Read `read me first.md`. Print `1 fit test.3mf` first (a screw and three nuts, and a latch test), then the three plates in `2 knife plates.3mf` and `3 TPU parts.3mf` (TPU in slot 4); nothing to buy. Made by `make_knife.py`; `check_knife.py` walks a whole cycle, models a throw from the real parts over a range of TPU, friction and print weight, held flat or pointing up, works out the thumb force and every knock, and proves the screws mesh, nothing hangs in the air, no wall is under two lines and every flat face sits on a layer line |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in
