@@ -326,7 +326,7 @@ played with, change these:
 - **Don't let a latch rub the whole way.** The spring arm pressing the latch block on an 82 mm
   rail was most of the friction the blade had to coast through, so the band, and the thumb,
   had to be stronger. Now the block rides a short catch at each end and floats out, barely
-  touching, in between; a 30 degree ramp brings it back in at the far catch.
+  touching, in between; a 22 degree ramp brings it back in at the far catch.
 - **The hardest knock is a knob let go just before the trip.** The band throws the light
   knob slider back with all its energy, and it lands through a riser on a sled, plastic on
   plastic. Make the part it hits as long as the riser (the sleds' wings went from 6 to 14 mm),
