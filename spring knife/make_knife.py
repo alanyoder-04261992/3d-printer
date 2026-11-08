@@ -7,8 +7,8 @@ A blunt plastic fidget toy. Push the knob on the side 28 mm forward: the blade s
 screws and nuts too.
 
 How it works
-  * One TPU band runs between two small sleds that ride over the blade: sled F behind the
-    blade's lug, sled B in front of it. The band goes straight through a slot in the lug.
+  * One TPU band runs between two sleds that ride over the blade: sled F behind the blade's
+    lug, sled B in front of it. The band goes straight through a slot in the lug.
   * Each sled rests against a post (riser) on the knob's bar. At rest the band is only just
     taut and pulls on nothing: the blade is held by its latch alone.
   * Push the knob forward. Sled F is stopped by the lug, so the band stretches while the bar
@@ -20,7 +20,7 @@ How it works
     lug, sled F is carried back, cam B lets the blade go.
   * The latch block is a separate PLA block that slides in a slot in the carrier, pushed
     out by a springy arm. Its load goes into the carrier, never the arm. It catches on the
-    ends of a PLA rail in the base plate. The rail sits on a TPU cushion, which takes the
+    ends of a PLA rail in the base plate. The rail sits on two TPU cushions, which take the
     knock when the blade bounces back off its pad.
 
 Parts (print files in this folder)
@@ -29,16 +29,17 @@ Parts (print files in this folder)
   latch block.stl    rail.stl    sled F.stl    sled B.stl
   knob slider.stl    the bar with its two cams, two risers and the knob
   screw.stl (4), nut.stl (4), nut loose.stl (if the fit test says so)
-  band.stl, pad.stl (2), rail cushion.stl     TPU; band strong.stl for a soft TPU, band soft.stl for a stiff one
-  1 fit test.3mf        a screw and three nuts: find the nut fit first
+  band.stl, pad.stl (2), rail cushion.stl (2)   TPU; band strong.stl for a soft TPU, band soft.stl for a stiff one
+  1 fit test.3mf        a screw and three nuts, and a latch test piece: find the nut fit and try the latch first
   2 knife plates.3mf    Flash Studio project: handle and small parts (black), blade and knob slider (white)
-  3 TPU parts.3mf       band, pads and cushion; pick your TPU filament before slicing
+  3 TPU parts.3mf       band, pads and cushions, set up for TPU
 
 Axes for the assembled knife: x along it (the blade comes out at +x), y across it (the knob is
 on +y), z through it (z = 0 is the outside of the base plate). The blade's travel is c (0 closed,
 86 open) and the knob's is s (0 back, 28 forward).
 """
 
+import json
 import math
 import os
 import struct
@@ -60,7 +61,7 @@ def layer(n):
 # ---------------------------------------------------------------- handle plates
 HL, HW = 178.0, 38.0
 CORNER_R = 6.0
-CHAMFER = layer(7)                  # 1.45 round the two outside faces
+CHAMFER = layer(3)                  # 0.65 round the two outside faces: keeps a full ring round each screw head
 WALL_T = layer(11)                  # 2.25 bottom and top walls
 Z1 = layer(35)                      # 7.05  base plate / middle plate
 Z_FLOOR = Z1 + layer(3)             # 7.70  top of the middle plate's floor: the sleds ride on it
@@ -72,6 +73,8 @@ CAR_L, CAR_W, CAR_T = 55.0, 22.0, layer(21)    # carrier 55 x 22 x 4.25
 BLADE_L, BLADE_W = 99.0, 18.0     # its round tip ends 4.9 short of BLADE_L
 CAR_Z0 = WALL_T + 0.275             # 2.525: 0.275 over the channel floor
 CAR_Z1 = CAR_Z0 + CAR_T             # 6.775: 0.275 under the middle plate
+CAR_CUT_Y = 10.6                    # the carrier's knob side is cut back to here above ...
+CAR_CUT_Z = CAR_Z0 + layer(9)       # ... 4.375, so the cams pass it with room to spare
 GAP = 0.3                           # sliding gap at the sides
 CHAN_Y = CAR_W / 2 + GAP            # 11.3
 SLOT_Y = BLADE_W / 2 + GAP          # 9.3
@@ -80,6 +83,8 @@ TRAVEL = 86.0                       # blade travel: 79 mm comes out
 OVERRUN = 5.0                       # room for the blade past each end (pads squash)
 REAR_IN = C0 - OVERRUN              # 17 channel's back end
 FRONT_IN = C0 + CAR_L + TRAVEL + OVERRUN - 0.5    # 167.5 channel's front end
+GROOVE_X0, GROOVE_X1 = 100.0, 138.0  # the blade's fuller (carrier x): starts 30 mm outside the mouth when open
+GROOVE_D = 0.4
 
 # the lug: stands up from the carrier into the band level; the band runs through its slot
 LUG_X0, LUG_L = 12.0, 8.0           # on the carrier
@@ -90,82 +95,116 @@ BAND_SLOT_Z = CAR_Z0 + layer(27)    # 7.975 floor of that slot
 X_L0 = C0 + LUG_X0                  # 34: lug's back face, closed
 
 # latch: a separate block in a slot through the carrier's +y side, pushed out by an arm
-BLK_X0, BLK_L, BLK_D = 22.5, 4.0, 4.5
-BLK_CHAMFER = 0.5                   # on its two outer corners: the trailing corner can't catch
+BLK_X0, BLK_L, BLK_D = 22.5, 3.6, 5.0   # 3.6 long so it can't go in on its side (4.25 tall), 5.0 deep so it
+                                        # can't stand on end (4.8 between channel floor and middle plate)
+BLK_CHAMFER = 0.6                   # on all four upright edges: either way round, the trailing corner can't catch
 BLK_SLOT = 0.25                     # play each side of the block in its slot
+FOOT = 0.15                         # first layers set back this far where a part slides on a first layer
 X_BLK = C0 + BLK_X0                 # 44.5: block's back face, closed
-ARM_ROOT = 52.0                     # the arm's root on the carrier (x)
-ARM_Y0, ARM_T = 4.8, 1.2            # the arm, as printed (free)
-NOSE_TOP = 13.45 - BLK_D + 0.5      # 9.45: the arm's nose reaches here when free (0.5 past the block's out place)
-
+ARM_ROOT = 54.0                     # the arm's root on the carrier (x)
+ARM_Y0, ARM_T = 4.8, 0.9            # the arm, as printed (free)
+ARM_GAP = 0.5                       # the gaps round the arm: inside one print, so wider than a sliding fit
+ARM_RELIEF = 0.5                    # radius of the round ends of those gaps at the arm's root
+NOSE_C, NOSE_HW = BLK_X0 + BLK_L / 2, 0.8     # the arm's nose: 1.6 wide, under the middle of the block
+PRELOAD = 0.5                       # the arm still pushes 0.5 when the block is out
 # block's outer face (y): out in a window it rests on the knob bar; on the rail; pushed by a cam
 Y_OUT, Y_RAIL, Y_CAM = 13.45, CHAN_Y, 11.05
+NOSE_TOP = Y_OUT - BLK_D + PRELOAD  # 8.95: the arm's nose reaches here when free
 
-# rail: the latch wall between the two windows; it floats on a TPU cushion
-RAIL_Y0, RAIL_Y1 = CHAN_Y, CHAN_Y + layer(8)   # 11.3 to 12.95 (printed lying on its inner face)
-RAIL_Z0, RAIL_TOP = layer(5), layer(22)        # 1.05 to 4.45
+# rail: two short catches, one at each end of the blade's travel, joined by a spine that runs
+# beside the block's path; it floats between two TPU cushions. The block rides a catch only
+# near each end; in between it is out against the knob bar and barely rubs.
+RAIL_Y0 = CHAN_Y                               # 11.3 the catches' inner face, in line with the channel's side
+RAIL_Z0 = layer(5)                             # 1.05 the groove's floor
+RAIL_TOP = RAIL_Z0 + layer(15)                 # 4.10 (printed standing on its bottom face)
+LANE_Z0 = layer(21)                            # 4.25 floor of the knob bar's lane
 RAIL_CHAMFER = 0.3                  # on the inner corner of each catching end
-E_CATCH = 0.5                       # the block sits this far from the rail end at rest
-RAIL_X0 = X_BLK + BLK_L + E_CATCH   # 49: closed catch (the block's front face bears here)
-RAIL_X1 = X_BLK + TRAVEL - E_CATCH  # 130: open catch (the block's back face bears here)
-TAB_X0 = (RAIL_X0 + RAIL_X1) / 2 - 2.0         # the rail's tab, in the cushion
-TAB_Y1 = RAIL_Y0 + layer(17)        # 14.75
-CUSH_L = 8.0                        # each side of the tab
+E_CATCH = 0.3                       # the block sits this far from the rail end at rest
+RAIL_X0 = X_BLK + BLK_L + E_CATCH   # 48.4: closed catch (the block's front face bears here)
+RAIL_X1 = X_BLK + TRAVEL - E_CATCH  # 130.2: open catch (the block's back face bears here)
+SEG_FLAT = 4.0                      # each catch: a flat the block rides in on ...
+SEG_RAMP = 30.0                     # ... then a 30 degree ramp, out past the block's out place
+SEG_RAMP_Y = 13.75
+RAMP_L = (SEG_RAMP_Y - RAIL_Y0) / math.tan(math.radians(SEG_RAMP))   # 4.24
+WIN_Y1 = Y_OUT + 0.15               # the block's path (windows and between the catches) is cut out to here
+SPINE_Y0, SPINE_Y1 = WIN_Y1 + 1.0, WIN_Y1 + 2.6    # 14.6 to 16.2: 0.8 of base plate between it and the path
+SPINE_X0, SPINE_X1 = RAIL_X0 - 3.0, RAIL_X1 + 3.0  # the spine runs 3 mm past each catch ...
+CUSH_L = 8.0                        # ... to a TPU cushion at each end
+CUSH_TOP = RAIL_Z0 + layer(14)      # 3.90
+GROOVE_Y0, GROOVE_Y1 = SPINE_Y0 - 0.2, SPINE_Y1 + 0.2
 W_FAR = 5.0                         # far end of each window: past the block's overrun
-RAIL_MOVE = 3.2                     # the rail can move this far each way in its groove
-WIN_Y1 = Y_OUT + 0.15               # windows are cut out to here
+RAIL_MOVE = 3.6                     # the rail can move this far each way in its groove
 
 # knob bar: in a lane beside the channel, above the rail
-BAR_Y0, BAR_Y1 = Y_OUT, 15.8
-LANE_Y0, LANE_Y1 = RAIL_Y1, 16.05
-BAR_Z0 = RAIL_TOP + 0.2             # 4.65 (bar prints on this face)
-BAR_Z1 = BAR_Z0 + layer(10)         # 6.70
+BAR_Y0, BAR_Y1 = Y_OUT, 16.5
+LANE_Y1 = 16.75
+BAR_Z0 = LANE_Z0 + 0.2              # 4.45 (bar prints on this face)
+BAR_Z1 = BAR_Z0 + layer(11)         # 6.70
+RISER_Y1 = 15.8                     # the risers are narrower than the bar: the middle plate's floor
+RISER_SLOT_Y0, RISER_SLOT_Y1 = BAR_Y0 - 0.3, RISER_Y1 + 0.3   # keeps a ledge over the bar's outer 0.4
 THROW = 28.0                        # knob travel
-SOFT = 0.5                          # the knob can go this far past each end before a sled meets its pad
-G_P = 0.5                           # a parked sled sits this far from the lug
-RISER_L = 10.0
-RISER_TOP = BAR_Z0 + layer(25)      # 9.70
-RAMP = (Y_OUT - Y_CAM) / math.tan(math.radians(22))   # 5.2: 22 degree cam ramps
+SOFT = 0.3                          # the knob can go this far past each end before a sled meets its pad
+KNOB_ROOM = 4.5                     # and this much further before anything but TPU stops it
+G_P = 0.3                           # a parked sled sits this far from the lug
+RISER_L = 14.0
+RISER_TOP = BAR_Z0 + layer(26)      # 9.70
+RAMP = (Y_OUT - Y_CAM) / math.tan(math.radians(22))   # 5.94: 22 degree cam ramps
 CAM_FLAT = 2.0
-C_TRIP = 1.1                        # the blade creeps this far while cocked: 0.5 to the rail, 0.6 into its cushion
-C_COCK = 2.0                        # and never more than this
+C_TRIP = E_CATCH + 0.6              # the blade creeps this far while cocked: to the rail, then into its cushions
+C_COCK = C_TRIP + 0.9               # and never more than this
 STEM_X0, STEM_X1 = 84.0, 98.0
-KNOB_TOP = BAR_Z0 + layer(36)       # 11.90
+KNOB_Y0 = HW / 2 + 0.7              # 0.7 clear of the handle's side
+KNOB_TOP = BAR_Z0 + layer(37)       # 11.90
+LIP = 1.5                           # the knob's two end lips stand this far proud: they keep the thumb on
 
 # band level: two sleds, one band, two pads
 SLED_H = layer(10)                  # 2.05
 SLED_Z0, SLED_Z1 = Z_FLOOR, Z_FLOOR + SLED_H   # 7.70 to 9.75
-SLED_LEN, SLED_HW, WING_L = 15.0, 7.8, 6.0
+SLED_LEN, SLED_HW, WING_L = 22.0, 7.0, 14.0    # long, so a riser pushing its wing can't twist it much
 POST_D, EYE_PLAY = 3.0, 0.4
 POST_BACK = 10.5                    # the band's post is this far from the sled's lug face
-POCKET_Z = SLED_Z0 + layer(2)       # 8.15 the band sits on this
-CAV_Y0, CAV_Y1 = -SLED_HW - 0.3, LANE_Y1       # band level cavity
-R_B = LUG_L + TRAVEL + G_P - THROW  # 66.5: sled B's lug face from the lug's back face (closed), knob back
-PAD_L, PAD_HW = 7.0, 4.0
-PAD_X0 = X_L0 - G_P - SOFT - SLED_LEN - PAD_L  # 11: rear pad, sled F's soft stop
-PAD_X1 = X_L0 + R_B + THROW + SOFT + SLED_LEN + PAD_L   # 157: front pad, sled B's soft stop
-BAND = (layer(5), 1.05)             # height and width: 1.05 x 1.05
-BAND_STRONG = (layer(6), 1.45)      # 1.25 x 1.45, for a soft TPU
-BAND_SOFT = (layer(4), 1.05)        # 0.85 x 1.05, for a stiff TPU
+POCKET_Z = SLED_Z0 + layer(4)       # 8.55 the band sits on this: 0.85 of floor under the post
+CAV_Y0, CAV_Y1 = -SLED_HW - 0.3, RISER_Y1 + 0.3  # band level cavity
+R_B = LUG_L + TRAVEL + G_P - THROW  # 66.3: sled B's lug face from the lug's back face (closed), knob back
+PAD_L, PAD_HW, PAD_IN = 8.5, 2.5, 4.0          # TPU pads 8.5 x 5, the back 4.0 pressed into a pocket
+PAD_X0 = X_L0 - G_P - SOFT - SLED_LEN - PAD_L  # 2.9: rear pad, sled F's soft stop
+PAD_X1 = X_L0 + R_B + THROW + SOFT + SLED_LEN + PAD_L   # 159.1: front pad, sled B's soft stop
+BAND = (layer(5), 0.95, 1.3)        # height, strand width, eye ring width
+BAND_STRONG = (layer(6), 1.45, 1.8)  # for a soft TPU
+BAND_SOFT = (layer(4), 0.95, 1.3)    # for a stiff TPU
 BAND_W = BAND[0]
-BAND_RELAXED = R_B + G_P + 2 * POST_BACK - 4.0  # 84 eye to eye: taut by 4 mm when parked
+BAND_FILLET = 1.0                   # where the strand meets each eye
+EYE_D = POST_D + 2 * EYE_PLAY + 2 * BAND_STRONG[2] + 0.6   # 8.0 the eye's pocket in each sled
+BAND_PRELOAD = 5.0
+BAND_RELAXED = R_B + G_P + 2 * POST_BACK - BAND_PRELOAD  # 82.6 eye to eye: taut by 5 mm when parked
 
-# printed screws: M6-ish, 2 mm pitch, nuts in the top two plates
+# printed screws: M6-ish, 2 mm pitch, nuts held in the middle plate under the top plate
 SCREWS = [(6.0, 13.0), (6.0, -13.0), (172.0, 13.0), (172.0, -13.0)]
 THREAD_MAJ, THREAD_MIN, PITCH = 6.0, 4.4, 2.0
 THREAD_PLAY = 0.38                  # nut thread bigger all round ...
 GROOVE_WIDEN = 0.15                 # ... and its groove 0.15 wider on each flank
 SCREW_HOLE = 6.8
-HEAD_D, HEAD_H = 8.0, layer(7)      # 1.45 tall, so it stays under the channel floor; 8.0 so its
-                                    # counterbore stays inside the bottom chamfer at the corners
+HEAD_D, HEAD_H = 8.0, layer(7)      # 1.45 tall, so it stays under the channel floor
 COUNTERBORE = HEAD_D + 0.8
-NUT_AF, NUT_H = 8.6, layer(20)      # 4.05 thick
+COIN_W, COIN_D = 2.0, layer(4)      # the coin slot: a penny or a quarter fits
+SCREW_TIP = layer(56)               # 11.25
+NUT_AF, NUT_H = 8.6, layer(21)      # 4.25 thick
+NUT_Z0 = Z1                         # the nut sits on the base plate, in a pocket through the middle plate ...
 NUT_POCKET_AF = 9.0
-PEGS = [(14.0, -15.0), (166.0, -15.0)]
-PEG_D, PEG_H, PEG_HOLE_D, PEG_HOLE_H = 3.0, 1.0, 3.8, layer(6)   # 0.4 all round (holes print small)
+NUT_POCKET_TOP = HT - layer(4)      # ... and 1.4 into the top plate, under 0.85 of top skin
+PEGS = [(14.0, -15.0), (164.0, -15.0)]
+PEG_D, PEG_H, PEG_HOLE_D = 3.0, 1.0, 3.8      # 0.4 all round (holes print small)
+PEG_HOLE_H2, PEG_HOLE_H3 = layer(6), 1.20     # in the middle plate (from its bottom) and the top plate (from its top)
 
 FINGERS = [60.0, 84.0, 108.0]
 FINGER_R, FINGER_DEPTH = 9.0, 1.6
+
+# print settings (PRINTER-BRAIN, strong parts): hotter, less fan, slower walls, solid
+STRONG_PLA = {"nozzle_temperature": "230", "nozzle_temperature_initial_layer": "230", "fan_min_speed": "45",
+              "fan_max_speed": "45", "additional_cooling_fan_speed": "0", "filament_flow_ratio": "1.02"}
+SOLID = {"wall_loops": "6", "sparse_infill_density": "100%"}                       # printed screws and nuts
+MOVING = {"wall_loops": "4", "sparse_infill_density": "100%", "outer_wall_speed": "60",
+          "inner_wall_speed": "60", "internal_solid_infill_speed": "80"}            # parts that take the knocks
 
 
 # ---------------------------------------------------------------- helpers
@@ -238,9 +277,9 @@ def thread(x, y, z0, z1, r_min, r_maj, widen=0.0):
 
 
 def screw(x=0.0, y=0.0):
-    """Screw as fitted: head in the base plate's counterbore, tip just under the top face."""
-    head = cyl_z(x, y, 0, HEAD_H, HEAD_D, 64) - box(x - HEAD_D, x + HEAD_D, y - 0.7, y + 0.7, -1, layer(3))
-    tip = layer(61)                       # 12.25, 0.1 under the top face
+    """Screw as fitted: head in the base plate's counterbore, tip inside its nut."""
+    head = cyl_z(x, y, 0, HEAD_H, HEAD_D, 64) - box(x - HEAD_D, x + HEAD_D, y - COIN_W / 2, y + COIN_W / 2, -1, COIN_D)
+    tip = SCREW_TIP
     shank = thread(x, y, HEAD_H - 0.01, tip - 0.6, THREAD_MIN / 2, THREAD_MAJ / 2)
     point = M.cylinder(0.6, THREAD_MAJ / 2 - 0.1, THREAD_MIN / 2, 48).translate([x, y, tip - 0.6]) \
         ^ thread(x, y, tip - 0.6, tip, THREAD_MIN / 2, THREAD_MAJ / 2)
@@ -248,14 +287,14 @@ def screw(x=0.0, y=0.0):
 
 
 def nut(x=0.0, y=0.0, play=THREAD_PLAY, notches=0):
-    """Nut as fitted, flush with the top face. notches marks a fit-test nut."""
-    z0 = HT - NUT_H
-    body = extrude(hexagon(NUT_AF).translate([x, y]), z0, HT)
-    hole = thread(x, y, z0 - 0.5, HT + 0.5, THREAD_MIN / 2 + play, THREAD_MAJ / 2 + play, GROOVE_WIDEN)
+    """Nut as fitted, on the base plate in its pocket. notches marks a fit-test nut."""
+    z0, z1 = NUT_Z0, NUT_Z0 + NUT_H
+    body = extrude(hexagon(NUT_AF).translate([x, y]), z0, z1)
+    hole = thread(x, y, z0 - 0.5, z1 + 0.5, THREAD_MIN / 2 + play, THREAD_MAJ / 2 + play, GROOVE_WIDEN)
     cuts = [hole]
     r_flat = NUT_AF / 2
     for i in range(notches):
-        cuts.append(box(x + r_flat - 0.5, x + r_flat + 1, y - 2.0 + 1.6 * i, y - 1.2 + 1.6 * i, z0 - 1, HT + 1))
+        cuts.append(box(x + r_flat - 0.5, x + r_flat + 1, y - 2.0 + 1.6 * i, y - 1.2 + 1.6 * i, z0 - 1, z1 + 1))
     return body - union(cuts)
 
 
@@ -287,8 +326,8 @@ def pegs(z):
     return union([cyl_z(x, y, z, z + PEG_H, PEG_D) for x, y in PEGS])
 
 
-def peg_holes(z):
-    return union([cyl_z(x, y, z - 0.01, z + PEG_HOLE_H, PEG_HOLE_D) for x, y in PEGS])
+def peg_holes(z, depth):
+    return union([cyl_z(x, y, z - 0.01, z + depth, PEG_HOLE_D) for x, y in PEGS])
 
 
 def windows():
@@ -297,11 +336,28 @@ def windows():
 
 
 def rail_groove():
-    return box(RAIL_X0 - RAIL_MOVE, RAIL_X1 + RAIL_MOVE, RAIL_Y0 - 0.1, RAIL_Y1 + 0.2, RAIL_Z0, RAIL_TOP + 1)
+    """The rail's room in the base plate: the spine's groove with a cushion at each end, a
+    pocket for each catch, and the block's path between the two catches."""
+    seg = SEG_FLAT + RAMP_L
+    return union([
+        box(SPINE_X0 - 0.1 - CUSH_L - 0.15, SPINE_X1 + 0.1 + CUSH_L + 0.15, GROOVE_Y0, GROOVE_Y1, RAIL_Z0, LANE_Z0 + 1),
+        box(RAIL_X0 - RAIL_MOVE, RAIL_X0 + seg + RAIL_MOVE, RAIL_Y0 - 0.1, GROOVE_Y1, RAIL_Z0, LANE_Z0 + 1),
+        box(RAIL_X1 - seg - RAIL_MOVE, RAIL_X1 + RAIL_MOVE, RAIL_Y0 - 0.1, GROOVE_Y1, RAIL_Z0, LANE_Z0 + 1),
+        box(RAIL_X0 + seg - RAIL_MOVE, RAIL_X1 - seg + RAIL_MOVE, CHAN_Y - 0.01, WIN_Y1, WALL_T, LANE_Z0 + 1)])
 
 
-def cushion_pocket():
-    return box(TAB_X0 - CUSH_L - 0.15, TAB_X0 + 4.0 + CUSH_L + 0.15, RAIL_Y1, TAB_Y1 + 0.4, RAIL_Z0, RAIL_TOP + 1)
+def rail_y(x, dx=0.0):
+    """The rail's inner face at x (rail shifted dx), or None where there is no catch."""
+    t = math.tan(math.radians(SEG_RAMP))
+    for x_end, sgn in ((RAIL_X0 + dx, 1), (RAIL_X1 + dx, -1)):
+        u = (x - x_end) * sgn                  # distance in from the catching end
+        if 0 <= u <= RAIL_CHAMFER:
+            return RAIL_Y0 + RAIL_CHAMFER - u
+        if RAIL_CHAMFER < u <= SEG_FLAT:
+            return RAIL_Y0
+        if SEG_FLAT < u <= SEG_FLAT + RAMP_L:
+            return RAIL_Y0 + (u - SEG_FLAT) * t
+    return None
 
 
 def bar_x(s=0.0):
@@ -310,26 +366,39 @@ def bar_x(s=0.0):
 
 
 def knob_slot_x():
-    return STEM_X0 - SOFT - 3.5 - 0.3, STEM_X1 + THROW + SOFT + 3.5 + 0.3
+    return STEM_X0 - SOFT - KNOB_ROOM - 0.3, STEM_X1 + THROW + SOFT + KNOB_ROOM + 0.3
+
+
+def lane_x():
+    return bar_x(-SOFT - KNOB_ROOM)[0] - 0.3, bar_x(THROW + SOFT + KNOB_ROOM)[1] + 0.3
+
+
+def front_screw_joins():
+    """The front screw holes run into the blade slot: cut each join as one smooth shape, so no
+    thin sliver or cusp of plastic is left between them."""
+    joins = []
+    for yy in (13.0, -13.0):
+        sgn = 1 if yy > 0 else -1
+        strip = box(172.0 - SCREW_HOLE / 2, 172.0 + SCREW_HOLE / 2, sgn * (SLOT_Y + 0.5) - 0.05, sgn * (SLOT_Y + 0.5) + 0.05,
+                    WALL_T, Z1 + 1)
+        joins.append((cyl_z(172.0, yy, WALL_T, Z1 + 1, SCREW_HOLE, 64) + strip).hull())
+    joins.append(box(172.0 - SCREW_HOLE / 2, 172.0 + SCREW_HOLE / 2, -SLOT_Y - 0.5, SLOT_Y + 0.5, WALL_T, Z1 + 1))
+    return union(joins)
 
 
 def plate1():
     """Base plate: bottom wall, the blade's channel, the latch wall with its two windows, the
-    rail's groove and its cushion pocket, the knob bar's lane and the knob's slot."""
+    rail's groove and its cushions' pocket, the knob bar's lane and the knob's slot."""
     p = slab(0, Z1, chamfer_bottom=True)
-    lx0, lx1 = bar_x(-SOFT - 3.5)[0] - 0.3, bar_x(THROW + SOFT + 3.5)[1] + 0.3
+    lx0, lx1 = lane_x()
     kx0, kx1 = knob_slot_x()
     cuts = [box(REAR_IN, FRONT_IN, -CHAN_Y, CHAN_Y, WALL_T, Z1 + 1),                  # channel
             box(FRONT_IN - 1, HL + 1, -SLOT_Y, SLOT_Y, WALL_T, Z1 + 1),               # blade slot
-            box(lx0, lx1, Y_CAM - 0.25, LANE_Y1, RAIL_TOP, Z1 + 1),                    # cams' and bar's lane
-            box(kx0, kx1, LANE_Y1 - 0.1, HW / 2 + 1, BAR_Z0 - 0.2, Z1 + 1),           # knob slot
-            rail_groove(), cushion_pocket()]
+            box(lx0, lx1, Y_CAM - 0.25, LANE_Y1, LANE_Z0, Z1 + 1),                     # cams' and bar's lane
+            box(kx0, kx1, LANE_Y1 - 0.1, HW / 2 + 1, LANE_Z0, Z1 + 1),                 # knob slot
+            rail_groove(), front_screw_joins()]
     cuts += [box(w0, w1, CHAN_Y - 0.01, WIN_Y1, WALL_T, RAIL_TOP + 1) for w0, w1 in windows()]
     cuts += [cyl_z(x, y, -1, HEAD_H, COUNTERBORE, 64) for x, y in SCREWS]
-    # the front screw holes meet the blade slot: no thin sliver between them
-    cuts += [box(172.0 - SCREW_HOLE / 2, 172.0 + SCREW_HOLE / 2, -13.0, 13.0, WALL_T, Z1 + 1) ^
-             union([cyl_z(172.0, yy, WALL_T - 1, Z1 + 2, SCREW_HOLE) for yy in (13.0, -13.0)]
-                   + [box(172.0 - SCREW_HOLE / 2, 172.0 + SCREW_HOLE / 2, -SLOT_Y - 0.5, SLOT_Y + 0.5, WALL_T, Z1 + 1)])]
     p = p - union(cuts) - screw_holes(0, Z1)
     return p + pegs(Z1)
 
@@ -339,7 +408,7 @@ def lug_slot_x():
 
 
 def riser_sweep(x0, x1):
-    return x0 - SOFT - 3.5 - 0.3, x1 + THROW + SOFT + 3.5 + 0.3
+    return x0 - SOFT - KNOB_ROOM - 0.3, x1 + THROW + SOFT + KNOB_ROOM + 0.3
 
 
 def riser_x():
@@ -349,29 +418,38 @@ def riser_x():
     return f, b
 
 
+def wing_room_x():
+    """x range of the band level's wide part, where the sleds' wings go."""
+    return X_L0 - G_P - SOFT - KNOB_ROOM - WING_L - 0.3, X_L0 + R_B + THROW + SOFT + KNOB_ROOM + WING_L + 0.3
+
+
 def plate2():
     """Middle plate: the floor over the channel (with the lug's slot and the risers' slots),
     and the band level above it, open at the top, where the sleds, the band and the pads go.
-    Prints with its bottom face on the bed, so nothing bridges."""
+    The nuts sit in pockets right through it. Prints with its bottom face on the bed, so
+    nothing bridges."""
     p = slab(Z1, Z2)
     (f0, f1), (b0, b1) = riser_x()
-    cuts = [box(*lug_slot_x(), -LUG_HW - 0.3, LUG_HW + 0.3, Z1 - 1, Z_FLOOR + 1),
-            box(*riser_sweep(f0, f1), LANE_Y0, LANE_Y1, Z1 - 1, Z_FLOOR + 1),
-            box(*riser_sweep(b0, b1), LANE_Y0, LANE_Y1, Z1 - 1, Z_FLOOR + 1),
-            # band level: the sleds' room, and the pads' pockets at the two ends
-            box(PAD_X0 + PAD_L - 3.5, PAD_X1 - PAD_L + 3.5, CAV_Y0, CAV_Y1, Z_FLOOR, Z2 + 1),
-            box(PAD_X0, PAD_X1, -PAD_HW - 1.0, PAD_HW + 1.0, Z_FLOOR, Z2 + 1),
-            peg_holes(Z1), screw_holes(Z1, Z2)]
-    cuts += [extrude(hexagon(NUT_POCKET_AF).translate([x, y]), HT - NUT_H, Z2 + 1) for x, y in SCREWS]
+    wx0, wx1 = wing_room_x()
+    pad_y = PAD_HW - 0.1                                     # the pads are pressed in
+    cuts = [box(*lug_slot_x(), -LUG_HW - 0.7, LUG_HW + 0.7, Z1 - 1, Z_FLOOR + 1),
+            box(riser_sweep(f0, f1)[0], riser_sweep(b0, b1)[1], RISER_SLOT_Y0, RISER_SLOT_Y1, Z1 - 1, Z_FLOOR + 1),   # both risers' slot
+            # band level: the sleds' bodies, their wings, and the pads' pockets at the two ends
+            box(PAD_X0 + PAD_IN, PAD_X1 - PAD_IN, CAV_Y0, -CAV_Y0, Z_FLOOR, Z2 + 1),
+            box(wx0, wx1, CAV_Y0, CAV_Y1, Z_FLOOR, Z2 + 1),
+            box(PAD_X0, PAD_X0 + PAD_IN + 0.01, -pad_y, pad_y, Z_FLOOR, Z2 + 1),
+            box(PAD_X1 - PAD_IN - 0.01, PAD_X1, -pad_y, pad_y, Z_FLOOR, Z2 + 1),
+            peg_holes(Z1, PEG_HOLE_H2), screw_holes(Z1, Z2)]
+    cuts += [extrude(hexagon(NUT_POCKET_AF).translate([x, y]), Z1 - 1, Z2 + 1) for x, y in SCREWS]
     p = p - union(cuts)
     return p + pegs(Z2)
 
 
 def plate3():
-    """Top plate: the lid over the band level, and the nut pockets."""
+    """Top plate: the lid over the band level, and the tops of the nut pockets."""
     p = slab(Z2, HT, chamfer_top=True)
-    cuts = [peg_holes(Z2), screw_holes(Z2, HT)]
-    cuts += [extrude(hexagon(NUT_POCKET_AF).translate([x, y]), Z2 - 1, HT + 1) for x, y in SCREWS]
+    cuts = [peg_holes(Z2, PEG_HOLE_H3), screw_holes(Z2, NUT_POCKET_TOP - 1)]
+    cuts += [extrude(hexagon(NUT_POCKET_AF).translate([x, y]), Z2 - 1, NUT_POCKET_TOP) for x, y in SCREWS]
     return p - union(cuts)
 
 
@@ -391,17 +469,59 @@ def blade_outline():
     return cs.offset(-2.5, m3.JoinType.Round, 2.0, 32).offset(2.5, m3.JoinType.Round, 2.0, 32)
 
 
+def arm_L():
+    """Bending length of the latch arm: root to the middle of its nose."""
+    return ARM_ROOT - NOSE_C
+
+
+def arm_dy(x, deflect):
+    """How far the arm's centre line has moved toward -y at x, bent deflect at the nose: a
+    cantilever's curve to the nose, and straight on (at the nose's slope) past it."""
+    L = arm_L()
+    xi = (ARM_ROOT - x) / L
+    if xi <= 0:
+        return 0.0
+    if xi <= 1:
+        return deflect * xi * xi * (3 - xi) / 2
+    return deflect * (1 + 1.5 * (xi - 1))
+
+
+def arm_slope(deflect):
+    return 1.5 * deflect / arm_L()
+
+
+def nose_poly(deflect):
+    """The nose as bent: on the arm's tip, turned with it."""
+    yc = ARM_Y0 + ARM_T / 2
+    th = arm_slope(deflect)
+    pts = [(NOSE_C - NOSE_HW, ARM_Y0 + ARM_T - 0.01), (NOSE_C + NOSE_HW, ARM_Y0 + ARM_T - 0.01),
+           (NOSE_C + NOSE_HW, NOSE_TOP), (NOSE_C - NOSE_HW, NOSE_TOP)]
+    c, s = math.cos(th), math.sin(th)
+    dy = arm_dy(NOSE_C, deflect)
+    return [(NOSE_C + (x - NOSE_C) * c - (y - yc) * s, yc - dy + (x - NOSE_C) * s + (y - yc) * c) for x, y in pts]
+
+
+def nose_top_y(deflect):
+    return max(y for _, y in nose_poly(deflect))
+
+
+def arm_deflect_for(y_out):
+    """How far the arm bends (at its nose) when the block's outer face is at y_out."""
+    target = y_out - BLK_D
+    d = NOSE_TOP - target
+    for _ in range(30):
+        d += nose_top_y(d) - target
+    return d
+
+
 def arm_gap_poly(deflect):
-    """The room under the arm (toward -y) for it to bend in, from root to tip, plus 0.3."""
-    L = ARM_ROOT - (BLK_X0 + BLK_L / 2)
+    """The room under the arm (toward -y) for it to bend in, from root to past its tip."""
+    x_end = BLK_X0 - 0.3
     pts = []
-    for i in range(0, 21):
-        xi = i / 20
-        x = ARM_ROOT - xi * (ARM_ROOT - (BLK_X0 - 0.3))
-        d = min(1.0, (ARM_ROOT - x) / L)
-        dy = deflect * d * d * (3 - d) / 2 + 0.3
-        pts.append((x, ARM_Y0 - dy))
-    pts += [(BLK_X0 - 0.3, ARM_Y0 + 0.01), (ARM_ROOT, ARM_Y0 + 0.01)]
+    for i in range(0, 41):
+        x = ARM_ROOT - i / 40 * (ARM_ROOT - x_end)
+        pts.append((x, ARM_Y0 - arm_dy(x, deflect) - ARM_GAP))
+    pts += [(x_end, ARM_Y0 + 0.01), (ARM_ROOT, ARM_Y0 + 0.01)]
     return pts
 
 
@@ -409,62 +529,80 @@ def carrier(c=0.0, arm_deflect=0.0):
     """Blade, carrier, lug and latch arm (the arm drawn bent by arm_deflect toward -y)."""
     z0, z1 = CAR_Z0, CAR_Z1
     body = box(0, CAR_L, -CAR_W / 2, CAR_W / 2, z0, z1) + extrude(blade_outline(), z0, z1)
-    deflect_max = NOSE_TOP - (Y_CAM - BLK_D) + 0.1
+    deflect_max = arm_deflect_for(Y_CAM) + 0.1
+    top_gap = ARM_Y0 + ARM_T + ARM_GAP
     cuts = [
         prism(arm_gap_poly(deflect_max), z0 - 1, z1 + 1),                                   # room to bend
-        box(BLK_X0 - 0.3, ARM_ROOT, ARM_Y0 - 0.01, ARM_Y0 + ARM_T + 0.3, z0 - 1, z1 + 1),  # the arm, and the gap over it
+        box(BLK_X0 - 0.3, ARM_ROOT, ARM_Y0 - 0.01, top_gap, z0 - 1, z1 + 1),               # the arm, and the gap over it
+        cyl_z(ARM_ROOT, ARM_Y0 + ARM_T + ARM_RELIEF, z0 - 1, z1 + 1, 2 * ARM_RELIEF, 32),  # round ends at the root
+        cyl_z(ARM_ROOT, ARM_Y0 - ARM_RELIEF, z0 - 1, z1 + 1, 2 * ARM_RELIEF, 32),
         box(BLK_X0 - BLK_SLOT, BLK_X0 + BLK_L + BLK_SLOT, ARM_Y0 + ARM_T, CAR_W / 2 + 1, z0 - 1, z1 + 1),  # block slot
-        extrude(m3.CrossSection.square([48, 2.6]).translate([CAR_L + 8, 1.6])
-                .offset(0.6, m3.JoinType.Round, 2.0, 16), z1 - 0.8, z1 + 1),
+        box(BLK_X0 - BLK_SLOT - FOOT, BLK_X0 + BLK_L + BLK_SLOT + FOOT, ARM_Y0 + ARM_T, CAR_W / 2 + 1,
+            z0 - 1, z0 + layer(1)),                                                          # its first layer set back
+        box(-1, CAR_L + 1, CAR_CUT_Y, CAR_W / 2 + 1, CAR_CUT_Z, z1 + 1),                    # room for the cams
+        extrude(m3.CrossSection.square([GROOVE_X1 - GROOVE_X0, 2.6]).translate([GROOVE_X0, 1.6])
+                .offset(0.6, m3.JoinType.Round, 2.0, 16), z1 - GROOVE_D, z1 + 1),
     ]
     body = body - union(cuts)
-    # the arm and its nose, bent if asked (a straight-line approximation of the bend)
-    L = ARM_ROOT - (BLK_X0 + BLK_L / 2)
-    arm_pts_top, arm_pts_bot = [], []
-    for i in range(0, 21):
-        x = ARM_ROOT - i / 20 * (ARM_ROOT - (BLK_X0 + 0.1))
-        d = min(1.0, (ARM_ROOT - x) / L)
-        dy = arm_deflect * d * d * (3 - d) / 2
-        arm_pts_top.append((x, ARM_Y0 + ARM_T - dy))
-        arm_pts_bot.append((x, ARM_Y0 - dy))
-    arm = prism(arm_pts_top + list(reversed(arm_pts_bot)), z0, z1)
-    nose = box(BLK_X0 + 0.1, BLK_X0 + BLK_L - 0.1, ARM_Y0 + ARM_T - 0.01 - arm_deflect, NOSE_TOP - arm_deflect, z0, z1)
-    root = box(ARM_ROOT - 0.01, ARM_ROOT + 3.0, ARM_Y0, ARM_Y0 + ARM_T, z0, z1)
+    # the arm, bent if asked, and its nose turned with it
+    x_tip = NOSE_C - NOSE_HW
+    top, bot = [], []
+    for i in range(0, 41):
+        x = ARM_ROOT - i / 40 * (ARM_ROOT - x_tip)
+        dy = arm_dy(x, arm_deflect)
+        top.append((x, ARM_Y0 + ARM_T - dy))
+        bot.append((x, ARM_Y0 - dy))
+    arm = prism(top + list(reversed(bot)), z0, z1)
+    nose = prism(nose_poly(arm_deflect), z0, z1)
+    root = box(ARM_ROOT - 0.01, ARM_ROOT + ARM_RELIEF + 0.5, ARM_Y0, ARM_Y0 + ARM_T, z0, z1)
     lug = box(LUG_X0, LUG_X0 + LUG_L, -LUG_HW, LUG_HW, z1 - 0.01, LUG_TOP) \
         - box(LUG_X0 - 1, LUG_X0 + LUG_L + 1, -BAND_SLOT, BAND_SLOT, BAND_SLOT_Z, LUG_TOP + 1)
     return union([body, arm, nose, root, lug]).translate([C0 + c, 0, 0])
 
 
-def latch_block(c=0.0, y_out=Y_OUT):
-    """The latch block with its outer face at y_out; its two outer corners chamfered."""
+def block_poly(y_out):
     x0, x1, y1 = BLK_X0, BLK_X0 + BLK_L, y_out
-    pts = [(x0, y1 - BLK_D), (x1, y1 - BLK_D), (x1, y1 - BLK_CHAMFER), (x1 - BLK_CHAMFER, y1),
-           (x0 + BLK_CHAMFER, y1), (x0, y1 - BLK_CHAMFER)]
-    return prism(pts, CAR_Z0, CAR_Z1).translate([C0 + c, 0, 0])
+    y0, ch = y1 - BLK_D, BLK_CHAMFER
+    return [(x0, y0 + ch), (x0 + ch, y0), (x1 - ch, y0), (x1, y0 + ch),
+            (x1, y1 - ch), (x1 - ch, y1), (x0 + ch, y1), (x0, y1 - ch)]
 
 
-def arm_deflect_for(y_out):
-    return NOSE_TOP - (y_out - BLK_D)
+def latch_block(c=0.0, y_out=Y_OUT):
+    """The latch block with its outer face at y_out; all four upright edges chamfered, and its
+    first layer set back on the two faces that slide in the slot."""
+    b = prism(block_poly(y_out), CAR_Z0, CAR_Z1)
+    x0, x1 = BLK_X0, BLK_X0 + BLK_L
+    foot = box(x0 - 1, x0 + FOOT, -20, 30, CAR_Z0 - 1, CAR_Z0 + layer(1)) + \
+        box(x1 - FOOT, x1 + 1, -20, 30, CAR_Z0 - 1, CAR_Z0 + layer(1))
+    return (b - foot).translate([C0 + c, 0, 0])
 
 
 def rail(dx=0.0):
-    """The rail (latch wall between the windows), shifted dx by its cushion."""
-    r = box(RAIL_X0, RAIL_X1, RAIL_Y0, RAIL_Y1, RAIL_Z0, RAIL_TOP)
-    tab = box(TAB_X0, TAB_X0 + 4.0, RAIL_Y1 - 0.01, TAB_Y1, RAIL_Z0 + layer(2) + 0.05, RAIL_TOP)
-    cham = union([prism([(x, RAIL_Y0 - 0.01), (x + s * RAIL_CHAMFER, RAIL_Y0 - 0.01), (x, RAIL_Y0 + RAIL_CHAMFER)],
-                        RAIL_Z0 - 1, RAIL_TOP + 1) for x, s in ((RAIL_X0 - 0.01, 1), (RAIL_X1 + 0.01, -1))])
-    return (r - cham + tab).translate([dx, 0, 0])
+    """The rail, shifted dx by its cushions: the spine, and a catch at each end with its flat
+    and its ramp. It prints standing on its bottom face, the same either way up."""
+    seg = SEG_FLAT + RAMP_L
+    top = SPINE_Y0 + 0.01
+    closed = [(RAIL_X0, RAIL_Y0 + RAIL_CHAMFER), (RAIL_X0 + RAIL_CHAMFER, RAIL_Y0), (RAIL_X0 + SEG_FLAT, RAIL_Y0),
+              (RAIL_X0 + seg, SEG_RAMP_Y), (RAIL_X0 + seg, top), (RAIL_X0, top)]
+    opened = [(RAIL_X1, RAIL_Y0 + RAIL_CHAMFER), (RAIL_X1, top), (RAIL_X1 - seg, top), (RAIL_X1 - seg, SEG_RAMP_Y),
+              (RAIL_X1 - SEG_FLAT, RAIL_Y0), (RAIL_X1 - RAIL_CHAMFER, RAIL_Y0)]
+    cs = m3.CrossSection.batch_boolean([m3.CrossSection([closed]), m3.CrossSection([opened]),
+                                        m3.CrossSection.square([SPINE_X1 - SPINE_X0, SPINE_Y1 - SPINE_Y0]).translate([SPINE_X0, SPINE_Y0])],
+                                       m3.OpType.Add)
+    r = extrude(cs, RAIL_Z0, RAIL_TOP)
+    # first layer set back on the spine's outer face, where it slides on the groove's wall
+    foot = box(SPINE_X0 - 1, SPINE_X1 + 1, SPINE_Y1 - FOOT, SPINE_Y1 + 1, RAIL_Z0 - 1, RAIL_Z0 + layer(1))
+    return (r - foot).translate([dx, 0, 0])
 
 
-def rail_cushion():
-    """TPU cushion: two pads either side of the rail's tab, joined under it."""
-    x0 = TAB_X0 - CUSH_L - 0.1
-    y0, y1 = RAIL_Y1 + 0.3, TAB_Y1 + 0.2       # clear of the rail's side, which may lean out 0.2
-    top = RAIL_Z0 + layer(16)                  # 4.30, under the bar lane's floor
-    pads = union([box(x0, TAB_X0 - 0.1, y0, y1, RAIL_Z0, top),
-                  box(TAB_X0 + 4.1, TAB_X0 + 4.1 + CUSH_L, y0, y1, RAIL_Z0, top),
-                  box(x0, TAB_X0 + 4.1 + CUSH_L, y0, y1, RAIL_Z0, RAIL_Z0 + layer(2))])
-    return pads
+def cushion(which):
+    """One TPU cushion: 'R' behind the spine's back end, 'F' in front of its front end."""
+    x0 = SPINE_X0 - 0.1 - CUSH_L if which == "R" else SPINE_X1 + 0.1
+    return box(x0, x0 + CUSH_L, SPINE_Y0, SPINE_Y1, RAIL_Z0, CUSH_TOP)
+
+
+def rail_cushions():
+    return cushion("R") + cushion("F")
 
 
 # ---------------------------------------------------------------- knob bar and sleds
@@ -487,32 +625,35 @@ def knob_bar(s=0.0):
     parts = [box(x0, x1, BAR_Y0, BAR_Y1, z0, z1),
              cam(CAM_A_TOP, True, z0, z1), cam(CAM_B_TOP, False, z0, z1)]
     (f0, f1), (b0, b1) = riser_x()
-    parts += [box(f0, f1, BAR_Y0, BAR_Y1, z1 - 0.01, RISER_TOP), box(b0, b1, BAR_Y0, BAR_Y1, z1 - 0.01, RISER_TOP)]
-    parts += [box(STEM_X0, STEM_X1, BAR_Y1 - 0.01, HW / 2 + 0.4, z0, z1 - 0.2)]
-    knob = box(STEM_X0, STEM_X1, HW / 2 + 0.3, HW / 2 + 3.3, z0, KNOB_TOP)
-    ridges = union([box(STEM_X0 + 1.5 + 2.5 * i, STEM_X0 + 2.5 + 2.5 * i, HW / 2 + 2.8, HW / 2 + 3.4, z0 - 1, KNOB_TOP + 1)
-                    for i in range(5)])
-    parts.append(knob - ridges)
+    parts += [box(f0, f1, BAR_Y0, RISER_Y1, z1 - 0.01, RISER_TOP), box(b0, b1, BAR_Y0, RISER_Y1, z1 - 0.01, RISER_TOP)]
+    parts += [box(STEM_X0, STEM_X1, BAR_Y1 - 0.01, KNOB_Y0 + 0.1, z0, z1 - 0.2)]
+    k_out = KNOB_Y0 + 3.0
+    knob = box(STEM_X0, STEM_X1, KNOB_Y0, k_out, z0, KNOB_TOP)
+    lips = box(STEM_X0, STEM_X0 + 2.0, k_out - 0.01, k_out + LIP, z0, KNOB_TOP) + \
+        box(STEM_X1 - 2.0, STEM_X1, k_out - 0.01, k_out + LIP, z0, KNOB_TOP)
+    ridges = union([box(STEM_X0 + 4.0 + 2.5 * i, STEM_X0 + 5.0 + 2.5 * i, k_out - 0.5, k_out + 1, z0 - 1, KNOB_TOP + 1)
+                    for i in range(3)])
+    parts.append(knob - ridges + lips)
     return union(parts).translate([s, 0, 0])
 
 
 def sled(front_face_x, kind):
     """Sled F (kind 'F': its lug face is its front, +x) or sled B (lug face at its back).
-    front_face_x is the x of its lug face."""
+    front_face_x is the x of its lug face. Its wing (on the knob side, as long as the riser it
+    leans on) and the band's post are at the lug end; the rest of its length keeps it square."""
     z0, z1 = SLED_Z0, SLED_Z1
     if kind == "F":
         x0, x1 = front_face_x - SLED_LEN, front_face_x
         post_x = front_face_x - POST_BACK
-        wing = box(x1 - WING_L, x1, SLED_HW - 0.01, BAR_Y1, z0, z1)
+        wing = box(x1 - WING_L, x1, SLED_HW - 0.01, RISER_Y1, z0, z1)
         slot = box(post_x, x1 + 1, -BAND_SLOT, BAND_SLOT, POCKET_Z, z1 + 1)
     else:
         x0, x1 = front_face_x, front_face_x + SLED_LEN
         post_x = front_face_x + POST_BACK
-        wing = box(x0, x0 + WING_L, SLED_HW - 0.01, BAR_Y1, z0, z1)
+        wing = box(x0, x0 + WING_L, SLED_HW - 0.01, RISER_Y1, z0, z1)
         slot = box(x0 - 1, post_x, -BAND_SLOT, BAND_SLOT, POCKET_Z, z1 + 1)
-    eye_d = POST_D + 2 * EYE_PLAY + 2 * BAND_STRONG[1] + 0.6
     body = box(x0, x1, -SLED_HW, SLED_HW, z0, z1) + wing
-    body = body - slot - cyl_z(post_x, 0, POCKET_Z, z1 + 1, eye_d, 48)
+    body = body - slot - cyl_z(post_x, 0, POCKET_Z, z1 + 1, EYE_D, 48)
     return body + cyl_z(post_x, 0, POCKET_Z - 0.01, z1, POST_D, 32)
 
 
@@ -533,14 +674,17 @@ def band_fitted(c, s, band=BAND):
     """The band stretched between the two sleds' posts."""
     p_f, p_b = sled_positions(c, s)
     xa, xb = p_f - POST_BACK, p_b + POST_BACK
-    return extrude(band_shape(xa, xb, band[1]), POCKET_Z + 0.01, POCKET_Z + band[0])
+    return extrude(band_shape(xa, xb, band), POCKET_Z + 0.01, POCKET_Z + band[0])
 
 
-def band_shape(xa, xb, w):
+def band_shape(xa, xb, band):
+    _, w, wr = band
     ri = POST_D / 2 + EYE_PLAY
-    ring = lambda x: (m3.CrossSection.circle(ri + w, 48) - m3.CrossSection.circle(ri, 48)).translate([x, 0])
-    strand = m3.CrossSection.square([xb - xa - 2 * ri - w, w]).translate([xa + ri + w / 2, -w / 2])
-    return m3.CrossSection.batch_boolean([ring(xa), ring(xb), strand], m3.OpType.Add)
+    ring = lambda x: (m3.CrossSection.circle(ri + wr, 64) - m3.CrossSection.circle(ri, 64)).translate([x, 0])
+    strand = m3.CrossSection.square([xb - xa - 2 * ri - wr, w]).translate([xa + ri + wr / 2, -w / 2])
+    cs = m3.CrossSection.batch_boolean([ring(xa), ring(xb), strand], m3.OpType.Add)
+    # round the corners where the strand meets each eye
+    return cs.offset(BAND_FILLET, m3.JoinType.Round, 2.0, 32).offset(-BAND_FILLET, m3.JoinType.Round, 2.0, 32)
 
 
 def band_length(c, s):
@@ -549,7 +693,7 @@ def band_length(c, s):
 
 
 def band_print(band):
-    return extrude(band_shape(0.0, BAND_RELAXED, band[1]), 0, band[0])
+    return extrude(band_shape(0.0, BAND_RELAXED, band), 0, band[0])
 
 
 # ---------------------------------------------------------------- files
@@ -569,11 +713,31 @@ def write_stl(man, name):
         f.write(rec.tobytes())
 
 
-def write_3mf(name, plates):
+def project_settings(filaments=None, tpu_filament=None):
+    """Flash Studio's project settings (flash studio settings.json), with changes for some
+    filaments. filaments: {filament number: {key: value}}, each change also named in
+    different_settings_to_system so Flash Studio keeps it. tpu_filament: a filament number to
+    turn into Generic TPU (flash studio TPU filament.json, taken from the shop's TPU project)."""
+    with open(os.path.join(HERE, "flash studio settings.json")) as f:
+        d = json.load(f)
+    diff = d["different_settings_to_system"]
+    for n, changes in (filaments or {}).items():
+        for key, v in changes.items():
+            d[key][n - 1] = v
+        diff[n] = ";".join(sorted(set(filter(None, diff[n].split(";"))) | set(changes)))
+    if tpu_filament:
+        with open(os.path.join(HERE, "flash studio TPU filament.json")) as f:
+            tpu = {k_: v for k_, v in json.load(f).items() if not k_.startswith("_")}
+        for key, v in tpu.items():
+            d[key][tpu_filament - 1] = v
+    return json.dumps(d, indent=4) + "\n"
+
+
+def write_3mf(name, plates, settings=None):
     """A Flash Studio project. plates: [(plate name, items), ...] in order; items: (object name,
     manifold, filament, (x, y) of its lower-left corner on that plate[, own settings]). It
-    carries Flash Studio's project settings (flash studio settings.json: AD5X 0.4, 0.20mm
-    Standard, Arachne, counterbores partly bridged, filaments 1 white, 2 black, 3 brown) and its
+    carries Flash Studio's project settings (AD5X 0.4, 0.20mm Standard, Arachne, counterbores
+    partly bridged, filaments 1 white, 2 black, 3 brown, with any changes in settings) and its
     version tags, or Flash Studio would pile every part on plate 1 and filament 1 (PRINTER-BRAIN).
     Same writer as the shed model's."""
     root = math.sqrt(len(plates))
@@ -627,7 +791,7 @@ def write_3mf(name, plates):
         z.writestr("[Content_Types].xml", types)
         z.writestr("_rels/.rels", rels)
         z.writestr("3D/3dmodel.model", model)
-        z.write(os.path.join(HERE, "flash studio settings.json"), "Metadata/project_settings.config")
+        z.writestr("Metadata/project_settings.config", settings or project_settings())
         z.writestr("Metadata/model_settings.config",
                    '<?xml version="1.0" encoding="UTF-8"?>\n<config>' + "".join(cfg + plate_cfg) + '</config>')
 
@@ -638,7 +802,11 @@ def on_bed(man):
 
 
 FLIP = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0]], dtype=float)
-ON_INNER_FACE = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0]], dtype=float)  # turned 90 degrees about x: lies on its y-min face
+
+
+def latch_test():
+    """Fit-test piece: the carrier round the latch block's slot and the whole arm."""
+    return carrier() ^ box(C0 + 20.5, C0 + 58.0, -CAR_W, CAR_W, CAR_Z0 - 1, CAR_Z1 + 1)
 
 
 def print_parts():
@@ -649,7 +817,7 @@ def print_parts():
         "handle 3 top": on_bed(plate3().transform(FLIP)),
         "blade": on_bed(carrier()),
         "latch block": on_bed(latch_block()),
-        "rail": on_bed(rail().transform(ON_INNER_FACE)),
+        "rail": on_bed(rail()),
         "knob slider": on_bed(knob_bar()),
         "sled F": on_bed(sled(0.0, "F")),
         "sled B": on_bed(sled(0.0, "B")),
@@ -660,7 +828,7 @@ def print_parts():
         "band strong": on_bed(band_print(BAND_STRONG)),
         "band soft": on_bed(band_print(BAND_SOFT)),
         "pad": on_bed(pad(0.0)),
-        "rail cushion": on_bed(rail_cushion()),
+        "rail cushion": on_bed(cushion("R")),
     }
 
 
@@ -668,35 +836,41 @@ def main():
     p = print_parts()
     for name, man in p.items():
         write_stl(man, name + ".stl")
-    solid = {"wall_loops": "6", "sparse_infill_density": "100%"}    # printed screws and nuts: solid
-    # fit test: one screw and three nuts, a little tighter (1 notch), as printed (2) and looser (3)
-    fit = [("screw", p["screw"], 2, (60, 90), solid)]
+    strong = project_settings({1: STRONG_PLA, 2: STRONG_PLA})
+    # fit test: one screw and three nuts, a little tighter (1 notch), as printed (2) and looser (3);
+    # and the latch: the carrier round its arm and slot, with a block. Printed like the real parts.
+    fit = [("screw", p["screw"], 2, (60, 90), SOLID)]
     for i, play in enumerate((THREAD_PLAY - 0.05, THREAD_PLAY, THREAD_PLAY + 0.05)):
-        fit.append((f"nut {i + 1} notch", on_bed(nut(play=play, notches=i + 1)), 2, (90 + 16 * i, 90), solid))
-    write_3mf("1 fit test.3mf", [("screw and nuts (black)", fit)])
+        fit.append((f"nut {i + 1} notch", on_bed(nut(play=play, notches=i + 1)), 2, (90 + 16 * i, 90), SOLID))
+    lt = on_bed(latch_test())
+    latch = [("latch test", lt, 1, (80, 90), MOVING),
+             ("latch block", p["latch block"], 1, (130, 90), {**MOVING, "brim_type": "no_brim"})]
+    write_3mf("1 fit test.3mf", [("screw and nuts (black)", fit), ("latch test (white)", latch)], strong)
     x0 = (220 - HL) / 2
     handle_items, y = [], 20.0
     for name in ("handle 1 base", "handle 2 middle", "handle 3 top"):
         handle_items.append((name, p[name], 2, (x0, y)))
         y += HW + 8
-    small = [("sled F", p["sled F"], 2, (20, 30)), ("sled B", p["sled B"], 2, (50, 30)),
-             ("rail", p["rail"], 2, (20, 70)), ("latch block", p["latch block"], 2, (110, 70))]
+    small = [("sled F", p["sled F"], 2, (20, 20), MOVING), ("sled B", p["sled B"], 2, (55, 20), MOVING),
+             ("rail", p["rail"], 2, (20, 60), MOVING),
+             ("latch block", p["latch block"], 2, (125, 60), {**MOVING, "brim_type": "no_brim"})]
     for i in range(4):
-        small.append((f"screw {i + 1}", p["screw"], 2, (20 + 16 * i, 100), solid))
-        small.append((f"nut {i + 1}", p["nut"], 2, (20 + 14 * i, 125), solid))
+        small.append((f"screw {i + 1}", p["screw"], 2, (20 + 16 * i, 90), SOLID))
+        small.append((f"nut {i + 1}", p["nut"], 2, (20 + 14 * i, 115), SOLID))
     bl, kb = p["blade"], p["knob slider"]
     write_3mf("2 knife plates.3mf", [
         ("handle (black)", handle_items),
         ("small parts (black)", small),
-        ("blade and knob slider (white)", [("blade", bl, 1, ((220 - bl.bounding_box()[3]) / 2, 50)),
-                                           ("knob slider", kb, 1, ((220 - kb.bounding_box()[3]) / 2, 120))]),
-    ])
+        ("blade and knob slider (white)", [("blade", bl, 1, ((220 - bl.bounding_box()[3]) / 2, 50), MOVING),
+                                           ("knob slider", kb, 1, ((220 - kb.bounding_box()[3]) / 2, 110), MOVING)]),
+    ], strong)
     bp = p["band"]
     write_3mf("3 TPU parts.3mf", [
         ("TPU parts", [("band", bp, 1, ((220 - bp.bounding_box()[3]) / 2, 70)),
                        ("pad 1", p["pad"], 1, (60, 120)), ("pad 2", p["pad"], 1, (80, 120)),
-                       ("rail cushion", p["rail cushion"], 1, (110, 120))]),
-    ])
+                       ("rail cushion 1", p["rail cushion"], 1, (110, 120)),
+                       ("rail cushion 2", p["rail cushion"], 1, (125, 120))]),
+    ], project_settings(tpu_filament=1))
     for name, man in p.items():
         bb = man.bounding_box()
         print(f"{name:18s} {bb[3]-bb[0]:6.1f} x {bb[4]-bb[1]:6.1f} x {bb[5]-bb[2]:5.2f} mm  {man.volume()/1000:5.2f} cm3")
