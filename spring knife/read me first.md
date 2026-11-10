@@ -9,48 +9,61 @@ It's a toy: the blade is 4 mm thick plastic with round edges and a round tip. It
 with a snap, so point it away from faces. Don't use the blade as a lever or press its tip into
 a table: it's plastic.
 
-**This is a test version (Nov 10).** Alan asked for something to print now while the design is
-finished. A third review found the problems below, and this version doesn't fix them yet. The
-next version will, and you'll most likely need to print the knob slider and the three handle
-plates again for it. The screws, nuts, sleds, blade, latch block and TPU parts may well carry
-over, but that isn't certain yet. In order of what matters for this print:
+**This is a test version (Nov 10).** You asked for something to print now, while the fixed
+version is worked on. A review of the "third look" version below found these problems, and this
+test version doesn't fix them yet. The fixed version will, and you'll most likely need to print
+the knob slider and the three handle plates again for it. The screws, nuts, sleds, blade, latch
+block and TPU parts may well carry over, but that isn't certain yet. In order of what matters for
+this print:
 
-1. **The pegs are a tight fit: test them before you print the knife.** The middle and top plates
-   sit on two pegs each, through D-shaped holes. A D-shaped hole has less room than a round one:
-   if it prints more than 0.15 mm small all round, the plate won't go on (a round hole would take
-   0.35). Do the peg test in the fit test first ("Pegs", under "The fit test"). If the lid won't go
-   on by hand, stop and tell Claude. Don't scrape or drill the hole bigger: opened on the wrong
-   side, it lets the plate sit toward the blade, and that bends the knob's bar more. A pass
-   doesn't promise the knife's own pegs: they print by themselves at the top of the base plate, in
-   very short layers (under 2 seconds each, where the test's peg gets 10 to 14), so they can come
-   out a little different. So when the three handle plates come off the printer, set the middle
-   plate on the base plate's pegs before you print anything else. If it won't go on by hand, stop
-   and tell Claude.
+1. **The pegs are a tight fit: test them before you print the rest of the knife.** The middle and
+   top plates sit on two pegs each, through D-shaped holes. A D-shaped hole has less room than a
+   round one: if it prints more than 0.15 mm small all round, the plate won't go on (a round hole
+   would take 0.35).
+   - Do the peg test in the fit test first ("Pegs", under "The fit test").
+   - A pass doesn't promise the knife's own pegs. They print by themselves at the top of the base
+     plate, in very short layers (under 2 seconds each, where the test's peg gets 10 to 14), so
+     they can come out a little different. So print plate 1 of `2 knife plates.3mf` (the three
+     handle plates) on its own first. Peel the brims and stack the three plates with nothing
+     inside: the middle plate on the base plate's pegs, then the top plate on the middle plate's.
+     Press each down while you nudge it toward the knob's side, as in steps 7 and 10.
+   - If the peg test's lid, or either plate, won't go down flat by hand, stop and tell Claude
+     before you print plates 2 to 4. Don't scrape or drill the holes bigger: opened on the wrong
+     side, a hole lets the plate sit toward the blade, and that bends the knob's bar more.
 2. **Closing the blade bends the knob slider harder than allowed.** When you pull the knob back,
    your thumb also presses it into the handle a little. The checks counted that press for how hard
    your thumb has to push, but left it out of how hard the knob's bar bends. Counted, the joint
-   where the bar meets the knob's carriage takes about 21 MPa on a normal close, 24 with the worst
-   fit, against the 19.5 allowed for a part that bends on every push, and 35 on a hard close (30 is
-   allowed even for a rare knock). Opening the blade is fine: counting the press, those numbers go
-   down. It won't snap the first time. Bent that hard on every close, the bar is expected to crack
-   at that joint after a few thousand closes (roughly 3,000 to 8,000, by the same tests the 19.5
-   comes from), sooner if you snap it closed hard. So:
-   - pull the knob back with a steady push, not a hard snap;
-   - if you have white PLA+ (Flashforge PLA Pro), print the knob slider in it. It takes knocks
-     better, though no test shows it lasts longer when bent over and over, so don't count on it;
-   - if it cracks, print a new knob slider: plate 4 of `2 knife plates.3mf`.
+   where the bar meets the back of the knob's carriage takes, on every close:
+   - with a normal TPU (about 30 mm on the hang test), about 21 MPa, and 24 with the knob's fit at
+     its loosest, against the 19.5 allowed for a part that bends on every push. By the same tests
+     the 19.5 comes from, half of such bars would crack at that joint by about 3,000 to 8,000
+     closes;
+   - with the stiffest band the read me lets you fit (23 mm on the check of the band you fit) and
+     the most rubbing the checks allow, 35, and 23 on the plain bar beside it. Half of such bars
+     would crack within about 150 closes.
 
-   The checks that come after the bent slider in the list (the rib, riser B's sole and the
-   fatigue line) haven't been worked out with the press yet either. The table under "How it was
-   checked" shows the numbers without it.
+   Opening the blade is fine: counting the press, those numbers go down. So:
+   - pull the knob back along the handle, pressing it into the handle as little as you can. That
+     press is what bends the bar (this hasn't been worked out, but it can only help);
+   - look at the knob's bar where it runs into the back of the knob now and then. White marks or a
+     hairline there mean it's starting to crack;
+   - if it cracks, print a new knob slider (plate 4 of `2 knife plates.3mf`), take the knife apart
+     down to the base plate (steps 11 back to 4), move the two riser caps onto the new slider and
+     put it back together.
+
+   The knob landing on its stop with your thumb still pushing, the rib and riser B's sole haven't
+   been rechecked with the press either. Apart from the return push row, the table under "How it
+   was checked" shows the numbers without it.
 3. **The knob carriage's roof.** Its first layer may droop a little into the groove at its curved
    ends: see "Not proven yet" below, and look at the fit test's carriage piece.
-4. **Nudge each plate toward the knob's side as you press it on** (steps 7 and 10). The knife
-   counts on the plates sitting that way: a plate sitting even 0.05 mm the other way bends the
-   knob's bar more.
-5. **Slice the knob slider three times from the command line** before printing it, to see Flash
-   Studio keeps its roof's bridge straight across the groove (as the brain says). Nobody has done
-   that yet.
+4. **Nudge each plate toward the knob's side as you press it on** (steps 7 and 10). Set straight
+   down, a plate catches on a small step at the top of each peg and sits about half a millimetre
+   high (the top plate nearly a millimetre). Nudged over, it drops. The flat side of each hole
+   then keeps it from sitting toward the blade. The knife has no spare room that way (a plate even
+   0.05 mm toward the blade bends the knob's bar more), so never scrape the holes.
+5. **Ask Claude to slice the knob slider three times from the command line** (on your computer,
+   with the command in the brain) before you print it, to see Flash Studio keeps its roof's bridge
+   straight across the groove. Nobody has done that yet.
 
 **New knob (Nov 9).** Your thumb pushes the knob out to the side of the bar it drives, so every
 push tries to turn the knob flat in the handle, and the old 14 mm knob let its bar bend sideways
@@ -72,9 +85,9 @@ most of them:
   the bar 20 MPa. The knob's carriage now sits off the middle of its rib (0.15 mm on the bar's
   side, 0.35 on the knob's, the same half millimetre of play in all), and the lane's wall behind
   the knob's slot is cut back 5 mm: now at most 17.8 as drawn, 19.0 with the carriage's fit
-  printed 0.05 looser each side.
+  printed 0.05 looser each side (that left out your thumb pressing the knob in: see the top).
 - The pegs that line the plates up fit 0.35 mm all round (they were 0.4, the brain's rule is
-  0.35 to 0.4), so the middle plate can't sit far enough off to pinch the knob's carriage.
+  0.35 to 0.4; the holes are D-shaped now, see "A third look"), so the middle plate can't sit far enough off to pinch the knob's carriage.
 - The knob stops' faces are cut back on their inner half, so the knob's inner part can't reach
   them however hard it lands. The two stops are now a mirrored pair (see step 3).
 - The carrier is cut back a little more ahead of the latch block, so the far cam can't touch
@@ -93,8 +106,8 @@ most of them:
   sit the other way at all. Toward the knob's side it can still move about 0.3 mm, which does no
   harm. Steps 7 and 10 below say how to put the plates on, and the fit test has a peg test.
 - **No square step where the bar meets the knob.** The bar used to step square into the knob's
-  carriage. A square step like that has no fixed stress factor at all: the finer you work it out,
-  the higher it goes (the old check counted it as 1.3 times). Now the bar widens smoothly over its
+  carriage. A square step like that has no fixed stress factor at all: it never settles on one number,
+  however finely you work it out (the old check counted it as 1.3 times). Now the bar widens smoothly over its
   last 6 mm into the back of the carriage, and the carriage's roof is cut back at both ends in a
   rounded curve. A model of the real shape, checked against a textbook case (Peterson's stepped
   bar), puts what is left at 1.15 times at the back (the roof 1.22) and 1.18 at the front.
@@ -287,16 +300,19 @@ knife's screws.
   curve meets the knob's side, tell Claude (see "Not proven yet" at the top).
 - **Pegs.** The two small black squares are the peg test. One is a piece of the base plate with a
   peg on it, the other a piece of the middle plate with the D-shaped hole that goes over that peg.
-  Each has one corner cut off. Put the hole piece on the peg piece, cut corner over cut corner, and
-  press it down. Before you put it on, look at the hole: one side of it is flat. It's right when
-  it goes on and comes off by hand, and then:
-  - pushed straight toward the side the hole's flat is on, it moves about 0.3 mm;
+  Each has one corner cut off. Before you put it on, look into the hole from underneath: one side
+  of it is flat. Put a pen mark on the edge of the piece that the flat side faces (one of the two
+  edges beside the cut corner): once it's on you can't see the flat. Put the hole piece on the peg
+  piece, cut corner over cut corner, and press it down while you nudge it toward the pen mark, as
+  you will the plates in step 7. It's right when it goes on and comes off by hand, and then:
+  - pushed straight toward the pen mark, it moves about 0.3 mm;
   - pushed straight back the other way, it doesn't move;
-  - pushed along the flat, either way, it slides about 0.35 mm. That's right too.
+  - pushed along the marked edge, either way, it slides about 0.35 mm. That's right too.
 
-  If it won't go on, or goes on only with a hard push, the hole printed small: stop and tell
-  Claude before printing the knife. Don't scrape the hole bigger (see the test version note at
-  the top).
+  If it won't go on, or goes on only with a hard push, the hole printed small. If it goes on by
+  hand but hardly moves toward the pen mark, it printed a little small. Either way, stop and tell
+  Claude before printing the knife, and don't scrape the hole bigger (see the test version note
+  at the top).
 
 ### The hang test: which band
 
@@ -383,9 +399,9 @@ side with the slot.
    guard sits on the base plate's, behind the knob stop, and the blade's lug and the two risers,
    caps and all, come up through its slots. Now the knob stops' T's are covered and they can't come
    out. If the whole plate sits about half a millimetre high, it hasn't moved over yet: keep
-   nudging it toward the knob's side as you press. If only one end won't go down, its part of the
-   guard is sitting on top of that end's knob stop: slide the plate a hair toward that end and it
-   drops.
+   nudging it toward the knob's side as you press. If only one end won't go down (it stands about
+   4 mm up), its part of the guard is sitting on top of that end's knob stop: don't force it down,
+   slide the plate a hair toward that end and it drops.
 8. **Pads.** Press a TPU pad into the small pocket at each end of the long room in the middle
    plate, so 5 1/2 mm of each pad's 9 1/2 stands out.
 9. **Band and sleds.** Hook one eye of the band over the post on sled F, the other over the
@@ -396,7 +412,10 @@ side with the slot.
    then let it settle against its riser's cap.
 10. **Top plate** (handle 3) on. Its four round posts go down into the round holes at the
     corners of the middle plate, and its two D-shaped peg holes go over the middle plate's pegs:
-    press it down while you nudge it toward the knob's side, as you did the middle plate.
+    press it down while you nudge it toward the knob's side, as you did the middle plate. If it
+    sits nearly a millimetre high, it hasn't moved over yet. If one end won't go down, that end's
+    part of the guard is on top of a knob stop: don't force it, slide the plate a hair toward that
+    end.
 11. **Screws.** Hold the stack together and turn it over, top plate down. Push each screw into
     its hole and turn it with a coin in the slot until its head is down in its recess and the
     screw goes snug, then stop. They are printed, so don't crank them.
@@ -443,7 +462,9 @@ knob: push the front ridge to send the blade out, pull the back ridge to bring i
   joins the blade, near the blade's back end (with the top two plates off you can see it from
   above).
   White marks in the plastic are stress marks. If the band's eyes show them, fit a spare band.
-  If the latch arm shows them, print a new blade.
+  If the latch arm shows them, print a new blade. Look at the knob's bar too, where it runs into
+  the back of the knob: white marks there mean print a new knob slider (see the test version
+  note at the top).
 
 ## How it was checked
 
@@ -510,8 +531,8 @@ walks a whole cycle and proves (231 checks pass; 1 does not yet, see the last po
 
 | Knock | How hard | Stress (limit) | |
 |---|---|---|---|
-| Every push, at the moment the blade lets go | your thumb 16.2 N (31.5 N with the stiffest band and the most friction) | sideways 9.4 and where it meets the knob 12.4 (19.5); 13.2 and 16.6 at worst. Counting your thumb pressing the knob in, these go down | ok |
-| Every return push, the same pulling back | 15.7 N (30.2 N); 16.5 N (32.8 N) counting your thumb pressing the knob in | sideways 11.8 and where it meets the knob 14.1 (19.5); 18.5 and 18.8 at worst. **Counting your thumb pressing the knob in: where it meets the knob 21.3 (19.5), 24.1 at worst, and 35.4 on the hardest return push (30)** | **over: see the top** |
+| Every push, at the moment the blade lets go | your thumb 16.2 N (31.5 N with the stiffest band and the most friction); 16.9 N (32.9 N) counting your thumb pressing the knob in | sideways 9.4 and where it meets the knob 12.4 (19.5); 13.2 and 16.6 at worst. Counting your thumb pressing the knob in, these go down | ok |
+| Every return push, the same pulling back | 15.7 N (30.2 N); 16.5 N (32.8 N with the stiffest band and the most friction) counting your thumb pressing the knob in | sideways 11.8 and where it meets the knob 14.1 (19.5); 18.5 and 18.8 at worst. **Counting your thumb pressing the knob in: where it meets the knob 21.3 (19.5), 24.1 at worst; with the stiffest band and the most friction 35.4, and 22.6 sideways (19.5)** | **over: see the top** |
 | A sled meets its riser's TPU cap, every throw | 4.1 m/s, 15 N; the cap squashes 0.5 of 2.45 mm | bar 7.8 (19.5), sideways 10.6 and where it meets the knob 13.2 (19.5), fin's first layer 2.7 (12), sled's wing 2.3 (19.5) | ok |
 | Thumb flicked off as the knob lands | 7.7 m/s, 28 N | bar 14.2 (30), sideways 14.4 (30), fin 5.8 (12), wing 4.3 (30) | ok |
 | Knob let go just before the blade lets go | 7.2 m/s, 26 N | bar 12.9 (30), sideways 13.1 (30), fin 5.3 (12), wing 4.0 (30) | ok |
@@ -572,7 +593,8 @@ walks a whole cycle and proves (231 checks pass; 1 does not yet, see the last po
   0.15 mm small all round won't go on (the checker says 0.30 because it lets only the round part
   shrink; see the top); the gauge nuts take the screws, and each cut-off corner leaves a 2.08 mm flat you can
   count, with 0.94 mm of wall left over the thread. The peg test's two pieces, cut from the plates,
-  fit each other as the plates do;
+  fit each other as the plates do as drawn (the knife's own pegs print in much shorter layers:
+  see the top);
 - each knob stop's T is squeezed 0.05 mm a side in its slot and can't pull out past the slot's
   shoulders, and each riser cap grips its fin 0.09 mm a side; the caps stand wholly above the
   latched block's top, so nothing rubs a cap off;
@@ -596,5 +618,5 @@ checker doesn't say so yet: the return push counting your thumb pressing the kno
 test version note at the top).
 
 Not checked yet: the roof's bridge direction is set, but nobody has sliced the knob slider in
-Flash Studio to see it hold (slice it three times from the command line, as the brain says,
+Flash Studio to see it hold (ask Claude to slice it three times from the command line, as the brain says,
 before printing). Nothing has been printed yet.

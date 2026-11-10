@@ -497,8 +497,9 @@ played with, change these:
   but the sideways one didn't: with the middle plate off inward, riser F's slot held the bar 13.6 mm
   behind the carriage, 9 MPa became 21. Each tolerance at its worst belongs in the model.
 - **A square step where a thin bar meets a wide block has no stress factor at all.** It is a sharp
-  inside corner: the finer you work it out, the higher it reads (on the knife 2.1, 2.8 and 3.7 at
-  meshes of 0.1, 0.05 and 0.025 mm), so a factor like 1.3 typed in for it is not safe. Give the joint
+  inside corner, so it never settles on one number however finely you work it out (on the knife a
+  square end read 2.8 to 3.7 depending on the mesh), and a factor like 1.3 typed in for it is not
+  safe. Give the joint
   a real fillet or a smooth widening (the knife's bar now widens over 6 mm into its carriage, and the
   roof's ends are cut back in a quarter-ellipse), and work its factor out from the real shape with a
   plan FE: each element as thick as the part is tall there. Check that FE against Peterson's stepped
@@ -513,17 +514,24 @@ played with, change these:
   round (holes print small), so a plate can sit 0.35 off either way. On the knife, the middle plate
   sitting 0.35 toward the blade let riser F's slot push the knob's bar in: 20.6 MPa on a hard push,
   32.5 on a let-go knob. Give each hole a flat on the side the harm comes from, drawn 0.05 into its
-  peg: pressed on, the plate slides 0.05 the other way and can't sit off toward the harm at all (a
-  flat prints within about 0.05 of where it is drawn; a hole printing small only pushes the plate
-  further the safe way). Set the plate's first layer back at the flat and the peg's top layer back on
-  that side as a lead-in, and print a peg test with the fit test.
+  peg: pressed on, the plate slides 0.05 the other way and can't sit off toward the harm at all.
+  But the flat shrinks with the rest of the hole, so a D-shaped hole goes on only if it prints at
+  most 0.15 small all round, where a round one takes 0.35: give the test pieces' and the plates'
+  holes the same room, and have a looser lid ready (Nov 10 2026). Set the plate's first layer back
+  at the flat, make the peg's lead-in a slope, not a step (a 0.2 step left the plates sitting
+  0.55 to 0.8 mm high until nudged over), and print a peg test with the fit test whose peg prints
+  in layers as short as the knife's own pegs.
 - **More room at a guide moves the contact; it doesn't remove it.** Giving riser F more room in its
   slot to stop it holding the knob's bar moved the push to the carriage's foot, and the plain bar
   went from 19 to 24 MPa. Find what really turns the part and take that down instead.
 - **Read the bending in z at a junction on each element's own section.** Where the knob's bar runs
   into its carriage, the check added the bar's bending up and down from plain-bar elements only and
-  missed some of it: on the let-go knob 27.9 became 28.6 once each element's own section was read.
+  missed some of it: on the let-go knob 28.4 became 28.8 once each element's own section was read.
   Read it on the section that is really there, and add the carriage's own bending to its roof's term.
+- **Count a force the same way in every check of the same push** (spring knife, Nov 10 2026). The
+  thumb check counted the thumb pressing the knob into the handle (0.3 of its push), but the stress
+  checks of that same push left it out and passed the return push at 14 MPa. Counted, it is 21 to
+  24 against 19.5. When one check finds a force, search every other check of that push for it.
 - **When the thumb and a stop squeeze a knob, the gap between their lines turns it.** In a landing
   with the thumb held stiff behind the knob, the thumb and the stop push it from either end with
   about the same force, so what turns it is that force times the distance between the two lines.
