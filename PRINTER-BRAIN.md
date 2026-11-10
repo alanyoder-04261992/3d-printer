@@ -4,7 +4,7 @@ Everything about our 3D printing setup in one place: the printer, the slicer, th
 filament, the settings that work, and what we've learned the hard way.
 **Keep it up to date** — when something changes or a print teaches us something, add it here.
 
-_Last updated: 2026-11-08_
+_Last updated: 2026-11-10_
 
 ---
 
@@ -116,7 +116,8 @@ played with, change these:
   slot wall and would have held nothing. Instead make the leg bend up and down through the
   layers, with the barb stacked from the bed in 0.2 mm layers: the shed's leg is 3 mm wide,
   0.8 mm thick and 5.5 mm long, the barb hooks 0.45 mm under its ledge, 0.2 mm gap all round,
-  about 1.8 % strain going in (keep it under 2 % for PLA). Put each size on a layer line
+  about 1.8 % strain going in (keep it under 2 % for PLA: a snap fit only bends a few times; a part
+  that flexes on every use needs far less, see Spring toys). Put each size on a layer line
   (first layer 0.25, then 0.2). Use Elephant foot compensation 0.1 mm.
 - **Glue a corner piece over a mitre; don't hook it** (shed and barn models, Nov 3 2026). The
   hooks that tied the tops of the corners had tips only 1.0 × 1.2 mm, printed into the flat
@@ -188,6 +189,15 @@ played with, change these:
   Nothing printable can stop that: it would have to stand behind the wall's inside face, the face
   the wall prints on. So the read me gives a check you can feel: lift the door a little and let
   go. Seated right, it snaps back down; seated wrong, it stays up.
+- **Mark gauge pieces by cutting off whole corners** (spring knife gauge nuts, Nov 8 2026). Notches
+  drawn for a hex nut's flat landed on a corner: two of the three came out as faint nicks, so the
+  nuts couldn't be told apart, and the clear one left 0.37 mm over the thread. Cut off 1, 2 or 3
+  alternate corners, 0.6 mm deep: each leaves a 2.1 mm flat you can count and 0.9 mm of wall. And
+  word the read me's choice by how many fit, not only by the marks.
+- **A post in a pocket is a peg in a hole: 0.35-0.4 all round** (spring knife, Nov 8 2026). Make
+  both round when a hex with that room would leave under two lines, and measure the pocket's wall
+  on every layer: the knife's middle plate had a cavity running under its rear screws, so a 9.9 mm
+  pocket left 0.75 there and 9.7 (with an 8.9 post) leaves 0.85.
 
 ### Checking a print file without opening it
 - Flash Studio slices from the command line without opening a window:
@@ -219,6 +229,18 @@ played with, change these:
 - **A bridge direction of 0 means "pick it yourself"** to Flash Studio, however it's written
   (`0`, `0.0`). A modifier must set a real angle, and a check must compare it with the planned
   number. Flash Studio also uses a modifier's real shape, not the box around it.
+- **Check where a modifier is, not only how big it is** (spring knife, Nov 9 2026). A check that
+  compared a bridge modifier's size with the bridge still passed with the modifier moved 21 mm off
+  it. Compare its corners with the bridge itself, read off the part's first layer that hangs.
+- **A bridge whose edge is cut back in plan leaves strands held at one end** (spring knife, Nov 10
+  2026). The knife's carriage roof bridges a 1.9 mm channel, and its ends are cut back in a curve.
+  Where that curve crosses the middle of the channel, each bridge line ends in mid-air: held at the
+  leg only, 1.2 mm past what the layer below reaches. A strand like that droops. Measure it along
+  the bridge's own direction: every line across what hangs must land on the layer below at both ends,
+  or be short (0.4). The fix that suggests itself, cutting each layer back a little more than the
+  one under it so the first layer reaches the far side, put thin layers where the part bends most
+  and raised the stress there from 1.2 to 2.2 times; a square cut-back held at both ends, rounded
+  into the leg, 1.6 to 2.1. Work the stress out on the shape the printer will make before choosing.
 - To find long bridges without printing, read the G-code: measure how much of each "Bridge" line
   has nothing under it on the layer below. Slice three or more times, because the direction can
   change between runs. The command line's G-code isn't byte-identical run to run either (loops
@@ -309,7 +331,7 @@ played with, change these:
 - **Git Bash's `sed -i` turns a CRLF file into LF.** Edit CRLF files with the Edit tool or with
   Python working on bytes.
 
-### Spring toys (spring knife design reviews, Nov 7-8 2026; not printed yet)
+### Spring toys (spring knife design reviews, Nov 7-10 2026; not printed yet)
 - **Don't let two stretched bands fight each other.** A plan with two preloaded TPU bands
   pulling opposite ways stalled half way in the model. TPU loses energy in proportion to how
   hard each band pulls, and roller friction does too, so the losses swamped the small
@@ -318,7 +340,10 @@ played with, change these:
   the tooth on it can't take a blade landing at 3 m/s. A loose block in a slot carries the
   load into the carrier; the arm only pushes it out. Cushion the bounce-back on TPU.
 - **A trailing corner can catch on the edge it just left.** A block that leans in its slot as
-  it leaves a window can hit the end of the next wall. Chamfer its corners more than it can lean.
+  it leaves a window can hit the end of the next wall. Chamfer its corners more than it can lean,
+  and count the lean where the block sits furthest out of its slot: following the knob's bar out
+  to the end of its 0.25 mm of play, a 5.65 mm deep block leaned 0.73 mm, past its 0.6 chamfers;
+  6.45 deep it leans 0.53.
 - **A part pushed off its line of pull twists against its walls.** The knob's riser pushes a
   sled 13.45 mm out from the band's line, so the sled turns until two corners bear on the
   walls, and they rub. That made the thumb push 1.5 to 1.9 times what the band alone needs.
@@ -327,19 +352,21 @@ played with, change these:
   rail was most of the friction the blade had to coast through, so the band, and the thumb,
   had to be stronger. Now the block rides a short catch at each end and floats out, barely
   touching, in between; a 22 degree ramp brings it back in at the far catch.
-- **The hardest knock is a knob let go just before the trip.** The band throws the light
-  knob slider back with all its energy, and it lands through a riser on a sled, plastic on
-  plastic. Make the part it hits as long as the riser (the sleds' wings went from 6 to 14 mm),
-  stop it on TPU, and check the bar it runs on, not only the parts that touch.
+- **A knob let go just before the trip is thrown back hard.** The band throws the light knob
+  slider back with all its energy (up to 86 mJ), and it lands through a riser on a sled. Make
+  the part it hits as long as the riser (the sleds' wings went from 6 to 14 mm), stop it on TPU,
+  and check the bar it runs on, not only the parts that touch.
 - **Gaps inside one part need 0.45 to 0.5 mm.** The latch arm's 0.3 mm gaps are the brain's
   sliding fit, but that is for two separate parts. Inside one print a strand or a smear can
   weld the arm solid. Print a latch test with the fit test.
 - **Two parts that slide on each other must not both print their first layer there.** The
   latch block and its slot both started on the bed at the same height, and each first layer
   spreads about 0.1, leaving 0.05 of play. Set the first layer back 0.15 on both.
-- **Press TPU pads and cushions into pockets.** A pad lying loose in a long room, or a cushion
-  in a groove that is open above, can drift or fall out where nothing pushes it home, and then
-  the blade lands on plastic. Narrow the pocket 0.05 to 0.1 a side over part of the TPU's length.
+- **Press TPU pads, cushions and stops into pockets.** A pad lying loose in a long room, or a
+  cushion in a groove that is open above, can drift or fall out where nothing pushes it home, and
+  then the blade lands on plastic. Narrow the pocket 0.05 to 0.1 a side over part of the TPU's
+  length. A TPU stop that stands out in the open needs more than grip: give it a T at its foot
+  that drops into a T-slot, with the next plate over the slot, so it can't come out at all.
 - **A nut trapped between plates can't clamp the plate above it.** Screwing up from the base
   plate into a nut that sits on the base plate clamps only the base plate: the top plate lifted
   straight off. Thread the far plate itself: posts printed on the top plate reach down through
@@ -351,17 +378,212 @@ played with, change these:
   the knob on to its end: up to a third more energy, so the knocks are harder than the throw
   alone says.
 - **Put TPU where a part lands every cycle, but not where it must carry a slow squeeze.** A cap
-  on each riser softens the sled landing on it, but a 2 x 2.35 mm TPU face can't also carry a
-  slow 50 N landing at a sane strain. Let that one go on into the pad and, at the very end, a
-  square-on stop that doesn't bend anything.
+  on each riser softens the sled landing on it, but a 2 x 2.35 mm TPU face can't also carry the
+  knob's whole landing at a sane strain.
+- **A knob that keeps going after the trip lands hard on every throw: give it its own TPU stop.**
+  The thumb drives it on at up to 4.3 m/s, still pushing 32 N; landing through a riser's cap,
+  that squashed the cap past half.
+- **A part the thumb drives must end its stroke on a stop at the height of the thumb's push**, or
+  the thumb's knock bends whatever carries it. The thumb is the heaviest thing that lands: about
+  10 g of thumb follows the 1.9 g knob slider on to its stop. A TPU bumper at each end of the
+  bar's lane stopped the bar square on, but on its own line, 2.6 mm under the thumb's
+  push and at the far end of the bar, so the thumb's push and weight ran down the bar and bent it
+  just in front of the knob: 50 MPa against 20. Now a TPU block at each end of the knob's travel,
+  standing outside the handle against a guard, meets the knob's own end face 0.4 mm under the
+  thumb's line, 0.1 mm before its sled meets its pad, and the bumpers are gone: the bar takes 15.4
+  MPa with the thumb held stiff, 12.1 on a soft thumb (Nov 9 2026). Check the lips the thumb
+  pushes too (the knob's lips went from 2 to 2.5 mm long: 15.3 MPa).
+- **A stop's push twists whatever joins it to the part it moves.** The knob stop pushes the knob
+  2.2 mm above the stem that joins the knob to its bar, so a let-go knob, with nothing but the
+  stop behind it, twists the stem: 12.1 MPa across its layers at its ends, over the 12 a layer
+  takes. The stem made as tall as the bar, and the stop's middle a little lower and its TPU a
+  little longer (softer), brought it to 9.8.
+- **Count a TPU cap as TPU in a stiffness model, not as the plastic it sits on.** The checker
+  took a whole 12.7 mm riser as stiff PLA, but 4.9 mm of it was the TPU cap, so the bar came out
+  too stiff and its worst stress in the wrong place. Stiffen only the PLA.
+- **A TPU cap's fin needs a full-width foot.** The cap's push comes into a 0.8 mm PLA fin, and as
+  the riser tips it pulls the fin's first layer off the bar: 22-25 MPa on a hard landing, where a
+  printed layer takes about 12. A foot as wide as the riser, 1 mm tall, under the fin puts that
+  pull on the foot's wide root: 3 to 10 MPa now on the sleds' landings. A low sole run on from the
+  foot right out to the riser's face, under the cap's front block, makes a knock bend the bar at
+  the riser's face instead of 2.5 mm in under the cap (the let-go landing: 25.0 MPa, was 29.1, of
+  30), but a stiffer front puts a little more on the fin's root (11.2 against 9.7, of 12). Running
+  the foot's full height on, or a 45 degree ramp up to the fin, was worse there (13.1, 12.8).
+- **Check what slides past a pressed-on TPU part.** A riser cap rubbed past the latched block's
+  top on every stroke, with more drag than its grip, so it could work its way off. Set it back
+  0.3 mm where the block passes, or stand it higher: the caps now stand on the risers' soles and
+  feet, wholly above the block's top.
+- **Count every plastic-on-plastic knock, even small ones.** The read me said none were left,
+  but the lug picking up the parked sled and the latch block meeting the rail's end still were.
+  A sudden stop puts about 2 MPa per m/s into PLA's struck face, so these light parts at 3 to
+  4 m/s see 7 to 8 MPa: fine, but now proven.
+- **Check a latch block that pops out as a moving part.** It bounces off what stops it, and while
+  the pad stops the blade the carrier presses it on its slot's wall, so friction holds it back
+  against its arm: the plain sum said it bit 0.85 mm, a step-by-step model 0.09 to 0.29 at worst.
+  Set 0.3 mm further out, it bit 0.49; with the stiffer, evenly bending arm (below) it bites 0.56,
+  0.60 with the flatter band, over the 0.45 needed.
+- **A solver in a checker must say when it doesn't settle.** The rail's old contact loop never
+  settled above about 20 N and printed whatever it tried last: a believable 17-23 MPa, or 118 at
+  30 N. Put the load on in steps, solve each until what's left over is tiny, and FAIL any step
+  that doesn't get there.
 - **Run a catch into its spine with a long taper, not a square step.** A rail pushed on one
   side of its length bends at any step; the square step put 31-40 MPa in it on every bounce,
-  an 8 mm taper and a wider middle brought it under 20.
+  an 8 mm taper and a wider middle brought a normal bounce down to 17 (the hardest is 24,
+  under its 30).
+- **A PLA part that flexes on every cycle must stay under about 0.65 % strain at its root to last
+  thousands of cycles.** The 2 % for snap fits is for one that bends a few times. Printed PLA
+  bent back and forth lasts about 10,000 cycles at about 20 MPa, 0.65 % at 3 GPa (Ezeh and
+  Susmel). The knife's latch arm bends twice a stroke (the cam pushes it in, the far ramp kicks
+  it) and a plain 0.95 mm arm reached 0.99 % at its root: a few thousand strokes at most. Shape
+  it to bend evenly instead: thin at its free end (0.85, still two lines), thickening toward the
+  root as a beam of even strength does (thickness squared in step with the bending), then a
+  smooth 3 mm flare into big round ends (1 mm radius), so the stress raiser at the root sees
+  less than the arm does. The same length then bends 0.53 % and is stiffer (0.145 N/mm). Less
+  preload (0.3 mm, still above the bar's play) with a stiffer arm presses less where the block
+  only rubs, and throws it out just as hard where it has to bite. Hold everything else that
+  bends on every throw to the same limit, 19.5 MPa (Nov 9 2026). That is the median life at
+  10,000 cycles (half crack by then), a pass line rather than a safe value: aim for 15.
+- **A thumb pressing a knob sideways moves its cam.** The knob's bar can go 0.3 mm in, until its
+  risers meet their slots, and the cam on it then lets the blade go 0.8 mm of push earlier, with
+  less in the band. Count the bar's play both ways in the let-go, and the throw from the earliest.
+- **Count the weight once when the toy is tilted.** Tilted up from flat, the weight pulls back
+  along the channel (sine) and presses a wall (cosine, rubbing mu of it). The worst tilt gives
+  the square root of 1 + mu squared of the weight (1.08 at mu 0.4), not 1 + mu (1.4): held
+  straight up, nothing presses the floor.
+- **Pick a TPU band by hanging a known weight on it.** TPU's stiffness varies so much from brand to
+  brand (10 to 30 MPa in the knife's sums) that one band can't suit them all: too soft, the blade
+  stops short; too stiff, the knob is too hard to push. Hang the band from a full half-litre bottle of
+  water (4.9 N) and measure the stretch: the knife's normal band stretches 40 mm in 15 MPa TPU, 30
+  in 20 and 23 in 26. Work the stretch out from the same band model the throw uses, set the
+  limits so a reading 1 mm out still fits a band that works, and print spare bands with the first.
+- **Fit a spring band with more stretch for a flatter pull.** The throw needs a set energy over a
+  set stroke; the thumb feels the band's pull at the end of the push. A band fitted further over
+  its printed length, and softer to match, stores the same energy with less pull at the end: the
+  knife's band went from 5 to 12.5 mm over (and 1.05 x 0.95 to 0.85 x 0.85) and pulls 0.85 of what
+  it did at the trip, with the same throw margin. The limit is how far it stretches fully cocked
+  (45 %): moving the band's posts 6.5 mm further apart on the sleds made the band 13 mm longer.
+- **Put the big stretch in TPU, not in a PLA spring.** A printed PLA clock spring held to the
+  0.65 % it survives stores about 0.02 mJ per mm3; the knife's TPU band, stretched 44 %, stores
+  1.0 to 2.9 (10 to 30 MPa TPU): 46 to 138 times as much. Use PLA springs only for small pushes,
+  like the latch arm.
+- **A knob on the side pushes off its bar's line: check the bar bending sideways too.** The knife's
+  thumb pushes 8 mm out from the 3.35 mm bar it drives, and the knob's slot takes away the lane
+  wall beside the bar for 48.5 mm. A sliding fit (0.25-0.3 a side) lets the short block of knob
+  and riser turn until its guides take it, and the bar bends to follow: 24 MPa at its corner on
+  an ordinary push, up to 45 on a hard push or a landing, against 20 (Nov 9 2026). What fixed it:
+  a long stiff carriage that takes the turn itself, guided on BOTH sides over its whole length on
+  one plate (a rib left standing in the slot, 0.25 a side); the plain bar either side of it left
+  free to follow (0.5 to the rib), with enough of it before the next guide (13.6 mm to riser F's
+  slot: over 9.6 a hard landing bent it 20.8 MPa, over 13.6 17.3); and the thumb and the stops
+  brought nearer the bar's line (a knob 1 mm thinner). Guides on two plates can pinch: the plates
+  sit 0.35 apart at most (the pegs' play). And a push through a wide carriage bends it only by how
+  far the push is from the carriage's own middle, not the bar's. A second review (Nov 9 2026) found
+  the return push, never worked out, at 20 MPa, and the fit's loose end, the plates off and the
+  carriage's square ends all made it worse: see the next lessons.
+- **A stroke's return is not its mirror.** The knife's knob slider has riser B inside the carriage's
+  front and riser F 13.6 mm behind it, and cam B at the far end, so the return push loads it quite
+  differently from the push. The checker called it the push's mirror and never solved it, and it
+  was the worst every-throw case (20.0 MPa against 19.5). Work out both directions, every knock too.
+- **Draw a carriage off its rib's middle when a cam beyond it is held by a wall.** A push turns the
+  knob's carriage in its play, and whichever end swings out drags the bar out after it until the
+  lane's wall stops it at the cam beyond: the bar between bends to fit. With the carriage 0.15 from
+  the rib on the bar's side (0.35 on the other, still 0.5 of sliding fit in all), its end stops 0.1
+  before the bar meets the wall at the cam, and the return push fell to about 18 MPa. Check the
+  slider doesn't pinch with the plates off: the risers' slots then push it out 0.1, so the pegs were
+  tightened to 0.35 all round to leave 0.1 of play.
+- **Prove a sliding fit at its loose end, and count the plates' play in every model.** The bar's
+  sideways bending rose about 2.6 MPa for every 0.05 mm more play on the carriage, and the check had
+  only looked at the drawn 0.25. And the up-and-down check counted the plates sitting 0.4 off across,
+  but the sideways one didn't: with the middle plate off inward, riser F's slot held the bar 13.6 mm
+  behind the carriage, 9 MPa became 21. Each tolerance at its worst belongs in the model.
+- **A square step where a thin bar meets a wide block has no stress factor at all.** It is a sharp
+  inside corner: the finer you work it out, the higher it reads (on the knife 2.1, 2.8 and 3.7 at
+  meshes of 0.1, 0.05 and 0.025 mm), so a factor like 1.3 typed in for it is not safe. Give the joint
+  a real fillet or a smooth widening (the knife's bar now widens over 6 mm into its carriage, and the
+  roof's ends are cut back in a quarter-ellipse), and work its factor out from the real shape with a
+  plan FE: each element as thick as the part is tall there. Check that FE against Peterson's stepped
+  bar first, read the same way.
+- **Check a model against the chart's own fit, not a value read off a small chart.** Peterson's
+  stepped flat bar in bending, D/d 2, r/d 0.1, is 1.95 by Pilkey's fit (Roark's Formulas, Table
+  6-1); a reading of 1.7 off an older chart made a sound FE look 9 % high. A plan FE that reads the
+  stress in the elements just inside the edge reads low on a coarse mesh and climbs as it gets
+  finer (1.75, 1.86, 1.92 at 0.025, 0.0167, 0.0125): take the finer mesh pushed on by its last rise
+  (1.96), and never the coarse mesh alone.
+- **Locate a floating plate with a D-shaped peg hole.** Round peg holes have to be 0.35 bigger all
+  round (holes print small), so a plate can sit 0.35 off either way. On the knife, the middle plate
+  sitting 0.35 toward the blade let riser F's slot push the knob's bar in: 20.6 MPa on a hard push,
+  32.5 on a let-go knob. Give each hole a flat on the side the harm comes from, drawn 0.05 into its
+  peg: pressed on, the plate slides 0.05 the other way and can't sit off toward the harm at all (a
+  flat prints within about 0.05 of where it is drawn; a hole printing small only pushes the plate
+  further the safe way). Set the plate's first layer back at the flat and the peg's top layer back on
+  that side as a lead-in, and print a peg test with the fit test.
+- **More room at a guide moves the contact; it doesn't remove it.** Giving riser F more room in its
+  slot to stop it holding the knob's bar moved the push to the carriage's foot, and the plain bar
+  went from 19 to 24 MPa. Find what really turns the part and take that down instead.
+- **Read the bending in z at a junction on each element's own section.** Where the knob's bar runs
+  into its carriage, the check added the bar's bending up and down from plain-bar elements only and
+  missed some of it: on the let-go knob 27.9 became 28.6 once each element's own section was read.
+  Read it on the section that is really there, and add the carriage's own bending to its roof's term.
+- **When the thumb and a stop squeeze a knob, the gap between their lines turns it.** In a landing
+  with the thumb held stiff behind the knob, the thumb and the stop push it from either end with
+  about the same force, so what turns it is that force times the distance between the two lines.
+  Keep the lines close: the knife's knob is 0.5 thinner now (the thumb 0.5 nearer the bar, the stop
+  0.25), which took the hardest landing from 22.3 to 18.2 MPa; a stop shortened to keep its E A /
+  L where it meets less of the knob stays as stiff (a softer stop made it worse).
+- **Count the guides' rubbing in the push force.** Whatever holds a part straight against a turning
+  push is pressed by that turn, and the part slides along it: mu times each push. On the knife the
+  rib, the lane's wall and the risers' slots rub 0.6 to 3.9 N of the thumb's push (12 % at the
+  worst friction), and leaving that out had hidden a thumb force over the limit. Work it out with
+  the same model that finds the turn, until it settles, and put it in the force every check uses.
+- **Crown a sliding guide's ends, gently.** A carriage that tilts in its play bears on its guide with
+  an end corner, a line of contact that wears and digs in. Round each guide face off at its ends in
+  plan: it then bears like a rounded edge, where the crown's slope matches the carriage's turn (R x
+  the turn in from where the crown starts: keep that, with the contact's half-width, inside the
+  crown's lead, and the turn under half its end slope). Hertz's line contact, p = sqrt(q E / (2 pi
+  (1 - nu^2) R)), q the push per mm of height, goes down with a flatter crown: the knife's went from
+  0.1 over 2 mm (R 20) to 0.065 over 3.5 (R 94). Count only the height that really meets: a guide
+  face's first layer set back doesn't, and the slider can lift. The knife's carriage meets its 1 mm
+  tall rib over only 0.54 of its height as drawn (its guide faces start above their set-back first
+  layer, and the bar sits 0.2 over its floor) and 0.19 lifted to the middle plate: 29.8 MPa with the
+  old crown; with the flatter crown 15.0 on every throw and 18.8 on a let-go knob.
+- **A stop that meets the knob on the thumb's own line stops the knob without turning it.** Every
+  throw the thumb and the stop squeeze the knob between them, 170 N each way; 1.7 mm between their
+  lines turned it 300 N mm. Cutting the knob's end back low down and on its inner part, so the stop
+  meets only the outer part (0.7 mm from the thumb's line, at its height), cut that to under half. A
+  shorter stop (3.5 instead of 5 mm) kept it stiff enough that the knob, not the riser's cap, still
+  takes the landing. But a cut-back only works until the stop squashes that far: the knob's inner
+  part, cut back 0.5, met the flat stop from 0.5 of squash, and the hard landings squash it 1.4. Cut
+  the stop's own face back past the most it squashes, and the stops become a mirrored pair: key them
+  (an off-centre T) so neither fits the wrong end. Leave two lines of the stop behind its recess:
+  on the 2.65 stop of the thinner knob the recess is 1.71 (it was 2.15 on the 3.5 stop).
+- **A TPU block pushed on part of its face is stiffer than E A / L.** Its unpushed part is dragged
+  along: a plane-stress model of the knife's flat knob stop, pushed on 2.05 of its 3.9 width, gave
+  1.23-1.39 times; with its unpushed part recessed, 1.06-1.12. Work the landings out over the range.
+- **A TPU band held stretched loses pull.** The knife's band is fitted 12.5 mm (14 %) over its length
+  for good, and TPU held stretched relaxes and takes a set, and softens the first few times it goes
+  further than before. Stretch a band 10 times to about 1.5 times its length before a hang test, hang
+  the band you fit too, and check an aged band (its rest pull x 0.8, its stiffness x 0.9) still does
+  its job: the knife's still locks, with 0.02 N of friction to spare at the worst corner (0.11 fresh).
+- **Count the thumb pressing a ridge in.** A thumb pushing a ridge 1 mm proud also presses the knob
+  sideways, about 0.3 of its push, and the guides rub mu of that: on the knife about 1.5 N more.
+- **With the thumb kept on the knob, the far cam swings in.** Held at the end of its travel, the
+  thumb's push and the stop's turn the slider in its play, and the cam at its far end moved in 0.5 to
+  0.6 over where the blade arrives, past the 0.45 of room drawn. Cut the carrier back there (0.75
+  now), and check it with the carrier on the wall its latch arm presses it to.
+- **Print TPU springs and pads solid if the sums take them as solid.** At the stock 15 % infill a
+  2 mm TPU pad gets sparse layers inside and comes out about 11 % softer than worked out. Set
+  Sparse infill density to 100 % on each TPU part.
 
 ### Bed adhesion
 - Long, thin parts or parts with a small footprint need a **5 mm brim** (knife handle, sword
   blade, star board).
 - Tall thin parts: keep the bottom few layers solid so the part has something to hold the bed with.
+- **A brim fills the gap between two islands of one part.** An outer-only brim skips holes, but a
+  gap between two islands of the first layer is outside, so the brim is laid in it. The spring
+  knife's knob slider has a 2.2 mm groove under its roof for a rib to run in, so its first layer
+  is two strips; a 5 mm brim would have put about 75 mm2 of brim in the groove, under the roof,
+  where it can't be peeled out. A part whose first layer has a groove under a roof gets no brim
+  (Nov 9 2026).
 
 ---
 
@@ -387,7 +609,7 @@ played with, change these:
 | `shed model 10x20 lofted barn cabin/` | 1:32 model of the 10x20 Lofted Barn Cabin: the cabin's floor, porch, snap walls, in-swing door and standard layout, with Alan's 79 1/2 in lofted walls and a 73 1/2 in door under two flat 2x4s, with the faux loft window in the porch gable (the octagon is an option), front and back lofts and a barn roof in four lift-off sheets | Read `read me first.md`. Print `1 fit test.3mf` first, then the four plates in `2 all plates.3mf` (about 8 1/3 h). Lift the front loft out before gluing the front corners. Made by `make_barn_cabin.py`; `check_barn_cabin.py` proves the parts fit and print flat; `draw_barn_cabin.py` draws the assembly picture |
 | `shed model 12x24 garage/` | 1:36 model of the 12x24 Garage in Alan's standard layout (8 x 6.4 ft roll-up centred in one end; on the right-hand side, the steel door 4 ft in from the roll-up corner and a window halfway between it and the back), built on the shed's snap joints: floor, four walls that snap onto the floor, black corner angles glued over the corners, a lift-out roll-up door with a black handle at its bottom middle, in-swing steel door, two lift-off roof halves, four skids | Read `read me first.md`. Print `1 fit test.3mf` first (plate 1 is half the roll-up door in half its doorway, to practise putting it in and taking it out), then the four plates in `2 all plates.3mf` (about 7 1/2 h). The roll-up door goes in last. To take it out: lift it by its handle until it stops (about a millimetre), let it down a hair, pull the bottom toward you and let it drop. Made by `make_garage.py`; `check_garage.py` proves the parts fit, the door's springs hold it and it comes out; `draw_garage.py` draws the assembly picture |
 | `shed model 12x24 lofted barn garage/` | 1:36 model of the 12x24 Lofted Barn Garage: the Garage's floor, snap walls, standard layout and lift-out roll-up door, with a faux loft window in the gable over the roll-up, a 4 ft loft at each end and a barn roof in four lift-off sheets | Read `read me first.md`. Print `1 fit test.3mf` first, then the four plates in `2 all plates.3mf` (about 8 1/2 h). The roll-up door goes in and comes out the same way as on the Garage, roof on or off. Made by `make_barn_garage.py`; `check_barn_garage.py` proves the parts fit and the door works; `draw_barn_garage.py` draws the assembly picture |
-| `spring knife/` | Double-action spring knife fidget toy designed from scratch (Nov 2026) to replace the one from the Flashforge app. Push the side knob 28 mm (about 17 N) and the blade snaps 86 mm out and locks; pull it back and it snaps in. One TPU band runs between two sleds that rest on the knob bar's risers, so at rest it pulls on nothing; a cam lets the latch block go, the band throws the blade and it coasts the rest of the way onto a TPU pad. Every knock lands on TPU: the risers wear TPU caps. The latch block catches on a short catch at each end of a rail that floats between two TPU cushions, and floats out, barely rubbing, in between. Three black handle plates held by four printed screws threaded into posts on the top plate. Blunt, round-tipped toy | Read `read me first.md`. Print `1 fit test.3mf` first (the four screws and three gauge nuts, and a latch test), then the three plates in `2 knife plates.3mf` and `3 TPU parts.3mf` (TPU in slot 4); nothing to buy. Made by `make_knife.py`; `check_knife.py` walks a whole cycle, models a throw from the real parts over a range of TPU, friction and print weight, held flat or pointing up, works out the thumb force and every knock (wings, risers, bar and rail), and proves the screws hold all three plates, nothing hangs in the air, no wall is under two lines and every flat face sits on a layer line |
+| `spring knife/` | Double-action spring knife fidget toy designed from scratch (Nov 2026) to replace the one from the Flashforge app. Push the side knob 28 mm (about 17 N) and the blade snaps 86 mm out and locks; pull it back and it snaps in. One TPU band runs between two sleds that rest on the knob bar's risers, so at rest it pulls on nothing else; it is fitted 12.5 mm over its printed length for a flatter pull. A cam lets the latch block go, the band throws the blade and it coasts the rest of the way onto a TPU pad. Every landing on a riser, pad, knob stop or cushion is on TPU: the risers wear TPU caps on fins with full-width feet and low soles, and the knob itself lands square on a TPU stop at each end of its travel, standing outside the handle in front of a guard (the handle is 43 mm wide at the guards); the two stops are a mirrored, keyed pair, their faces cut back so only the knob's outer part meets them. Two light knocks are still plastic on plastic, at 7 to 8 MPa. The latch block catches on a short catch at each end of a rail that floats between two TPU cushions, and floats out, barely rubbing, in between. The latch arm is shaped to bend evenly, 0.53 % at most, under a 10,000-cycle limit. The knob is a 38 mm carriage riding a rib in its slot, off the rib's middle (0.15 and 0.35 mm), its lips 3.7 mm proud of the handle's side, with a thumb saddle in its middle; the bar widens smoothly into the carriage and the carriage's roof is cut back at its ends in a curve, and D-shaped peg holes keep the middle and top plates off the blade's side, so its sideways push no longer bends the bar too much: at most 18.8 MPa against 19.5, on eight versions (its fit as drawn and looser, the plates where drawn, off and turned), the joint into the carriage worked out from a plan FE checked against Peterson's stepped bar. A third review then found those rows leave out the thumb pressing the knob in: counted, the return push bends that joint 21 to 24 MPa, 35 on a hard one. Three black handle plates held by four printed screws threaded into posts on the top plate. The band comes with two spares, and a hang test picks the band for your TPU (stretch it 10 times first). Blunt, round-tipped toy. The folder holds a test version to print now (Nov 10 2026): every check passes but one (the first layer of the carriage's roof is held at one end only for up to 1.2 mm near its cut-back ends), and the third review found more still to fix: the thumb's press on the return push, D-shaped peg holes that take only 0.15 mm of shrink, and smaller things. The top of the read me lists them. Not printed yet | Read `read me first.md`. Print `1 fit test.3mf` first (the four screws, three gauge nuts with 1, 2 and 3 corners cut off, a piece of the knob's rib and carriage, a peg test, and a latch test), then plate 1 of `3 TPU parts.3mf` (three normal bands and the small TPU parts; TPU in slot 4) and hang a band from a full half-litre bottle of water: 39 mm of stretch or more, print plate 2 (strong bands); 25 mm or less, plate 3 (soft bands). Then the four plates in `2 knife plates.3mf`; nothing to buy. Before printing, slice the knob slider three times from the command line to see its roof's bridge modifier holds. Made by `make_knife.py`; `check_knife.py` walks a whole cycle and the assembly order, models a throw from the real parts over a range of TPU, friction and print weight, held flat or tilted up the worst way, models the latch block popping out, holds the latch arm and everything PLA that bends on every throw to a 10,000-cycle fatigue limit, works out the thumb force (counting the rubbing of the walls that hold the knob straight, both ways, and the thumb pressing the knob in) and every knock and landing (wings, the risers' roots, the bar up and down on the room the plates really give it and sideways in its lane, pushed and pulled, on its fit as drawn and looser and with the plates off and turned, the joint into the carriage from a plan FE checked against Peterson's stepped bar, the knob's saddle, lips and carriage, its rib, the guards and rail, the knob stops' stiffness from a model of their shape), works out the hang test's stretch for each TPU from the throw's own band and proves each band works over every stretch it is fitted at, fresh and aged, and proves the screws hold all three plates, nothing hangs in the air, no wall is under two lines, every flat face sits on a layer line and the three project files hold what the read me lists, with no brim under any part and the knob's roof bridge modifier over the bridge, and checks each bridge strand is held at both ends |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in
