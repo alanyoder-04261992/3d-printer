@@ -48,10 +48,11 @@ ok    wall between the rear screws' pockets and the channel: 0.80 mm (two lines 
 ok    the knob bar each side of the knob's socket: 0.82 mm (two lines is 0.8)
 ok    the arm: 1.10 mm (two lines is 0.8)
 ok    the lid each side of the knob's slot (outer): 2.85 mm (two lines is 0.8)
+ok    lid between the front U cut-out and the front screw's post: 3.65 mm (two lines is 0.8)
 ok    1 slide test.3mf carries Flash Studio's settings and version tags
 ok    2 knife plates.3mf carries Flash Studio's settings and version tags
 ok    3 bands TPU.3mf carries Flash Studio's settings and version tags
 ok    no two parts overlap through the whole cycle (765 positions, 17 ways each part sits in its play)
 
-53 ok, 0 FAIL
+54 ok, 0 FAIL
 exit 0

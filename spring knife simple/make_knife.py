@@ -182,6 +182,8 @@ BOSS_Z0 = HT - layer(34)            # 2.25: they reach down to 0.2 over the floo
 THREAD_TOP = HT - layer(3)          # 8.45
 SCREW_TIP = layer(41)               # 8.25, 0.2 under the post's top skin
 LID_DRIFT = (POST_POCKET_D - BOSS_D) / 2   # 0.4: the lid can sit this far off across
+THUMB_U_R, THUMB_U_D = 7.0, 18.0    # a U cut out of the lid's front end over the blade, 14 wide and 18 deep:
+#                                     press the blade back in with a finger if it ever needs it
 
 
 # ---------------------------------------------------------------- where things are
@@ -419,7 +421,9 @@ def lid(window=None):
     posts = union([cyl_z(x, y, BOSS_Z0, Z1 + 0.01, BOSS_D, 96) for x, y in screws()])
     catches = union([prism(poly, CATCH_Z0, Z1 + 0.01) for poly in catch_polys()])
     x0, x1, y0, y1 = knob_slot()
-    p = (p + posts + catches) - box(x0, x1, y0, y1, Z1 - 1, HT + 1)
+    u = union([box(HL - THUMB_U_D + THUMB_U_R, HL + 1, -THUMB_U_R, THUMB_U_R, Z1 - 1, HT + 1),
+               cyl_z(HL - THUMB_U_D + THUMB_U_R, 0, Z1 - 1, HT + 1, 2 * THUMB_U_R, 64)])
+    p = (p + posts + catches) - box(x0, x1, y0, y1, Z1 - 1, HT + 1) - u
     return p - union([lid_thread(x, y) for x, y in screws()])
 
 

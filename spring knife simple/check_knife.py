@@ -347,6 +347,7 @@ def check_print():
         "the knob bar each side of the knob's socket": (k.BAR_Y1 - k.BAR_Y0 - k.SOCKET_W) / 2,
         "the arm": k.ARM_T,
         "the lid each side of the knob's slot (outer)": k.HW_Y1 - k.knob_slot()[3],
+        "lid between the front U cut-out and the front screw's post": (k.screws()[2][1] - k.BOSS_D / 2) - k.THUMB_U_R,
     }
     for what, w in walls.items():
         report(w >= 0.8 - 1e-6, f"{what}: {w:.2f} mm (two lines is 0.8)")
