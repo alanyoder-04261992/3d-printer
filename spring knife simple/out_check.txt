@@ -1,0 +1,57 @@
+ok    wherever the sleds go, each keeps a key under the channel's lips
+ok    the sleds drop in at 27.3 and 84.5 without meeting the blade's lug or each other
+ok    the latch block sits in its T-slot without touching the carrier (out position)
+ok    and pushed in 3.1 mm, further than any cam or catch pushes it
+ok    the arm presses the block's head (drawn 0.4 mm into it)
+ok    the latch holds by 0.95 mm at least (tooth out past the catch, every part at the worst end of its play)
+ok    each cam pushes the tooth 0.15 mm or more inside the catch
+ok    cam A lets the blade go with the knob 0.74 mm short of the end of its push
+ok    cam B lets it go with the knob 0.74 mm short of the end of its pull
+ok    going out, the latch clicks in 1.35 mm before the blade's hard stop, and 0.45 mm before the lug meets sled B
+ok    going in, it clicks in 1.35 mm before the hard stop, 0.45 before the lug meets sled F
+ok    between the catches the latch block touches nothing: free over 30 of the 60 mm
+ok    the cams stop 0.45 and 0.45 mm short of the catches
+ok    the block is pushed in 2.50 mm at most, with 3.30 of room behind it
+ok    the arm bends 0.90 % at most (a snap fit takes about 2 %), pushing 0.13 to 0.92 N
+ok    fully cocked the band stretches 57 % of its length (40.6 mm; 3.0 at rest)
+        blade 13.0 g, sled 0.33 g
+ok    band thin (1.05 x 1.2 mm): pulls 5.2-13.0 N fully cocked (soft to stiff TPU), thumb 10-21 N at the end of the push; gives the blade 132 mJ, 7 times what friction can take on the way (mu 0.5), with 22 mm to slide on its own
+ok            band thin: thumb at most 21 N (33 N is a firm push)
+ok    band (1.25 x 1.2 mm): pulls 6.2-15.5 N fully cocked (soft to stiff TPU), thumb 11-25 N at the end of the push; gives the blade 158 mJ, 8 times what friction can take on the way (mu 0.5), with 22 mm to slide on its own
+ok            band: thumb at most 25 N (33 N is a firm push)
+ok    band thick (1.45 x 1.2 mm): pulls 7.2-18.0 N fully cocked (soft to stiff TPU), thumb 12-28 N at the end of the push; gives the blade 183 mJ, 9 times what friction can take on the way (mu 0.5), with 22 mm to slide on its own
+ok            band thick: thumb at most 20 N in a normal TPU (12 in a soft one, the one it is for)
+ok    handle base: one piece, every flat face on a layer line, fits the bed
+ok    handle lid: one piece, every flat face on a layer line, fits the bed
+ok    blade: one piece, every flat face on a layer line, fits the bed
+ok    blade loose: one piece, every flat face on a layer line, fits the bed
+ok    latch block: one piece, every flat face on a layer line, fits the bed
+ok    knob bar: one piece, every flat face on a layer line, fits the bed
+ok    knob: one piece, every flat face on a layer line, fits the bed
+ok    sled F: one piece, every flat face on a layer line, fits the bed
+ok    sled B: one piece, every flat face on a layer line, fits the bed
+ok    screw: one piece, every flat face on a layer line, fits the bed
+ok    band thin: one piece, every flat face on a layer line, fits the bed
+ok    band: one piece, every flat face on a layer line, fits the bed
+ok    band thick: one piece, every flat face on a layer line, fits the bed
+ok    slide test base: one piece, every flat face on a layer line, fits the bed
+ok    slide test lid: one piece, every flat face on a layer line, fits the bed
+ok    slide test blade: one piece, every flat face on a layer line, fits the bed
+ok    slide test blade loose: one piece, every flat face on a layer line, fits the bed
+ok    carrier strip outside the arm (upper layer): 1.50 mm (two lines is 0.8)
+ok    lips over the block's head (upper layer): 0.80 mm (two lines is 0.8)
+ok    carrier lip outside its groove: 0.80 mm (two lines is 0.8)
+ok    wall between the front screw's pocket and the mouth: 0.80 mm (two lines is 0.8)
+ok    wall between the front screw's pocket and the bar's lane: 0.80 mm (two lines is 0.8)
+ok    base plate behind the rear screws' pockets: 0.85 mm (two lines is 0.8)
+ok    wall between the rear screws' pockets and the channel: 0.80 mm (two lines is 0.8)
+ok    the knob bar each side of the knob's socket: 0.82 mm (two lines is 0.8)
+ok    the arm: 1.10 mm (two lines is 0.8)
+ok    the lid each side of the knob's slot (outer): 2.85 mm (two lines is 0.8)
+ok    1 slide test.3mf carries Flash Studio's settings and version tags
+ok    2 knife plates.3mf carries Flash Studio's settings and version tags
+ok    3 bands TPU.3mf carries Flash Studio's settings and version tags
+ok    no two parts overlap through the whole cycle (765 positions, 17 ways each part sits in its play)
+
+53 ok, 0 FAIL
+exit 0
