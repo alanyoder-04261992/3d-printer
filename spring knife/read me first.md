@@ -1,5 +1,9 @@
 # Spring knife toy — read me first
 
+> **Don't print this one: it jams (Nov 11 2026).** Alan printed it. The blade wouldn't slide without tapping and
+> wouldn't lock unless pushed home with a tool. The middle plate, the one that holds the band, pinched the blade.
+> It has been replaced by a simpler design in the **`spring knife simple`** folder. This folder stays as a record.
+
 A double-action fidget toy designed from scratch (Nov 2026). Push the **knob** on the side
 **forward** about 28 mm: near the end the blade snaps 86 mm out and locks. Pull it **back**:
 near the end the blade snaps back in and locks. Every part is printed, the screws too:
