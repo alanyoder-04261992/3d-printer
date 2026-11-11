@@ -122,6 +122,9 @@ Lay the base plate inside up, with the mouth (the slot the blade comes out of) a
 - **Open:** push the knob forward all the way. Near the end you feel the latch let go, and
   the blade snaps out and clicks.
 - **Close:** pull the knob back all the way. The blade snaps in and clicks.
+- **Thumb cut-out:** the lid has a U cut out of its front end, over the blade. If the blade
+  ever stops part way, press it with a finger there and push it back in.
+- **If it's stuck out:** pull the knob back first, so the latch lets it go, then push.
 
 ## Which band
 
