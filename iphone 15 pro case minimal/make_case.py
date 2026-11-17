@@ -4,8 +4,8 @@ Run:  python3 make_case.py      (needs: pip install manifold3d numpy)
 
 As little TPU as does the job: 1.5 mm walls, soft chamfered edges and a raised lip that stands
 1.6 mm over the screen, round a back that is mostly open. Only what works stays solid: a band
-inside the walls, a frame round the camera, and the MagSafe ring, open in its middle so the Apple
-logo shows. The rest of the back is a Voronoi web of 1.6 mm struts. The buttons are open
+inside the walls, a frame round the camera, and a frame round a 57.5 mm opening where a MagSafe
+charger drops in and sits right on the phone. The rest of the back is a Voronoi web of 1.6 mm struts. The buttons are open
 cut-outs with wide 45 degree scoops, so your thumb finds them and presses the phone's own buttons.
 
 Bonus: two TPU dust plugs that press into the case's USB-C and speaker openings.
@@ -73,12 +73,14 @@ CAM_W, CAM_L, CAM_R = 42.0, 43.4, 12.0
 CAM_CH = 0.8                        # its edge on the back face is cut back 45 degrees
 
 # the back: an open lattice. Only the parts that do a job stay solid: a band round the edge, a ring round the
-# camera, and the MagSafe ring, whose middle is open (the Apple logo shows through). The rest is a Voronoi web of
+# camera, and a frame round the MagSafe opening. The rest is a Voronoi web of
 # 1.6 mm struts, about 9 mm cells.
 EDGE_BAND = 3.0                     # solid back inside the walls, all round
 CAM_FRAME = 2.5                     # solid ring round the camera hole
-MAG_R0, MAG_R1 = 17.5, 28.0         # the MagSafe ring: solid from here to here (the phone's magnets sit about 18-23 out,
-#                                     a MagSafe charger is 55.9 across); open inside, a 35 mm window
+MAG_R0 = 28.75                      # the MagSafe opening: 57.5 across, so a MagSafe charger (55.9 across) drops in and
+#                                     sits right on the phone, with nothing between its magnets and the phone's
+MAG_R1 = MAG_R0 + 2.5               # a solid frame round the opening
+MEET_R = 3.0                        # where the opening meets the camera hole, rounded this much
 STRUT = 1.6                         # the web's struts: four lines of a 0.4 nozzle
 CELL_ROUND = 1.6                    # each opening's corners rounded this much
 CELL = 9.0                          # the web's cells are about this far apart
@@ -257,12 +259,17 @@ def lattice_holes():
             .offset(CELL_ROUND, m3.JoinType.Round, 2.0, 32)
         if h.area() >= MIN_HOLE:
             holes.append(h)
-    window = m3.CrossSection.circle(MAG_R0, 192)        # the MagSafe ring's open middle
+    window = m3.CrossSection.circle(MAG_R0, 192)        # the MagSafe opening
     return m3.CrossSection.batch_boolean(holes + [window], m3.OpType.Add)
 
 
 def back_cut():
-    return slab(lattice_holes(), -1, BACK + BACK_EDGE + 0.5)
+    # the MagSafe opening runs into the camera hole (the charger sits just below the camera): round off the two points
+    # of TPU left where they meet
+    both = m3.CrossSection.batch_boolean([rrect(CAM_W, CAM_L, CAM_R, CAM_X, CAM_Y), m3.CrossSection.circle(MAG_R0, 192)],
+                                         m3.OpType.Add)
+    meet = both.offset(MEET_R, m3.JoinType.Round, 2.0, 64).offset(-MEET_R, m3.JoinType.Round, 2.0, 64)
+    return slab(m3.CrossSection.batch_boolean([lattice_holes(), meet], m3.OpType.Add), -1, BACK + BACK_EDGE + 0.5)
 
 
 def case():

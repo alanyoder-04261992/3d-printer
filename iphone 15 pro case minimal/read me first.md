@@ -4,10 +4,10 @@ A TPU case made from as little material as does the job.
 - **Sides:** 1.5 mm walls, soft chamfered edges and a raised lip round the screen. The buttons
   are open, so you press the phone's own buttons.
 - **Back:** mostly open. Solid TPU stays only where it does a job: a band inside the walls, a
-  frame round the camera, and the MagSafe ring, which is open in its middle so the Apple logo
-  shows through.
+  frame round the camera, and a frame round a 57.5 mm opening for MagSafe. A MagSafe charger
+  (55.9 mm across) drops into that opening and sits right on the phone.
 - **The web:** the rest of the back is a Voronoi web of 1.6 mm struts, like a leaf's veins.
-- **Weight:** about 16.5 g of TPU, a fifth less than a solid back.
+- **Weight:** about 14.3 g of TPU, a third less than a solid back.
 - **Dust plugs:** two TPU plugs come with it.
 
 **Not printed yet (Nov 17 2026).**
@@ -37,13 +37,13 @@ Flash Studio shows the time when it slices. The TPU case you printed before took
 | | |
 |---|---|
 | Size | 73.9 × 149.9 × 11.25 mm. The phone is 70.6 × 146.6 × 8.25 |
-| Walls | 1.5 mm at the sides. The back is 1.25 mm, open in 72 cells and a 35 mm window |
+| Walls | 1.5 mm at the sides. The back is 1.25 mm, with the web and the MagSafe opening cut through it |
 | Screen lip | Stands 1.6 mm over the screen and reaches 1.45 mm in over its edge, sloped at 45 degrees |
 | Fit | 0.15 mm of room all round. TPU stretches, so the case pulls snug |
 | Buttons | Open cut-outs that widen 1 mm at the outside at 45 degrees, so your thumb finds them. The side button has its own slot. Both volume buttons share one long slot, and the Action button has its own |
 | Bottom | USB-C, speaker and microphone openings, also widened at the outside |
 | Camera | An opening about 0.5 mm bigger all round than the one on the case you printed, its edge cut at 45 degrees |
-| MagSafe | A solid 1.25 mm ring, 35 to 56 mm across, where a MagSafe charger or wallet sits. TPU that thin lets the magnets grip through it. The middle is open |
+| MagSafe | A 57.5 mm opening at the middle of the back. A MagSafe charger drops in and sits right on the phone, so nothing is between the magnets and charging is as fast as with no case. It runs into the camera hole just below the camera, with the join rounded off. A MagSafe wallet or stand is bigger than the opening, so it rests on the case round it: 1.25 mm of TPU, as with any thin case |
 
 ## The dust plugs
 
