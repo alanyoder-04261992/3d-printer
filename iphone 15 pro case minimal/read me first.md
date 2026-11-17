@@ -1,8 +1,14 @@
-# Minimal iPhone 15 Pro case: read me first
+# Light iPhone 15 Pro case: read me first
 
-A slim TPU case with soft chamfered edges and a raised lip round the screen. The buttons are
-open, so you press the phone's own buttons. On the back, the MagSafe ring is cut in as a groove,
-with three thinner rings rippling out from it. Two TPU dust plugs come with it.
+A TPU case made from as little material as does the job.
+- **Sides:** 1.5 mm walls, soft chamfered edges and a raised lip round the screen. The buttons
+  are open, so you press the phone's own buttons.
+- **Back:** mostly open. Solid TPU stays only where it does a job: a band inside the walls, a
+  frame round the camera, and the MagSafe ring, which is open in its middle so the Apple logo
+  shows through.
+- **The web:** the rest of the back is a Voronoi web of 1.6 mm struts, like a leaf's veins.
+- **Weight:** about 16.5 g of TPU, a fifth less than a solid back.
+- **Dust plugs:** two TPU plugs come with it.
 
 **Not printed yet (Nov 17 2026).**
 
@@ -20,7 +26,7 @@ Open **`iphone 15 pro case TPU.3mf`** in Flash Studio with File → Open Project
 It is all on filament 1, set to Generic TPU (240 °C, bed 35 °C). Put TPU in a slot and pick that
 slot in the Send dialog.
 
-- **The case prints back face down**, so the rings on the back come out crisp.
+- **The case prints back face down**, so the web is just the first few layers on the bed: no supports.
 - **No brim:** it would have to be peeled off soft TPU.
 - **Solid:** 4 walls and 100 % infill, so the thin walls are solid TPU.
 
@@ -31,13 +37,13 @@ Flash Studio shows the time when it slices. The TPU case you printed before took
 | | |
 |---|---|
 | Size | 73.9 × 149.9 × 11.25 mm. The phone is 70.6 × 146.6 × 8.25 |
-| Walls | 1.5 mm at the sides, 1.25 mm on the back |
+| Walls | 1.5 mm at the sides. The back is 1.25 mm, open in 72 cells and a 35 mm window |
 | Screen lip | Stands 1.6 mm over the screen and reaches 1.45 mm in over its edge, sloped at 45 degrees |
 | Fit | 0.15 mm of room all round. TPU stretches, so the case pulls snug |
 | Buttons | Open cut-outs that widen 1 mm at the outside at 45 degrees, so your thumb finds them. The side button has its own slot. Both volume buttons share one long slot, and the Action button has its own |
 | Bottom | USB-C, speaker and microphone openings, also widened at the outside |
 | Camera | An opening about 0.5 mm bigger all round than the one on the case you printed, its edge cut at 45 degrees |
-| MagSafe | The back is 1.25 mm of TPU, thin enough for MagSafe chargers and wallets to grip through. The groove on the back (56 mm across) shows where a MagSafe charger sits |
+| MagSafe | A solid 1.25 mm ring, 35 to 56 mm across, where a MagSafe charger or wallet sits. TPU that thin lets the magnets grip through it. The middle is open |
 
 ## The dust plugs
 
