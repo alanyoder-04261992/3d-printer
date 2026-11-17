@@ -1,12 +1,12 @@
-"""Minimal iPhone 15 Pro case, TPU, for the Flashforge AD5X (Nov 17 2026).
+"""Light, open-back iPhone 15 Pro case, TPU, for the Flashforge AD5X (Nov 17 2026).
 
 Run:  python3 make_case.py      (needs: pip install manifold3d numpy)
 
-A slim TPU case: 1.5 mm walls, a 1.25 mm back, soft chamfered edges, and a raised lip that
-stands 1.6 mm over the screen. The buttons are open cut-outs with wide 45 degree scoops, so
-your thumb finds them and presses the phone's own buttons. The back carries the look: the
-MagSafe ring cut into it as a groove, with three thinner rings rippling out from it round the
-camera. MagSafe works through the thin back.
+As little TPU as does the job: 1.5 mm walls, soft chamfered edges and a raised lip that stands
+1.6 mm over the screen, round a back that is mostly open. Only what works stays solid: a band
+inside the walls, a frame round the camera, and the MagSafe ring, open in its middle so the Apple
+logo shows. The rest of the back is a Voronoi web of 1.6 mm struts. The buttons are open
+cut-outs with wide 45 degree scoops, so your thumb finds them and presses the phone's own buttons.
 
 Bonus: two TPU dust plugs that press into the case's USB-C and speaker openings.
 
@@ -72,11 +72,19 @@ CAM_X, CAM_Y = 12.2, 49.5
 CAM_W, CAM_L, CAM_R = 42.0, 43.4, 12.0
 CAM_CH = 0.8                        # its edge on the back face is cut back 45 degrees
 
-# the back: the MagSafe ring cut in as a groove, and three thinner rings outside it
-MAGSAFE_D = 56.0                    # Apple's MagSafe charger is 55.9 across: the groove rings where it sits
-RINGS = [(MAGSAFE_D / 2, 1.2), (MAGSAFE_D / 2 + 5, 0.8), (MAGSAFE_D / 2 + 10, 0.8), (MAGSAFE_D / 2 + 15, 0.8)]
-RING_D = layer(2)                   # 0.45 deep: the first two layers
-RING_CLEAR = 3.0                    # the outer rings stop this far from the camera hole and the case's edge
+# the back: an open lattice. Only the parts that do a job stay solid: a band round the edge, a ring round the
+# camera, and the MagSafe ring, whose middle is open (the Apple logo shows through). The rest is a Voronoi web of
+# 1.6 mm struts, about 9 mm cells.
+EDGE_BAND = 3.0                     # solid back inside the walls, all round
+CAM_FRAME = 2.5                     # solid ring round the camera hole
+MAG_R0, MAG_R1 = 17.5, 28.0         # the MagSafe ring: solid from here to here (the phone's magnets sit about 18-23 out,
+#                                     a MagSafe charger is 55.9 across); open inside, a 35 mm window
+STRUT = 1.6                         # the web's struts: four lines of a 0.4 nozzle
+CELL_ROUND = 1.6                    # each opening's corners rounded this much
+CELL = 9.0                          # the web's cells are about this far apart
+CELL_SEED = 15                      # the web is the same every run
+MIN_HOLE = 12.0                     # openings smaller than this (mm2) are left solid
+LLOYD = 3                           # rounds of evening the cells out
 
 # dust plugs: press into the case's openings
 PLUG_FIT = 0.05                     # each plug's body is this much smaller than its opening all round
@@ -174,19 +182,91 @@ def camera_hole():
                   loft([(rrect(CAM_W, CAM_L, CAM_R, CAM_X, CAM_Y, grow=CAM_CH), -0.001), (hole, CAM_CH)])])
 
 
-def rings():
-    keep_out = union([slab(rrect(CAM_W, CAM_L, CAM_R, CAM_X, CAM_Y, grow=RING_CLEAR), -1, 2),
-                      slab(rrect(OUT_W, OUT_L, OUT_R), -1, 2) - slab(rrect(OUT_W, OUT_L, OUT_R, grow=-(CH_BED + RING_CLEAR)), -2, 3)])
-    out = []
-    for i, (r, w) in enumerate(RINGS):
-        ring = m3.CrossSection.circle(r + w / 2, 192) - m3.CrossSection.circle(r - w / 2, 192)
-        m = slab(ring, -0.01, RING_D)
-        out.append(m if i == 0 else m - keep_out)
-    return union(out)
+def lattice_region():
+    """Where the back may be opened: inside the edge band, outside the camera's frame and the MagSafe ring."""
+    inner = rrect(CAV_W, CAV_L, CAV_R, grow=-(BACK_EDGE + EDGE_BAND))
+    keep = m3.CrossSection.batch_boolean([
+        rrect(CAM_W, CAM_L, CAM_R, CAM_X, CAM_Y, grow=CAM_FRAME + STRUT / 2),
+        m3.CrossSection.circle(MAG_R1 + STRUT / 2, 192)], m3.OpType.Add)
+    return inner - keep
+
+
+def voronoi_cells(points, region):
+    """Each point's Voronoi cell, cut to the region: the region cut by the half-plane nearer that point than each other."""
+    x0, y0, x1, y1 = region.bounds()
+    big = max(x1 - x0, y1 - y0) * 4
+    cells = []
+    for i, p in enumerate(points):
+        cell = region
+        for j, q in enumerate(points):
+            if i == j or np.hypot(*(q - p)) > 40:
+                continue
+            mid, d = (p + q) / 2, (q - p) / np.hypot(*(q - p))
+            n = np.array([-d[1], d[0]])
+            half = [mid + n * big, mid + n * big - d * big, mid - n * big - d * big, mid - n * big]   # the side nearer p
+            cell = cell ^ m3.CrossSection([[tuple(v) for v in half]])
+            if cell.area() <= 0:
+                break
+        cells.append(cell)
+    return cells
+
+
+def centroid(cs):
+    best = None
+    for poly in cs.to_polygons():
+        p = np.asarray(poly)
+        a = p[:, 0] * np.roll(p[:, 1], -1) - np.roll(p[:, 0], -1) * p[:, 1]
+        A = a.sum() / 2
+        if A <= 0 or (best and A < best[0]):
+            continue
+        cx = ((p[:, 0] + np.roll(p[:, 0], -1)) * a).sum() / (6 * A)
+        cy = ((p[:, 1] + np.roll(p[:, 1], -1)) * a).sum() / (6 * A)
+        best = (A, np.array([cx, cy]))
+    return best[1] if best else None
+
+
+def lattice_holes():
+    """The openings in the back: a relaxed Voronoi web over the region."""
+    region = lattice_region()
+    x0, y0, x1, y1 = region.bounds()
+    rng = np.random.default_rng(CELL_SEED)
+    # seeds on a hexagonal grid, shaken a little so the web looks grown, not tiled
+    pts = []
+    row = 0
+    y = y0 - CELL
+    while y < y1 + CELL:
+        x = x0 - CELL + (CELL / 2 if row % 2 else 0)
+        while x < x1 + CELL:
+            p = np.array([x, y]) + rng.uniform(-0.3, 0.3, 2) * CELL
+            pts.append(p)
+            x += CELL
+        y += CELL * math.sqrt(3) / 2
+        row += 1
+    near = lambda p: (region ^ m3.CrossSection.circle(CELL * 0.6, 24).translate(list(p))).area() > 0
+    pts = np.array([p for p in pts if near(p)])
+    for _ in range(LLOYD):                               # Lloyd's relaxation: move each point to its cell's middle;
+        cells = voronoi_cells(pts, region)               # a few rounds even the cells out but keep the grading
+        new = []
+        for p, c in zip(pts, cells):
+            m = centroid(c)
+            new.append(p if m is None else m)
+        pts = np.array(new)
+    holes = []
+    for c in voronoi_cells(pts, region):
+        h = c.offset(-STRUT / 2, m3.JoinType.Miter).offset(-CELL_ROUND, m3.JoinType.Round, 2.0, 32) \
+            .offset(CELL_ROUND, m3.JoinType.Round, 2.0, 32)
+        if h.area() >= MIN_HOLE:
+            holes.append(h)
+    window = m3.CrossSection.circle(MAG_R0, 192)        # the MagSafe ring's open middle
+    return m3.CrossSection.batch_boolean(holes + [window], m3.OpType.Add)
+
+
+def back_cut():
+    return slab(lattice_holes(), -1, BACK + BACK_EDGE + 0.5)
 
 
 def case():
-    cuts = [cavity(), camera_hole(), rings(),
+    cuts = [cavity(), camera_hole(), back_cut(),
             side_cut(+1, *SIDE_BTN, BTN_H), side_cut(-1, *VOLUME, BTN_H), side_cut(-1, *ACTION, BTN_H),
             bottom_cut(-USB[0] / 2, USB[0] / 2, USB[1]), bottom_cut(*SPEAKER, GRILLE_H), bottom_cut(*MIC, GRILLE_H)]
     return body() - union(cuts)
