@@ -29,10 +29,15 @@ Each design is on its own plate in the project file, with the dust plugs.
 
 Cut-outs can be hard to press, so each button is covered by a pad you press instead.
 - **The pad:** stands 0.6 mm proud of the side, so your thumb finds it without looking.
-- **The wall round it:** thinned from inside to 0.95 mm over the button and 3 mm round it.
-  Thin TPU there lets the pad move in with a light press.
+- **The wall round it:** thinned from inside to 0.65 mm over the button and 3 mm round it, so the
+  thin TPU spans 2.8 mm above and below the pad. That thin band bends, not the pad, so the pad
+  moves in with a light press.
 - **Inside:** the pad stops about 0.1 mm short of the phone's button, so it doesn't press the
   button on its own, but reaches it straight away when you press.
+- **How light, roughly:** about 1 to 4 N more than the phone's own click. The Action button is
+  the lightest; the long side button is the firmest. That is about a tenth of a 0.95 mm wall, and
+  less again than the full-thickness bump on the case you printed before. These are sums from
+  TPU's stiffness, not a measurement. If a pad feels stiff, tell Claude which one.
 - **Which buttons:**
   - the side button on the right;
   - volume down, volume up and Action on the left, each with its own pad.

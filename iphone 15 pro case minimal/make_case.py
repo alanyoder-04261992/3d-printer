@@ -65,13 +65,19 @@ MID = BACK + PHONE_T / 2            # 5.375: the height of the middle of the pho
 # v5 case and of the pockets on the case you printed, which agree to 0.2 mm
 SIDE_BTN = [(9.0, 25.6)]            # right side: the side button
 LEFT_BTNS = [(9.0, 19.2), (23.0, 33.4), (39.2, 44.6)]   # left side: volume down, volume up, Action
-BTN_POCKET = 0.55                   # the wall is recessed this deep inside, round each button, as on the case you printed
-BTN_ZONE = 3.0                      # ... over the button and this much round it, leaving the wall 0.95 thick there
-BTN_ZONE_H = 6.0                    # ... and this tall
-PAD_H = 2.2                         # the pad: as long as the button less 1 mm, this tall ...
+MEMBRANE = 0.65                     # round each pad the wall is thinned from inside to this (two thin Arachne lines) ...
+BTN_POCKET = WALL - MEMBRANE        # ... a recess 0.85 deep ...
+BTN_ZONE = 3.0                      # ... over the button and this much round it ...
+BTN_ZONE_H = 7.6                    # ... and this tall, so the thin TPU spans 2.8 mm above and below the pad
+PAD_H = 2.0                         # the pad: as long as the button less 1 mm, this tall ...
 PAD_OUT = 0.6                       # ... standing this proud of the case's side ...
 PAD_GAP = 0.45                      # ... and its inside face this far in from the cavity wall: about 0.1 off a button
-#                                     that stands 0.5 out of the phone's side, so a light press reaches it
+#                                     that stands 0.5 out of the phone's side, so a light press reaches it.
+# How hard a press is, roughly: the thin TPU above and below the pad bends like two short beams, stiffness
+# E w t^3 / L^3 each (E about 26 MPa for 95A TPU, w the pad's length, t = MEMBRANE, L = the span): about 11 N per mm
+# for the side button, so the 0.1 mm gap and about 0.25 mm of the button's own travel take about 4 N on top of the
+# button's own click. With a 0.95 mm wall over a 1.9 mm span it was about 10 times that; a full 1.45 mm wall bulged
+# out over the button, as on the case printed before, stiffer still.
 SCOOP_BOTTOM = 1.0                  # the bottom openings widen 1 mm at the outside, at 45 degrees
 USB = (13.0, 6.2)                   # bottom: USB-C, width and height (v5: 12.2 x 6.2, the printed case 13.9 x 5.0)
 SPEAKER = (9.9, 21.7)               # bottom, right of the port: the speaker (v5 holes 10.7-20.9, printed case 9.7-21.9)
