@@ -1,12 +1,15 @@
-"""Light, open-back iPhone 15 Pro case, TPU, for the Flashforge AD5X (Nov 17 2026).
+"""Light, open-back iPhone 15 Pro case, TPU, for the Flashforge AD5X (Nov 17 2026), in three designs.
 
 Run:  python3 make_case.py      (needs: pip install manifold3d numpy)
 
 As little TPU as does the job: 1.5 mm walls, soft chamfered edges and a raised lip that stands
 1.6 mm over the screen, round a back that is mostly open. Only what works stays solid: a band
 inside the walls, a frame round the camera, and a frame round a 57.5 mm opening where a MagSafe
-charger drops in and sits right on the phone. The rest of the back is a Voronoi web of 1.6 mm struts. The buttons are open
-cut-outs with wide 45 degree scoops, so your thumb finds them and presses the phone's own buttons.
+charger drops in and sits right on the phone. The rest of the back is a pattern: a Voronoi web,
+a honeycomb, or rings rippling out from the MagSafe opening.
+
+The buttons are covered: a pad 0.6 mm proud over each, set in a wall thinned from inside to
+0.95 mm, so a light press moves the pad onto the phone's button.
 
 Bonus: two TPU dust plugs that press into the case's USB-C and speaker openings.
 
@@ -57,11 +60,19 @@ CH_BED, CH_TOP = 0.8, 1.0           # outer chamfers: the back edge (45 degrees 
 MID = BACK + PHONE_T / 2            # 5.375: the height of the middle of the phone's side
 
 # buttons and ports: openings measured off the v5 case (phone's middle at 0), drawn as rounded slots
-SCOOP = 1.0                         # every side opening widens 1 mm at the outside, at 45 degrees
-SIDE_BTN = (7.0, 27.1)              # right side: the side button (v5: 7.25-26.85)
-VOLUME = (7.1, 34.9)                # left side: both volume buttons in one slot (v5: 7.35-20.45 and 21.55-34.65)
-ACTION = (37.5, 46.0)               # left side: the Action button (v5: 37.75-45.75)
-BTN_H = 4.2                         # each button slot's height, centred on the phone's side (v5: 4.2)
+# buttons: covered, with a raised pad over each that pushes the phone's button. The case wall round each pad is thinned
+# from inside to under 1 mm, so the pad moves in with a light press. Button positions: the middle of the openings on the
+# v5 case and of the pockets on the case you printed, which agree to 0.2 mm
+SIDE_BTN = [(9.0, 25.6)]            # right side: the side button
+LEFT_BTNS = [(9.0, 19.2), (23.0, 33.4), (39.2, 44.6)]   # left side: volume down, volume up, Action
+BTN_POCKET = 0.55                   # the wall is recessed this deep inside, round each button, as on the case you printed
+BTN_ZONE = 3.0                      # ... over the button and this much round it, leaving the wall 0.95 thick there
+BTN_ZONE_H = 6.0                    # ... and this tall
+PAD_H = 2.2                         # the pad: as long as the button less 1 mm, this tall ...
+PAD_OUT = 0.6                       # ... standing this proud of the case's side ...
+PAD_GAP = 0.45                      # ... and its inside face this far in from the cavity wall: about 0.1 off a button
+#                                     that stands 0.5 out of the phone's side, so a light press reaches it
+SCOOP_BOTTOM = 1.0                  # the bottom openings widen 1 mm at the outside, at 45 degrees
 USB = (13.0, 6.2)                   # bottom: USB-C, width and height (v5: 12.2 x 6.2, the printed case 13.9 x 5.0)
 SPEAKER = (9.9, 21.7)               # bottom, right of the port: the speaker (v5 holes 10.7-20.9, printed case 9.7-21.9)
 MIC = (-17.3, -9.9)                 # bottom, left of the port: the microphone (v5 -16.35 to -10.7, printed case -17.35 to -9.7)
@@ -86,6 +97,9 @@ CELL_ROUND = 1.6                    # each opening's corners rounded this much
 CELL = 9.0                          # the web's cells are about this far apart
 CELL_SEED = 15                      # the web is the same every run
 MIN_HOLE = 12.0                     # openings smaller than this (mm2) are left solid
+HEX_ACROSS = 8.0                    # honeycomb: each cell this far across its flats, strut included
+RIPPLE_W = 2.4                      # ripple: each ring's opening this wide ...
+RIPPLE_SPOKES = 10                  # ... broken by this many spokes
 LLOYD = 3                           # rounds of evening the cells out
 
 # dust plugs: press into the case's openings
@@ -131,23 +145,36 @@ def stadium(length, height):
         .offset(r, m3.JoinType.Round, 2.0, 48)
 
 
-def side_cut(side, y0, y1, h):
-    """A slot through the left (-1) or right (+1) wall, from y0 to y1, centred at the phone's middle height,
-    widening SCOOP at the outside."""
-    L = y1 - y0
-    inner = stadium(L, h)
-    outer = stadium(L + 2 * SCOOP, h + 2 * SCOOP)
-    x_in, x_out = CAV_W / 2 - 1.0, OUT_W / 2
-    def at(cs, x):           # place a (u = y, v = z) slot at wall position x
-        m = M.extrude(cs, 0.001).transform(np.array([[0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=float))
-        return m.translate([x * side, (y0 + y1) / 2, MID])
-    through = M.hull_points(np.vstack([pts(at(inner, x_in)), pts(at(inner, x_out + 1))]))
-    scoop = M.hull_points(np.vstack([pts(at(inner, x_out - SCOOP)), pts(at(outer, x_out + 0.01)),
-                                     pts(at(outer, x_out + 1))]))
-    return through + scoop
+def yz_slot(cs, side, x, yc, zc):
+    """A (u = y, v = z) shape placed in the wall plane at x on the left (-1) or right (+1) side."""
+    m = M.extrude(cs, 0.001).transform(np.array([[0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=float))
+    return m.translate([x * side, yc, zc])
 
 
-def bottom_cut(x0, x1, h, scoop=SCOOP):
+def button_zone(side, spans):
+    """The recess inside the wall round a group of buttons (the zones of buttons close together run into one)."""
+    zones = []
+    for y0, y1 in spans:
+        cs = stadium(y1 - y0 + 2 * BTN_ZONE, BTN_ZONE_H)
+        x0, x1 = CAV_W / 2 - 1.0, CAV_W / 2 + BTN_POCKET
+        zones.append(M.hull_points(np.vstack([pts(yz_slot(cs, side, x0, (y0 + y1) / 2, MID)),
+                                             pts(yz_slot(cs, side, x1, (y0 + y1) / 2, MID))])))
+    return union(zones)
+
+
+def button_pad(side, y0, y1):
+    """A pad over one button: from just off the button out through the thinned wall to PAD_OUT proud, its outer edge
+    chamfered."""
+    L = y1 - y0 - 1.0
+    yc = (y0 + y1) / 2
+    inner, outer = CAV_W / 2 + PAD_GAP, OUT_W / 2 + PAD_OUT
+    body_ = M.hull_points(np.vstack([pts(yz_slot(stadium(L, PAD_H), side, inner, yc, MID)),
+                                     pts(yz_slot(stadium(L, PAD_H), side, outer - 0.3, yc, MID)),
+                                     pts(yz_slot(stadium(L - 0.6, PAD_H - 0.6), side, outer, yc, MID))]))
+    return body_
+
+
+def bottom_cut(x0, x1, h, scoop=SCOOP_BOTTOM):
     """A slot through the bottom wall, x0 to x1."""
     L = x1 - x0
     inner = stadium(L, h)
@@ -227,56 +254,97 @@ def centroid(cs):
     return best[1] if best else None
 
 
-def lattice_holes():
-    """The openings in the back: a relaxed Voronoi web over the region."""
-    region = lattice_region()
+def web_holes(region):
+    """A relaxed Voronoi web."""
     x0, y0, x1, y1 = region.bounds()
     rng = np.random.default_rng(CELL_SEED)
     # seeds on a hexagonal grid, shaken a little so the web looks grown, not tiled
-    pts = []
+    pts_ = []
     row = 0
     y = y0 - CELL
     while y < y1 + CELL:
         x = x0 - CELL + (CELL / 2 if row % 2 else 0)
         while x < x1 + CELL:
-            p = np.array([x, y]) + rng.uniform(-0.3, 0.3, 2) * CELL
-            pts.append(p)
+            pts_.append(np.array([x, y]) + rng.uniform(-0.3, 0.3, 2) * CELL)
             x += CELL
         y += CELL * math.sqrt(3) / 2
         row += 1
     near = lambda p: (region ^ m3.CrossSection.circle(CELL * 0.6, 24).translate(list(p))).area() > 0
-    pts = np.array([p for p in pts if near(p)])
+    pts_ = np.array([p for p in pts_ if near(p)])
     for _ in range(LLOYD):                               # Lloyd's relaxation: move each point to its cell's middle;
-        cells = voronoi_cells(pts, region)               # a few rounds even the cells out but keep the grading
-        new = []
-        for p, c in zip(pts, cells):
-            m = centroid(c)
-            new.append(p if m is None else m)
-        pts = np.array(new)
+        cells = voronoi_cells(pts_, region)              # a few rounds even the cells out
+        pts_ = np.array([p if centroid(c) is None else centroid(c) for p, c in zip(pts_, cells)])
+    return [c.offset(-STRUT / 2, m3.JoinType.Miter) for c in voronoi_cells(pts_, region)]
+
+
+def honeycomb_holes(region):
+    """Regular hexagons, flat side up, STRUT apart."""
+    x0, y0, x1, y1 = region.bounds()
+    a = HEX_ACROSS / 2                                   # each hexagon's centre to its flat sides (with the strut)
+    r = (a - STRUT / 2) / math.cos(math.pi / 6)          # the opening's centre to its corners
+    hexagon = m3.CrossSection([[(r * math.cos(math.pi / 3 * i), r * math.sin(math.pi / 3 * i)) for i in range(6)]])
+    out = []
+    dx, dy = 3 * a / math.sqrt(3), 2 * a                 # flat-topped columns
+    col = 0
+    x = -dx * math.ceil(-x0 / dx + 1)
+    while x < x1 + dx:
+        y = -dy * math.ceil(-y0 / dy + 1) + (a if col % 2 else 0)
+        while y < y1 + dy:
+            out.append(hexagon.translate([x, y]) ^ region)
+            y += dy
+        x += dx
+        col += 1
+    return out
+
+
+def ripple_holes(region):
+    """Rings rippling out from the MagSafe opening, broken by spokes."""
+    out = []
+    r = MAG_R1 + STRUT
+    while r < 90:
+        ring = m3.CrossSection.circle(r + RIPPLE_W, 256) - m3.CrossSection.circle(r, 256)
+        out.append(ring)
+        r += RIPPLE_W + STRUT
+    spokes = []
+    for i in range(RIPPLE_SPOKES):
+        t = math.pi * 2 * (i + 0.5) / RIPPLE_SPOKES
+        d = np.array([math.cos(t), math.sin(t)])
+        n = np.array([-d[1], d[0]]) * STRUT / 2
+        spokes.append(m3.CrossSection([[tuple(-n), tuple(-n + d * 120), tuple(n + d * 120), tuple(n)]]))
+    cut = m3.CrossSection.batch_boolean(spokes, m3.OpType.Add)
+    return [(ring - cut) ^ region for ring in out]
+
+
+PATTERNS = {"web": web_holes, "honeycomb": honeycomb_holes, "ripple": ripple_holes}
+ROUND = {"ripple": RIPPLE_W / 2 - 0.05}             # the ripple's slots get fully round ends
+
+
+def lattice_holes(pattern="web"):
+    """The openings in the back for a pattern, each rounded off, the small ones left solid, and the MagSafe opening."""
     holes = []
-    for c in voronoi_cells(pts, region):
-        h = c.offset(-STRUT / 2, m3.JoinType.Miter).offset(-CELL_ROUND, m3.JoinType.Round, 2.0, 32) \
-            .offset(CELL_ROUND, m3.JoinType.Round, 2.0, 32)
+    rr = ROUND.get(pattern, CELL_ROUND)
+    for c in PATTERNS[pattern](lattice_region()):
+        h = c.offset(-rr, m3.JoinType.Round, 2.0, 32).offset(rr, m3.JoinType.Round, 2.0, 32)
         if h.area() >= MIN_HOLE:
             holes.append(h)
     window = m3.CrossSection.circle(MAG_R0, 192)        # the MagSafe opening
     return m3.CrossSection.batch_boolean(holes + [window], m3.OpType.Add)
 
 
-def back_cut():
+def back_cut(pattern="web"):
     # the MagSafe opening runs into the camera hole (the charger sits just below the camera): round off the two points
     # of TPU left where they meet
     both = m3.CrossSection.batch_boolean([rrect(CAM_W, CAM_L, CAM_R, CAM_X, CAM_Y), m3.CrossSection.circle(MAG_R0, 192)],
                                          m3.OpType.Add)
     meet = both.offset(MEET_R, m3.JoinType.Round, 2.0, 64).offset(-MEET_R, m3.JoinType.Round, 2.0, 64)
-    return slab(m3.CrossSection.batch_boolean([lattice_holes(), meet], m3.OpType.Add), -1, BACK + BACK_EDGE + 0.5)
+    return slab(m3.CrossSection.batch_boolean([lattice_holes(pattern), meet], m3.OpType.Add), -1, BACK + BACK_EDGE + 0.5)
 
 
-def case():
-    cuts = [cavity(), camera_hole(), back_cut(),
-            side_cut(+1, *SIDE_BTN, BTN_H), side_cut(-1, *VOLUME, BTN_H), side_cut(-1, *ACTION, BTN_H),
+def case(pattern="web"):
+    cuts = [cavity(), camera_hole(), back_cut(pattern), button_zone(+1, SIDE_BTN), button_zone(-1, LEFT_BTNS),
             bottom_cut(-USB[0] / 2, USB[0] / 2, USB[1]), bottom_cut(*SPEAKER, GRILLE_H), bottom_cut(*MIC, GRILLE_H)]
-    return body() - union(cuts)
+    pads = [button_pad(+1, *b) for b in SIDE_BTN] + [button_pad(-1, *b) for b in LEFT_BTNS]
+    return (body() - union(cuts)) + union(pads)
 
 
 def phone():
@@ -399,28 +467,34 @@ CASE_SET = {"wall_loops": "4", "sparse_infill_density": "100%", "brim_type": "no
 PLUG_SET = {"wall_loops": "3", "sparse_infill_density": "100%", "brim_type": "no_brim"}
 
 
+NAMES = {"web": "case web", "honeycomb": "case honeycomb", "ripple": "case ripple"}
+
+
 def print_parts():
-    return {
-        "case": on_bed(case()),
-        "plug USB-C": on_bed(plug(*USB)),
-        "plug speaker": on_bed(plug(SPEAKER[1] - SPEAKER[0], GRILLE_H)),
-    }
+    p = {NAMES[k]: on_bed(case(k)) for k in PATTERNS}
+    p["plug USB-C"] = on_bed(plug(*USB))
+    p["plug speaker"] = on_bed(plug(SPEAKER[1] - SPEAKER[0], GRILLE_H))
+    return p
 
 
 def main():
     p = print_parts()
     for name, man in p.items():
         write_stl(man, name + ".stl")
+    if os.path.exists(os.path.join(HERE, "case.stl")):
+        os.remove(os.path.join(HERE, "case.stl"))        # replaced by the three patterns
     w = lambda n: p[n].bounding_box()[3] - p[n].bounding_box()[0]
-    items = [("case", p["case"], 1, ((220 - w("case")) / 2, 25), CASE_SET),
-             ("plug USB-C", p["plug USB-C"], 1, (20, 190), PLUG_SET),
+    plugs = [("plug USB-C", p["plug USB-C"], 1, (20, 190), PLUG_SET),
              ("plug USB-C spare", p["plug USB-C"], 1, (45, 190), PLUG_SET),
              ("plug speaker", p["plug speaker"], 1, (150, 190), PLUG_SET),
              ("plug speaker spare", p["plug speaker"], 1, (175, 190), PLUG_SET)]
-    write_3mf("iphone 15 pro case TPU.3mf", [("case and dust plugs (TPU)", items)], project_settings())
+    plates = [(f"{NAMES[k]} and dust plugs (TPU)", [(NAMES[k], p[NAMES[k]], 1, ((220 - w(NAMES[k])) / 2, 25), CASE_SET)] + plugs)
+              for k in PATTERNS]
+    write_3mf("iphone 15 pro case TPU.3mf", plates, project_settings())
     for name, man in p.items():
         bb = man.bounding_box()
-        print(f"{name:14s} {bb[3]-bb[0]:6.1f} x {bb[4]-bb[1]:6.1f} x {bb[5]-bb[2]:5.2f} mm  {man.volume()/1000:5.2f} cm3")
+        print(f"{name:16s} {bb[3]-bb[0]:6.1f} x {bb[4]-bb[1]:6.1f} x {bb[5]-bb[2]:5.2f} mm  {man.volume()/1000:5.2f} cm3"
+              f"  {man.volume() * 1.21e-3:5.1f} g")
 
 
 if __name__ == "__main__":
