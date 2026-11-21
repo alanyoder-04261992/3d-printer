@@ -12,6 +12,8 @@ everything we've learned is in the printer brain:
   rule, a line under **Lessons learned**.
 - Read the settings saved inside a `.3mf` (`Metadata/project_settings.config`) rather than
   guessing what a file was sliced with.
+- Before sending a file to the printer, run `python3 tools/check_print.py <file or folder>`
+  (see "Checking a print file without opening it" in the brain). Fix every FAIL.
 
 ## Working in this folder
 - Git history is stored outside OneDrive at `%USERPROFILE%\.git-repos\3d-printer`; the `.git`

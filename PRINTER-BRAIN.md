@@ -4,7 +4,7 @@ Everything about our 3D printing setup in one place: the printer, the slicer, th
 filament, the settings that work, and what we've learned the hard way.
 **Keep it up to date** — when something changes or a print teaches us something, add it here.
 
-_Last updated: 2026-11-17_
+_Last updated: 2026-11-21_
 
 ---
 
@@ -61,8 +61,11 @@ Temperatures are the ones we've actually printed with.
 | Generic PLA Matte | 220 °C | 55 °C | Vases, army men, knife handle |
 | Flashforge PLA Color Change | 220 °C | 55–60 °C | |
 | Generic PLA High Speed | 220 °C | 55 °C | |
-| Generic TPU (flexible) | 240 °C | 35 °C | iPhone 15 Pro case, airless ball, TPU knife blade |
+| Generic TPU (flexible) | 240 °C | 35 °C | iPhone 15 Pro case, airless ball, TPU knife blade. Owners report TPU jamming in the IFS tubes; if it does, feed it straight into the extruder instead |
 | PETG | 245–255 °C | 80 °C | Sword blades. **Dry it first** — see below. |
+
+**ASA and ABS:** the AD5X has no enclosure, so parts much over 50 mm warp and split between
+layers. For anything outdoors (shed hardware, signs), use PETG.
 
 **IFS slots (Nov 2 2026):** 1 white, 2 black, 3 brown, 4 empty. The printer's screen still shows
 them as teal, orange and magenta because their colours weren't changed there.
@@ -198,6 +201,16 @@ played with, change these:
   both round when a hex with that room would leave under two lines, and measure the pocket's wall
   on every layer: the knife's middle plate had a cavity running under its rear screws, so a 9.9 mm
   pocket left 0.75 there and 9.7 (with an 8.9 post) leaves 0.85.
+- **Holes for shed screws and bolts**, from the same 0.35–0.4 all-round rule (hole = shank + 0.8):
+
+  | Fastener | Shank | Hole | Head recess |
+  |---|---|---|---|
+  | #8 wood screw | 4.2 mm | 5.0 mm | 9.2 mm, 82° countersink |
+  | #10 wood screw | 4.8 mm | 5.6 mm | 10.6 mm, 82° countersink |
+  | 1/4" bolt / lag | 6.35 mm | 7.2 mm | 11.9 mm across flats (7/16" hex) |
+  | 5/16" bolt / lag | 7.9 mm | 8.8 mm | 13.5 mm across flats (1/2" hex) |
+
+  Lumber is smaller than its name: a 2x4 is 1.5 x 3.5 in (38 x 89 mm), a 2x6 1.5 x 5.5 in (38 x 140 mm).
 
 ### Checking a print file without opening it
 - Flash Studio slices from the command line without opening a window:
@@ -246,6 +259,20 @@ played with, change these:
   change between runs. The command line's G-code isn't byte-identical run to run either (loops
   start in different places), so compare runs by how much each part extrudes per layer, not by
   the text. All four 10x20 and 12x24 models now have no bridge over 20 mm on any plate.
+- **`tools/check_print.py` checks any file against the AD5X without a slicer** (Nov 2026):
+  `python3 tools/check_print.py <file or folder> --summary`. For a sliced `.gcode.3mf` or
+  `.gcode` it checks the printer the file was sliced for, the nozzle, moves outside the bed or over
+  220 mm, temperatures against `tools/materials.toml`, and the slicer's own warnings and
+  "outside the plate" flag. For an `.stl` or project `.3mf` it checks fit on the bed, export units,
+  holes in the mesh and overhangs. It caught a `MandalorianPiggyBankHelmet.gcode` sliced for a
+  Creality Ender-3 S1. Its numbers live in `tools/printer.toml` and `tools/materials.toml`;
+  `python3 -m unittest discover tests` tests it.
+  - The Orca-Flashforge start G-code draws its purge line just off the front edge of the bed
+    (Y -1 to -1.4), so the checker allows Y down to -1.5.
+  - Orca's "bed temperature too high than filament" warning on almost every PLA slice (bed 55 °C,
+    Generic PLA softening point 45 °C) only matters in an enclosed printer. It's harmless on the AD5X.
+  - Overhang warnings on a loose `.stl` only mean "check supports when you lay it out". The
+    shed walls print framing side down, which the checker can't know.
 
 ### Two colours on the IFS
 - **Put the second colour on the top layers only.** Every layer that has both colours costs
@@ -649,6 +676,7 @@ played with, change these:
 | `spring knife/` | The first double-action spring knife (Nov 2026): side knob, three plates, TPU band, caps, pads and stops. **Doesn't work: don't print it.** Printed Nov 11: the middle plate pinched the blade, and it stalled and wouldn't lock (see the Print log) | Kept as a record. Replaced by `spring knife simple/` |
 | `spring knife simple/` | Double-action spring knife fidget toy, redrawn simply after the first one jammed (Nov 11 2026). Push the knob on top 38 mm and the blade snaps 59 mm out and locks; pull it back and it snaps in. Two plates (base and lid), three printed screws. Everything moves in one layer: the blade in a channel, kept straight by a rib in the floor; two sleds and one TPU band in a lane beside it; the knob's bar beside them with two risers and two cams. The latch block slides in a slot in the blade and clicks past a catch hanging from the lid at each end; nothing else springy touches the blade. 0.45 mm of room at every side, about 1 mm up and down. Dovetail keys under the sleds stop them lifting when held upside down. The band is the only TPU part: thin, normal and thick (1.2 mm wide, 1.05 to 1.45 thick). Not printed yet | Read `read me first.md`. Print `1 slide test.3mf` first: the back of the handle with two blade pieces (normal and loose) and a latch block; the blade should slide on its own when tilted and click when pushed home. Then `2 knife plates.3mf` and `3 bands TPU.3mf`. Made by `make_knife.py`; `check_knife.py` walks a whole cycle with every part at both ends of its play and finds no two parts touching, checks the latch holds by 0.95 mm and lets go before the knob's end, and checks every part prints in one piece on layer lines |
 | `iphone 15 pro case minimal/` | Light TPU iPhone 15 Pro case in three designs (Nov 17 2026): a tight fit (inside 0.05 mm smaller than the phone all round, Nov 21), 1.5 mm walls, soft chamfered edges, a 45 degree lip 1.6 mm over the screen; covered buttons with a pad 0.6 mm proud over each, the wall round it thinned from inside to 0.65 mm over a 2.8 mm span above and below the pad and the pad 0.1 mm off the button, about 1-4 N more than the phone's own click (Alan: cut-outs, and the full-thickness bump on his last case, were hard to press); an open back, solid only at an edge band, a camera frame and a frame round a 57.5 mm MagSafe opening that a MagSafe charger drops into, the rest a Voronoi web, a honeycomb or ripple rings (14.1-14.7 g of TPU); two TPU dust plugs (USB-C and speaker) that press into the case's openings. Button, port and camera positions measured off the two cases in `desktop prints`. Not printed yet | Read `read me first.md`. Print one plate of `iphone 15 pro case TPU.3mf` (one per design) back face down, no brim. Made by `make_case.py` |
+| `tools/` | `check_print.py`: checks a file or folder against the AD5X before printing | See "Checking a print file without opening it". Tests in `tests/` |
 | Top level | Piggy banks, mushrooms, Mandalorian helmet, Connect 4, latches, iPhone case, vase | |
 
 **File naming:** Orca names sliced files `name_FILAMENT_time.gcode.3mf`. A file ending in
