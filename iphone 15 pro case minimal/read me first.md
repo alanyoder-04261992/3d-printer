@@ -78,10 +78,10 @@ Flash Studio shows the time when it slices. The TPU case you printed before took
 
 | | |
 |---|---|
-| Size | 75.1 × 149.9 × 11.25 mm, button pads included. The phone is 70.6 × 146.6 × 8.25 |
+| Size | 74.7 × 149.5 × 11.05 mm, button pads included. The phone is 70.6 × 146.6 × 8.25 |
 | Walls | 1.5 mm at the sides. The back is 1.25 mm, with the pattern and the MagSafe opening cut through it |
-| Screen lip | Stands 1.6 mm over the screen and reaches 1.45 mm in over its edge, sloped at 45 degrees |
-| Fit | 0.15 mm of room all round. TPU stretches, so the case pulls snug |
+| Screen lip | Stands about 1.6 mm over the screen and reaches 1.65 mm in over its edge, sloped at 45 degrees |
+| Fit | Tight: the inside is 0.05 mm smaller than the phone all round (0.1 mm across and along), so the TPU stretches over it and grips. Your last case had 0.1 mm of room |
 | Bottom | USB-C, speaker and microphone openings, widened 1 mm at the outside |
 | Camera | An opening about 0.5 mm bigger all round than the one on the case you printed, its edge cut at 45 degrees |
 | MagSafe | A 57.5 mm opening at the middle of the back. A MagSafe charger drops in and sits right on the phone. A wallet or stand is bigger than the opening, so it rests on the case round it, through 1.25 mm of TPU |
@@ -95,9 +95,11 @@ iPhone 15 Pro cases already in `desktop prints`:
 
 ## If something's off
 
-- **Too tight or too loose:** tell Claude. The fit is one number (`FIT` in `make_case.py`).
+- **Too tight or too loose:** tell Claude. The fit is one number (`FIT` in `make_case.py`): now
+  -0.05, 0.05 mm smaller than the phone all round. If it's hard to get on, -0.02 or 0 is gentler.
 - **A button presses on its own, or is hard to reach:** tell Claude which one. The pad's gap is
-  one number (`PAD_GAP`).
+  one number (`PAD_CLEAR`). The pads are placed from the phone's side, so tightening the fit
+  doesn't move them onto the buttons.
 - **An opening or pad doesn't line up:** tell Claude which one, and which way it's out and by
   about how much.
 - **The charger doesn't drop into the MagSafe opening:** tell Claude. Moving or widening the

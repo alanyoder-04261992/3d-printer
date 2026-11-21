@@ -45,7 +45,8 @@ def layer(n):
 # ---------------------------------------------------------------- the phone (Apple: 146.6 x 70.6 x 8.25 mm)
 PHONE_W, PHONE_L, PHONE_T = 70.6, 146.6, 8.25
 PHONE_R = 11.3                      # corner radius in plan (the reference cases' cavities measure 11.45-11.5)
-FIT = 0.15                          # room all round: TPU stretches, so the fit can be close
+FIT = -0.05                         # the case is this much smaller than the phone all round (0.1 across): TPU
+#                                     stretches over it and grips (Alan asked for a tighter fit; it was 0.15 of room)
 
 # ---------------------------------------------------------------- the case
 WALL = 1.5
@@ -71,7 +72,7 @@ BTN_ZONE = 3.0                      # ... over the button and this much round it
 BTN_ZONE_H = 7.6                    # ... and this tall, so the thin TPU spans 2.8 mm above and below the pad
 PAD_H = 2.0                         # the pad: as long as the button less 1 mm, this tall ...
 PAD_OUT = 0.6                       # ... standing this proud of the case's side ...
-PAD_GAP = 0.45                      # ... and its inside face this far in from the cavity wall: about 0.1 off a button
+PAD_CLEAR = 0.6                     # ... and its inside face this far out from the phone's side: about 0.1 off a button
 #                                     that stands 0.5 out of the phone's side, so a light press reaches it.
 # How hard a press is, roughly: the thin TPU above and below the pad bends like two short beams, stiffness
 # E w t^3 / L^3 each (E about 26 MPa for 95A TPU, w the pad's length, t = MEMBRANE, L = the span): about 11 N per mm
@@ -173,7 +174,7 @@ def button_pad(side, y0, y1):
     chamfered."""
     L = y1 - y0 - 1.0
     yc = (y0 + y1) / 2
-    inner, outer = CAV_W / 2 + PAD_GAP, OUT_W / 2 + PAD_OUT
+    inner, outer = PHONE_W / 2 + PAD_CLEAR, OUT_W / 2 + PAD_OUT
     body_ = M.hull_points(np.vstack([pts(yz_slot(stadium(L, PAD_H), side, inner, yc, MID)),
                                      pts(yz_slot(stadium(L, PAD_H), side, outer - 0.3, yc, MID)),
                                      pts(yz_slot(stadium(L - 0.6, PAD_H - 0.6), side, outer, yc, MID))]))
