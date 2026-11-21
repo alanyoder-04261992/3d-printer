@@ -32,8 +32,8 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_PRINTER = ROOT / "printers" / "printer.toml"
-MATERIALS_FILE = ROOT / "knowledge" / "materials.toml"
+DEFAULT_PRINTER = ROOT / "tools" / "printer.toml"
+MATERIALS_FILE = ROOT / "tools" / "materials.toml"
 
 # Below this much steep overhang (mm²) we don't bother warning; the tops of
 # small horizontal holes and chamfers print fine without support.
@@ -427,7 +427,7 @@ def check_gcode_lines(lines, printer, material, materials, material_given, repor
         report.info(f"Slicer says material is {name}")
     elif not material_given and len(sliced_types) == 1:
         report.info(f"Slicer says material is {sliced_types[0]} (not in "
-                    "knowledge/materials.toml, so only printer limits are checked)")
+                    "tools/materials.toml, so only printer limits are checked)")
         material = None
     elif not material_given and len(sliced_types) > 1:
         # Multi-color job with different materials; one range can't cover them all.
@@ -636,8 +636,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("files", nargs="+", type=Path, help="files or folders")
     ap.add_argument("--printer", type=Path, default=DEFAULT_PRINTER,
-                    help="printer profile TOML (default: printers/printer.toml)")
-    ap.add_argument("--material", help="material name from knowledge/materials.toml")
+                    help="printer profile TOML (default: tools/printer.toml)")
+    ap.add_argument("--material", help="material name from tools/materials.toml")
     ap.add_argument("--summary", action="store_true",
                     help="one line per file instead of the full report")
     args = ap.parse_args(argv)
@@ -651,7 +651,7 @@ def main(argv=None):
 
     print(f"Printer: {printer['printer']['name']}  |  Material: {name or '?'}")
     if not printer["printer"].get("confirmed"):
-        print("  [WARN] printers/printer.toml is a placeholder - set your real "
+        print("  [WARN] tools/printer.toml is a placeholder - set your real "
               "printer's specs and confirmed = true.")
 
     reports = []

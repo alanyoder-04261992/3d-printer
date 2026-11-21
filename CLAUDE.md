@@ -1,52 +1,25 @@
-# 3D print brain
+# 3D Prints
 
-This repo is the central place for designing new 3D prints for the shed
-business: shed hardware, dealer-lot displays, scale models, signs, jigs.
-Every session that designs a print starts here and leaves what it learned here.
+Our 3D print files for a Flashforge AD5X, sliced in Orca-Flashforge. The full setup and
+everything we've learned is in the printer brain:
 
-## Before designing anything
+@PRINTER-BRAIN.md
 
-1. Read `printers/printer.toml`. Our printer is a **Flashforge AD5X**:
-   220 x 220 x 220 mm, 0.4 mm nozzle, open frame (no enclosure), 4-color IFS,
-   sliced in Orca-Flashforge / OrcaSlicer. If the user mentions a different
-   printer or nozzle, update the profile first.
-2. Read `knowledge/design-rules.md` and `knowledge/lessons-learned.md`.
-   Lessons learned override the general rules.
-3. Pick the material with `knowledge/materials.md`. Anything outdoors or in a
-   closed shed is PETG, never PLA (ASA warps on the open-frame AD5X).
+## Keeping the brain current
+- When the setup changes (new nozzle, new filament, new firmware, a saved preset), update
+  `PRINTER-BRAIN.md` and bump its "Last updated" date.
+- When a print teaches us something, add a row to the **Print log** and, if it's a general
+  rule, a line under **Lessons learned**.
+- Read the settings saved inside a `.3mf` (`Metadata/project_settings.config`) rather than
+  guessing what a file was sliced with.
+- Before sending a file to the printer, run `python3 tools/check_print.py <file or folder>`
+  (see "Checking a print file without opening it" in the brain). Fix every FAIL.
 
-## Making a new print
-
-1. `python3 tools/new_project.py "Name of part"` creates `projects/<name>/`.
-2. Fill in the brief in its `README.md`. Ask the user for anything you'd
-   otherwise guess: real measurements of what it attaches to, indoor/outdoor,
-   load, quantity.
-3. Design in `model.scad` (OpenSCAD). Keep every dimension a named parameter at
-   the top, in millimeters, with tolerances from `design-rules.md` applied.
-   Convert inches to mm (1 in = 25.4 mm).
-4. Export: `openscad -o projects/<name>/model.stl projects/<name>/model.scad`.
-   If OpenSCAD isn't installed where you're running, tell the user to export
-   locally and commit the STL. For multi-color prints, export one STL per color
-   (see "Multi-color" in `design-rules.md`) and check each.
-5. Check: `python3 tools/check_print.py projects/<name>/model.stl --material PETG`.
-   Fix every FAIL. Explain each WARN to the user or fix it. Paste the
-   result into the project README.
-6. Sliced files can be checked the same way: `.gcode`, and Orca-Flashforge's
-   `.gcode.3mf` / project `.3mf`. Pass a folder to check everything in it
-   (`--summary` for one line per file). This catches files sliced for the
-   wrong printer, nozzle or temperatures, and shows the slicer's own warnings.
-
-## After the user prints it
-
-Record the result in the project's print log. If it teaches something
-general (a tolerance that was off, a material that failed), add a row to
-`knowledge/lessons-learned.md` and update `design-rules.md`.
-
-## Layout
-
-- `printers/printer.toml`: the printer everything is checked against
-- `knowledge/`: design rules, materials (`materials.toml` is read by the checker), lessons learned
-- `projects/<name>/`: one folder per part (brief, `model.scad`, `model.stl`, print log)
-- `projects/_template/`: what `new_project.py` copies
-- `tools/check_print.py`: pre-print checker (STL, 3MF and G-code, Python stdlib only)
-- `tests/`: `python3 -m unittest discover tests`
+## Working in this folder
+- Git history is stored outside OneDrive at `%USERPROFILE%\.git-repos\3d-printer`; the `.git`
+  file here points to it. Don't move it back into the folder.
+- Any file over 100 MB must be tracked with Git LFS (`git lfs track --filename "<path>"`)
+  before it is committed.
+- The GitHub repo is public. Never commit the printer's serial number, logs, IP address or
+  account details.
+- Orca-Flashforge must be closed before editing anything in `%APPDATA%\Orca-Flashforge`.
